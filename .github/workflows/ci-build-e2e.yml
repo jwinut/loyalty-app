@@ -556,17 +556,29 @@ jobs:
             fi
           done
 
-      - name: Install Playwright browsers (with system deps)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright OS deps (cache hit, browsers already present)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+      - name: Install Playwright OS deps
+        # apt-only step (fast once the lock is free above). Runs on both cache
+        # hit and miss — the browser cache doesn't include the apt libraries.
         env:
           DEBIAN_FRONTEND: noninteractive
         run: npx playwright install-deps chromium
+
+      - name: Install Playwright browser (cache miss; retry on flaky CDN)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        # The browser download from cdn.playwright.dev intermittently stalls
+        # after reaching 100% (connection hangs on the next artifact),
+        # previously blocking until the 20-min job timeout. Bound each attempt
+        # with `timeout` and retry so a stalled connection is killed and
+        # retried with a fresh one instead of hanging the whole job.
+        run: |
+          for attempt in 1 2 3; do
+            echo "playwright install chromium (attempt $attempt)"
+            if timeout 300 npx playwright install chromium; then exit 0; fi
+            echo "attempt $attempt timed out or failed; retrying after 5s"
+            sleep 5
+          done
+          echo "playwright browser install failed after 3 attempts" >&2
+          exit 1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
