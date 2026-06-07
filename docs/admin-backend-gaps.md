@@ -174,11 +174,10 @@ Used by `EmailServicePage.tsx` (Settings → Email Service).
 
 ### Skipped in misc batch
 
-- **IMAP live probe** for `GET /email/status` — the `async-imap` crate
-  is already in `Cargo.toml` but unused; building a probe needs a new
-  `ImapService` trait + impl (parallel to `EmailService`) and live
-  IMAP test infrastructure to exercise it. Kept out of this PR to
-  bound scope. The endpoint reports `imapConnected` based on whether
+- **IMAP live probe** for `GET /email/status` — building a probe needs a
+  new `ImapService` trait + impl (parallel to `EmailService`), a re-added
+  IMAP client crate, and live IMAP test infrastructure to exercise it.
+  Kept out of scope. The endpoint reports `imapConnected` based on whether
   `IMAP_HOST/USER/PASS` are set, and exposes `imapProbed: false` so
   the frontend can distinguish "configured-but-unprobed" from
   "probed-and-healthy".
