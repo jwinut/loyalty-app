@@ -444,17 +444,15 @@ test.describe('User View of Admin Cancelled Booking', () => {
         // Click on the first booking
         await bookingCards.first().click();
 
-        // Modal should open
+        // Modal should open and render the booking's details
         const modal = page.getByTestId('booking-details-modal');
         await expect(modal).toBeVisible({ timeout: 5000 });
 
-        // If it's a cancelled booking, it should show cancellation reason
-        const cancellationReason = page.getByText(/cancellation.*reason|เหตุผลการยกเลิก/i);
-        const isCancelled = await cancellationReason.isVisible().catch(() => false);
-
-        // Either booking is cancelled (shows reason) or not cancelled (no reason shown)
-        // This test verifies the UI structure is correct
-        expect(true).toBeTruthy(); // UI structure verified by navigation
+        // We don't control which booking is first, so assert the modal
+        // actually rendered content rather than a specific cancellation state.
+        // (A cancelled booking would additionally surface its cancellation
+        // reason here.)
+        await expect(modal).toContainText(/\S/);
       } else {
         test.skip(true, 'No bookings available for testing');
       }

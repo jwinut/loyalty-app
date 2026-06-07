@@ -433,10 +433,10 @@ if [[ "$VALIDATION_CONTEXT" == "runtime" ]]; then
     if docker compose exec -T postgres pg_isready -U loyalty -d loyalty_db >/dev/null 2>&1; then
         TABLE_COUNT=$(docker compose exec -T postgres psql -U loyalty -d loyalty_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ' || echo "0")
         if [ "$TABLE_COUNT" -gt 20 ]; then
-            success "✅ Consolidated database schema is applied (${TABLE_COUNT} tables)"
+            success "✅ Database schema is applied (${TABLE_COUNT} tables)"
         else
             warning "Database schema may not be fully initialized (${TABLE_COUNT} tables)"
-            echo "Consider running: $PROJECT_ROOT/database/deploy-database.sh"
+            echo "The backend applies sqlx migrations (backend-rust/migrations/) on startup; check backend logs."
         fi
     else
         warning "Cannot validate database schema (database not accessible)"

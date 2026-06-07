@@ -110,29 +110,36 @@ Before wiring a new frontend call:
 
 ## CI/CD
 
-Three workflows fire on push to `main`:
+Workflows fire on push to `main`:
 - `ci-test.yml` — frontend lint + frontend unit tests (Prepare Workspace
   + Lint Frontend + Frontend Unit Tests).
-- `ci-build-e2e.yml` — Lint Backend (Rust) → parallel
-  (Test Backend Unit, Test Backend Integration, Build Backend Release) →
-  Build & Push to GHCR → Deploy to Staging (inline, on push to `main`
-  only) → Verify Staging health check. **E2E Tests run in parallel with
-  Deploy to Staging**, not as a gate: every PR runs full E2E before
-  merge (which is the meaningful gate), production deploys require
-  manual human approval, and the staging health-check catches
-  deploy-itself-broken cases. A red E2E on `main` still fails the
-  workflow and surfaces in the GitHub Environments panel before a human
-  approves prod.
+- `ci-build-e2e.yml` (named **CI Build & Deploy**) — Lint Backend (Rust) →
+  parallel (Test Backend Unit, Test Backend Integration, Build Backend
+  Release) → Build & Push to GHCR → **Regression & Smoke (API)** +
+  Deploy to Staging (inline, on push to `main` only) → Verify Staging
+  health check. The deploy gate is the **API regression/smoke suite**
+  (`regression-api`, the Playwright `api` project — `*.api.spec.ts`),
+  which uses Playwright's request context with **no browser**, so it has
+  no `cdn.playwright.dev` dependency and is reliable enough to block
+  deploys.
+- `e2e.yml` (**Browser E2E**) — the full browser suite (Playwright
+  `browser` project — `*.browser.spec.ts`), run inside the
+  `mcr.microsoft.com/playwright` container so browsers are pre-baked (no
+  CDN download). It triggers via `workflow_run` after CI Build & Deploy
+  (and nightly / on demand) and **does NOT gate deployment** — a flaky
+  browser/CDN issue must never block shipping. Treat a red Browser E2E
+  as a signal to investigate, not a deploy blocker.
 - `trivy.yml` — Filesystem scan on push; backend/frontend image scans
-  triggered by `workflow_run` from `ci-build-e2e.yml` (pulls images from
-  GHCR instead of rebuilding).
+  triggered by `workflow_run` from `ci-build-e2e.yml` (`CI Build &
+  Deploy`; pulls images from GHCR instead of rebuilding).
 
-Production deploys live in `deploy.yml`, still `workflow_run`-triggered,
-gated by a manual approval on the `production` GitHub environment.
-Approvers should walk through
-[`docs/production-approval-checklist.md`](docs/production-approval-checklist.md)
-before clicking approve — E2E can be red on `main` without blocking
-`deploy.yml`, so the human check is the last meaningful gate.
+Production deploys live in `deploy.yml`, `workflow_run`-triggered after
+CI Build & Deploy + CI Tests succeed for the commit, and gated by the
+`production` GitHub environment. To require manual sign-off, add required
+reviewers to that environment (see
+[`docs/production-approval-checklist.md`](docs/production-approval-checklist.md));
+with no reviewers configured the deploy proceeds automatically once both
+CI workflows are green.
 
 Public-launch readiness — the state of every audit follow-up tied to
 flipping the public switch — is tracked in

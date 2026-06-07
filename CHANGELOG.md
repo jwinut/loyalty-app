@@ -4,6 +4,56 @@ All notable changes to this project are tracked here. Format roughly follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are dated
 because the project ships from `main` without semver tags.
 
+## 2026-06-07 — v4.3.0
+
+### `chore`: dependency, security & deploy hardening release
+
+Batched maintenance release: merged the open dependency PRs, cleared the
+backlog of stale code-scanning alerts, removed Node-era dead code, and
+aligned the deploy workflows with the other repos.
+
+- **Dependencies** (Dependabot #243–#255): `lettre 0.11.21 → 0.11.22`
+  (fixes RUSTSEC-2026-0141 — TLS hostname verification disabled on the
+  BoringTLS backend; closes the long-running cargo-audit issue #242),
+  plus `serde_json`, `jsonwebtoken`, `uuid`, `promptpay-rs`, `openssl`,
+  `axios` (frontend + e2e), `qs`, dev-dependency group, `@playwright/test`,
+  the `rust` and `node` base images, and `aquasecurity/trivy-action`.
+- **Deploy workflows**: `deploy.yml` and `backup-production.yml` now install
+  `cloudflared` from the `latest` release (dropping the pinned
+  `CLOUDFLARED_VERSION` + cache), matching the SSH-over-cloudflared pattern
+  used by the sibling repos. Both already ran on GitHub-hosted
+  `ubuntu-latest` (no self-hosted runner).
+- **CI/CD restructure — E2E no longer blocks deploys**: the deploy gate is
+  now the no-browser **API regression/smoke suite** (`regression-api`, the
+  Playwright `api` project) inside `ci-build-e2e.yml`. The full **browser
+  E2E** moved to a new, non-blocking `e2e.yml` that runs inside the
+  `mcr.microsoft.com/playwright` container (browsers pre-baked — no
+  `cdn.playwright.dev` download). This was prompted by a sustained Playwright
+  CDN outage that hung the old browser-install step and blocked the deploy
+  gate even though no code was broken. Supporting CI reliability fixes:
+  install `sqlx-cli` from a prebuilt binary (`taiki-e/install-action`)
+  instead of a flaky from-source `cargo install`, and free the apt lock
+  before any Playwright system-deps install. Also fixed `trivy.yml`'s
+  `workflow_run` trigger, which referenced a stale workflow name
+  (`CI Build & E2E`) and so never fired its post-build image scan.
+- **Supply chain**: pinned the `backend-rust/Dockerfile` base images
+  (`rust:1.96-trixie`, `gcr.io/distroless/cc-debian12`) by digest, matching
+  the frontend Dockerfile convention.
+- **Dead code**: removed the legacy Node-era `database/` directory (37 files;
+  superseded by `backend-rust/migrations/` + `sqlx::migrate!()`) and the
+  broken 975-line `manage.sh` (referenced the deleted Node `backend/`).
+- **Docs**: corrected stale "Prisma" migration references (README, compose
+  files, `backend-rust/migrations/README.md`) to reflect sqlx; rewrote the
+  stale `scripts/README.md`; refreshed `backend-rust/README.md`.
+- **Tests**: replaced a fake `expect(true).toBeTruthy()` assertion in
+  `tests/booking-admin-cancel.spec.ts` with a real modal-content assertion
+  (also clears CodeQL `js/unused-local-variable`).
+- **Security triage**: dismissed ~80 stale code-scanning alerts that
+  referenced deleted files (legacy `backend/`, removed `deploy-v2.yml` /
+  `rust-backend.yml` workflows) or unfixable distroless base-OS CVEs (no
+  upstream fix); stale Trivy image/lock findings auto-close on the next scan
+  of the rebuilt image.
+
 ## 2026-05-13
 
 ### `fix(audit)`: correctness mediums + lows

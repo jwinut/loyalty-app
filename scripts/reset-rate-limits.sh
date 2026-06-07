@@ -57,7 +57,7 @@ check_backend_running() {
         return 0
     else
         print_error "Backend service is not running at $BACKEND_URL"
-        print_status "Please start the backend service first using: ./manage.sh start"
+        print_status "Please start the backend service first using: docker compose up -d"
         return 1
     fi
 }
@@ -322,8 +322,7 @@ main() {
         print_status "You can now test OAuth endpoints:"
         echo "  • Run OAuth health check: npm run oauth:health"
         echo "  • Run OAuth E2E tests: npm run test:e2e -- tests/oauth-validation.configured.spec.ts tests/oauth-validation.security.spec.ts tests/oauth-validation.unconfigured.spec.ts"
-        echo "  • Test via manage.sh: ./manage.sh (Deployment Menu → OAuth Health Check)"
-        
+
     else
         echo ""
         print_error "❌ Rate limit reset may not have been fully successful"
