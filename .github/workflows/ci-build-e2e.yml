@@ -536,12 +536,36 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
+      - name: Free apt locks before Playwright system-deps install
+        # `playwright install --with-deps` / `install-deps` shell out to
+        # apt-get, which intermittently hangs for the full job timeout waiting
+        # on the dpkg/apt-frontend lock held by the runner's background
+        # `unattended-upgrades`. Stop that service and wait for the lock to
+        # clear so the apt step runs immediately instead of blocking.
+        run: |
+          sudo systemctl stop unattended-upgrades.service apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+          sudo systemctl kill --kill-who=all unattended-upgrades.service 2>/dev/null || true
+          for i in $(seq 1 60); do
+            if sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 \
+               || sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 \
+               || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; then
+              echo "apt/dpkg lock held; waiting... ($i)"
+              sleep 2
+            else
+              break
+            fi
+          done
+
       - name: Install Playwright browsers (with system deps)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: npx playwright install --with-deps chromium
 
       - name: Install Playwright OS deps (cache hit, browsers already present)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: npx playwright install-deps chromium
 
       - name: Login to GitHub Container Registry
