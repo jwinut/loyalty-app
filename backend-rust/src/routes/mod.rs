@@ -141,7 +141,24 @@ pub fn create_router(state: AppState) -> Router {
         None => app,
     };
 
+    // Prometheus metrics. The layer measures every API request defined above
+    // (request count, in-flight, and latency histograms by path/method/status).
+    // The `/metrics` endpoint is added AFTER the layer so it is neither
+    // measured nor rate-limited, and it lives at the top level — nginx only
+    // proxies `/api` and `/storage` to the backend, so `/metrics` is reachable
+    // only inside the Docker network (e.g. a Prometheus sidecar scraping
+    // `backend:4001/metrics`), never from the public internet.
+    let (prometheus_layer, metric_handle) = axum_prometheus::PrometheusMetricLayer::pair();
+
     app.layer(Extension(jwt_secret))
+        .layer(prometheus_layer)
+        .route(
+            "/metrics",
+            axum::routing::get(move || {
+                let handle = metric_handle.clone();
+                async move { handle.render() }
+            }),
+        )
 }
 
 #[cfg(test)]

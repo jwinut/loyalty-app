@@ -4,6 +4,28 @@ All notable changes to this project are tracked here. Format roughly follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are dated
 because the project ships from `main` without semver tags.
 
+## 2026-06-07 — launch-readiness hardening
+
+### `chore`: backup auto-activation, prod approval gate, Prometheus metrics
+
+In-repo follow-ups from the public-launch readiness review:
+
+- **Backups now self-activate** — `backup-production.yml`'s daily schedule is
+  always enabled; a `check-config` gate makes the backup job cleanly skip (a
+  green no-op with a notice) until the `BACKUP_*` secrets are wired, then it
+  starts running on its own the moment they land. No more nightly failures
+  while secrets are pending, and no code change needed at wiring time.
+- **Production approval gate** — the `production` GitHub environment now has a
+  required reviewer, so `deploy.yml` pauses for manual approval before each
+  prod deploy (previously it auto-deployed on green CI).
+- **Runtime metrics** — added `axum-prometheus`; the backend now exposes
+  request-rate / latency-histogram / in-flight metrics at top-level
+  `GET /metrics`. It's internal-only by construction (nginx proxies only
+  `/api` + `/storage`, so `/metrics` is reachable on the Docker network for a
+  Prometheus scrape but never publicly) and is excluded from the rate limiter
+  and from its own measurement. Wiring an actual Prometheus/Grafana (or a
+  hosted agent) against it remains an ops step.
+
 ## 2026-06-07 — dead-code cleanup
 
 ### `chore`: remove dead code across backend, frontend, and tests
