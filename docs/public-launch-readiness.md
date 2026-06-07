@@ -8,6 +8,7 @@ next one is due ~90 days after the first public traffic).
 
 Legend:
 - `[x]` — landed and verified in repo / live
+- `[~]` — partially landed (repo half done; an out-of-repo step remains)
 - `[ ]` — open, with the audit finding ID it closes when ticked
 
 ## Operational baseline
@@ -83,7 +84,10 @@ Legend:
   `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT`, `BACKUP_S3_REGION`,
   `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` (see
   [`docs/secrets-runbook.md`](secrets-runbook.md#backup-secrets-workflow-githubworkflowsbackup-productionyml)).
-  Without these the daily backup workflow is inert.
+  The daily schedule is now always enabled and the backup job auto-skips
+  (a green no-op) until these secrets exist, then starts running on its
+  own the moment they land — so this row needs only the secret wiring, no
+  further code change.
 - [ ] **Restore drill performed once** (CRIT-1 closure) — follow
   [`docs/restore-runbook.md`](restore-runbook.md) against staging.
   Document the date and the restored DB size in the runbook so the
@@ -130,12 +134,15 @@ Legend:
 
 ## After the first 30 days
 
-- [ ] **Runtime metrics / dashboard** (HIGH-4) — currently no
-  request rate / error rate / p99 visibility outside `tracing` logs.
-  `axum-prometheus` + a small Prometheus on evergreen + a static
-  Grafana dashboard is the cheapest baseline; a hosted alternative
-  (Better Stack, Honeycomb) is the lower-effort path. Decide based
-  on actual traffic and budget.
+- [~] **Runtime metrics / dashboard** (HIGH-4) — backend half **done**:
+  `axum-prometheus` exposes request-rate / latency-histogram / in-flight
+  metrics at `GET /metrics` (top-level, internal-only — nginx proxies
+  only `/api` + `/storage`, so the endpoint is reachable on the Docker
+  network for a scrape but never publicly). **Still open**: run a
+  Prometheus on evergreen (scrape `backend:4001/metrics`) + a static
+  Grafana dashboard, or point a hosted agent (Better Stack, Honeycomb)
+  at it. There's no request-rate/error-rate/p99 *dashboard* until that
+  scraper is wired.
 - [ ] **`booking_audit_log` retention partitioning** (HIGH-5) —
   if disk pressure emerges, range-partition by `occurred_at` (year)
   so old partitions can be detached cheaply.

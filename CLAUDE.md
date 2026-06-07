@@ -135,11 +135,11 @@ Workflows fire on push to `main`:
 
 Production deploys live in `deploy.yml`, `workflow_run`-triggered after
 CI Build & Deploy + CI Tests succeed for the commit, and gated by the
-`production` GitHub environment. To require manual sign-off, add required
-reviewers to that environment (see
-[`docs/production-approval-checklist.md`](docs/production-approval-checklist.md));
-with no reviewers configured the deploy proceeds automatically once both
-CI workflows are green.
+`production` GitHub environment, which has a **required reviewer** — the
+deploy pauses for manual approval before it runs (walk
+[`docs/production-approval-checklist.md`](docs/production-approval-checklist.md)
+before approving). Manage the approver list in Settings → Environments →
+`production`.
 
 Public-launch readiness — the state of every audit follow-up tied to
 flipping the public switch — is tracked in
