@@ -17,12 +17,12 @@
 //!   EHLO/STARTTLS/AUTH handshake via `lettre::AsyncSmtpTransport::test_connection`
 //!   and tears down. Reflects authentication and TLS state, not just config.
 //! - **IMAP** — **only a configured-state check**. There is no IMAP client
-//!   wired into this backend yet. The `async-imap` crate is listed in
-//!   `Cargo.toml` but never imported; shipping a "probe" would mean
-//!   building an `ImapService` trait + impl from scratch (parallel to
-//!   `EmailService`), which deserves its own PR. The response field is
-//!   reported as `imapConnected: true` if `IMAP_HOST/USER/PASS` are all
-//!   set and `false` otherwise. The status object also returns
+//!   wired into this backend yet; shipping a "probe" would mean building an
+//!   `ImapService` trait + impl from scratch (parallel to `EmailService`)
+//!   and re-adding an IMAP client crate, which deserves its own PR. The
+//!   response field is reported as `imapConnected: true` if
+//!   `IMAP_HOST/USER/PASS` are all set and `false` otherwise. The status
+//!   object also returns
 //!   `imapProbed: false` so the frontend (and an operator reading the
 //!   JSON) knows this is a declarative check, not a live probe.
 //! - **End-to-end SMTP→IMAP loopback test** — explicitly NOT implemented.
