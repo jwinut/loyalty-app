@@ -44,7 +44,6 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Utc};
-use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -244,31 +243,6 @@ fn seconds_until_next_utc_day() -> u64 {
         // Theoretically unreachable (date_naive + ms 0 is always valid).
         // Fall through to a safe small retry interval.
         None => 3600,
-    }
-}
-
-/// Read the current count without incrementing. Used to enforce the
-/// quota on a hit at TEST_EMAIL_DAILY_QUOTA + 1 (i.e. after the bump
-/// in `increment_test_email_quota`). Kept separate so the handler
-/// can also support a "what's my remaining quota?" probe in the
-/// future without double-incrementing.
-#[allow(dead_code)]
-async fn get_test_email_quota(state: &AppState, admin_id: &str) -> u32 {
-    let today = Utc::now().format("%Y-%m-%d").to_string();
-    let key = format!("email_test_quota:{}:{}", admin_id, today);
-    let mut conn = state.redis();
-
-    match conn.get::<_, Option<u32>>(&key).await {
-        Ok(Some(count)) => count,
-        Ok(None) => 0,
-        Err(e) => {
-            tracing::warn!(
-                admin_id = %admin_id,
-                error = %e,
-                "Redis quota GET failed — assuming 0"
-            );
-            0
-        },
     }
 }
 

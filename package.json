@@ -12,7 +12,6 @@
     "test:unit": "cd backend-rust && cargo test --lib --bins",
     "test:integration": "cd backend-rust && cargo test --test lib",
     "test:e2e": "E2E_BACKEND_PORT=4202 E2E_DB_PORT=5436 E2E_REDIS_PORT=6381 npx playwright test",
-    "test:build-validation": "npx playwright test tests/build-validation.api.spec.ts",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "cd backend-rust && cargo clippy --all-targets -- -D warnings",
     "lint:frontend": "cd frontend && npm run lint",
