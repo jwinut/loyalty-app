@@ -157,45 +157,6 @@ impl Drop for CleanupStream {
     }
 }
 
-/// SSE endpoint with token query parameter support
-///
-/// This wrapper handles authentication via query parameter for EventSource
-/// which cannot set custom headers.
-#[allow(dead_code)]
-async fn _sse_events_with_query(
-    Query(query): Query<SseQuery>,
-    auth_result: Result<Extension<AuthUser>, Response>,
-) -> Response {
-    // If we have a valid AuthUser from middleware, use it
-    match auth_result {
-        Ok(Extension(user)) => {
-            let sse = sse_events_handler(Extension(user)).await;
-            sse.into_response()
-        },
-        Err(_) => {
-            // Try query parameter token
-            if let Some(token) = query.token {
-                let jwt_secret = std::env::var("JWT_SECRET")
-                    .unwrap_or_else(|_| "development-secret-change-in-production".to_string());
-                // Validate token manually
-                match validate_token_from_query(&token, &jwt_secret) {
-                    Ok(user) => {
-                        let sse = sse_events_handler(Extension(user)).await;
-                        sse.into_response()
-                    },
-                    Err(response) => response,
-                }
-            } else {
-                let body = Json(ErrorResponse::new(
-                    "unauthorized",
-                    "Authentication required. Provide token via Authorization header or query parameter.",
-                ));
-                (StatusCode::UNAUTHORIZED, body).into_response()
-            }
-        },
-    }
-}
-
 /// Validate JWT token from query parameter
 #[allow(clippy::result_large_err)]
 fn validate_token_from_query(token: &str, jwt_secret: &str) -> Result<AuthUser, Response> {

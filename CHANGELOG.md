@@ -4,6 +4,29 @@ All notable changes to this project are tracked here. Format roughly follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are dated
 because the project ships from `main` without semver tags.
 
+## 2026-06-07 — dead-code cleanup
+
+### `chore`: remove dead code across backend, frontend, and tests
+
+Codebase-wide dead-code sweep (verified with `cargo clippy -D warnings`,
+`tsc --noEmit`, and `cargo-machete`):
+
+- **Backend (Rust)**: removed the unused `_sse_events_with_query` handler (a
+  dead duplicate of the live query-param SSE handler), the unused
+  `get_test_email_quota` helper (and its now-unused `redis::AsyncCommands`
+  import), and the write-only `redis_url_sanitized` field.
+- **Unused dependencies**: dropped `async-imap`, `async-native-tls`, `hmac`,
+  and `mime` from `backend-rust/Cargo.toml` (zero source references; leftovers
+  from an unimplemented IMAP path) — trims the dependency tree by ~100
+  Cargo.lock lines and shrinks the attack surface.
+- **Frontend**: deleted the unreferenced `LoyaltyDashboard.tsx`, the
+  entirely-unused `utils/translationHelpers.ts` module, the unwired
+  `AuthLayout` component + its test, and a stray `*.test.tsx.backup` file.
+- **Tests**: removed 8 orphaned Playwright specs (~3,700 lines: `booking*`,
+  `tests/e2e/email-*`, `build-validation.local`) that matched neither
+  project's `testMatch` and therefore never ran, plus the dead
+  `test:build-validation` npm script that pointed at a non-existent file.
+
 ## 2026-06-07 — v4.3.0
 
 ### `chore`: dependency, security & deploy hardening release

@@ -20,9 +20,6 @@ const SESSION_PREFIX: &str = "session:";
 pub struct RedisManager {
     /// Connection manager that handles reconnection automatically
     pub connection: ConnectionManager,
-    /// Original Redis URL for logging/debugging (sanitized)
-    #[allow(dead_code)]
-    redis_url_sanitized: String,
 }
 
 /// Type alias for Redis connection manager (for backwards compatibility)
@@ -51,10 +48,7 @@ impl RedisManager {
 
         info!("Redis connection established successfully");
 
-        Ok(Self {
-            connection,
-            redis_url_sanitized: sanitized,
-        })
+        Ok(Self { connection })
     }
 
     /// Initialize from REDIS_URL environment variable
