@@ -6,12 +6,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      skip_e2e:
-        description: 'Skip E2E tests'
-        required: false
-        default: 'false'
-        type: boolean
 
 concurrency:
   group: ci-build-${{ github.ref }}
@@ -87,8 +81,8 @@ jobs:
   # ubuntu glibc and the bookworm container produce incompatible `target/`
   # layouts.
   #
-  # `e2e-tests` and `deploy-staging` gate on BOTH test jobs so we never burn
-  # e2e/deploy time on a red backend.
+  # `regression-api` and `deploy-staging` gate on BOTH test jobs so we never
+  # burn regression/deploy time on a red backend.
   # =============================================================================
 
   test-backend-unit:
@@ -469,17 +463,19 @@ jobs:
   # E2E TESTS (using GHCR images)
   # =============================================================================
 
-  e2e-tests:
-    name: "E2E Tests"
+  regression-api:
+    name: "Regression & Smoke (API)"
     runs-on: ubuntu-latest
-    # Wait for both backend test jobs so we don't burn 2+ minutes of e2e
-    # runtime against a backend whose unit or integration tests are red.
+    # DEPLOY GATE. Runs the API regression/smoke suite (the Playwright `api`
+    # project — *.api.spec.ts) against the freshly built images. These tests
+    # use Playwright's request context, NOT a browser, so there is no
+    # cdn.playwright.dev browser-download dependency — reliable enough to
+    # block deploys. The full browser E2E suite runs separately in e2e.yml,
+    # which does NOT gate deployment.
     needs: [build-and-push, test-backend-unit, test-backend-integration]
-    if: github.event.inputs.skip_e2e != 'true'
-    timeout-minutes: 20
-    # E2E tests run sequentially to prevent port conflicts
+    timeout-minutes: 15
     concurrency:
-      group: e2e-tests
+      group: regression-api
       cancel-in-progress: false
 
     services:
@@ -517,68 +513,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install root dependencies (Playwright)
+        # The `api` project uses Playwright's request context only — no
+        # browser binaries are downloaded, so this stays off the flaky
+        # cdn.playwright.dev path entirely.
         run: npm ci
-
-      - name: Resolve Playwright version
-        id: playwright-version
-        run: |
-          # Read the resolved version from package-lock.json (semver-pinned),
-          # not the ^-prefixed range in package.json, so the cache key changes
-          # only when the lockfile changes.
-          PLAYWRIGHT_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
-          echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
-          echo "Playwright version: $PLAYWRIGHT_VERSION"
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-
-      - name: Free apt locks before Playwright system-deps install
-        # `playwright install --with-deps` / `install-deps` shell out to
-        # apt-get, which intermittently hangs for the full job timeout waiting
-        # on the dpkg/apt-frontend lock held by the runner's background
-        # `unattended-upgrades`. Stop that service and wait for the lock to
-        # clear so the apt step runs immediately instead of blocking.
-        run: |
-          sudo systemctl stop unattended-upgrades.service apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
-          sudo systemctl kill --kill-who=all unattended-upgrades.service 2>/dev/null || true
-          for i in $(seq 1 60); do
-            if sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 \
-               || sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 \
-               || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; then
-              echo "apt/dpkg lock held; waiting... ($i)"
-              sleep 2
-            else
-              break
-            fi
-          done
-
-      - name: Install Playwright OS deps
-        # apt-only step (fast once the lock is free above). Runs on both cache
-        # hit and miss — the browser cache doesn't include the apt libraries.
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps chromium
-
-      - name: Install Playwright browser (cache miss; retry on flaky CDN)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        # The browser download from cdn.playwright.dev intermittently stalls
-        # after reaching 100% (connection hangs on the next artifact),
-        # previously blocking until the 20-min job timeout. Bound each attempt
-        # with `timeout` and retry so a stalled connection is killed and
-        # retried with a fresh one instead of hanging the whole job.
-        run: |
-          for attempt in 1 2 3; do
-            echo "playwright install chromium (attempt $attempt)"
-            if timeout 300 npx playwright install chromium; then exit 0; fi
-            echo "attempt $attempt timed out or failed; retrying after 5s"
-            sleep 5
-          done
-          echo "playwright browser install failed after 3 attempts" >&2
-          exit 1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -680,17 +618,17 @@ jobs:
 
           echo "E2E test users seeded"
 
-      - name: Run Playwright E2E tests
-        run: npx playwright test
+      - name: Run API regression & smoke suite
+        run: npx playwright test --project=api
         env:
-          E2E_BASE_URL: http://localhost:3201
-          E2E_API_URL: http://localhost:4202/api
+          BACKEND_URL: http://localhost:4202
+          FRONTEND_URL: http://localhost:3201
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: playwright-report
+          name: regression-api-report
           path: playwright-report/
           retention-days: 7
 
@@ -760,12 +698,10 @@ jobs:
   # and can race itself into "skipped" purgatory when two upstream workflows
   # finish in the wrong order.
   #
-  # E2E intentionally NOT in `needs:` — every PR runs full E2E before merge
-  # (the meaningful gate), production deploys require manual human approval,
-  # and `verify-staging` below catches deploy-itself-broken cases. On main,
-  # E2E still runs in parallel: a red E2E fails the overall workflow status
-  # and surfaces in the GitHub Environments panel before a human approves
-  # prod.
+  # The deploy gate is `regression-api` (the no-browser API regression/smoke
+  # suite) plus the backend test jobs and `verify-staging`. Full browser E2E
+  # lives in the separate e2e.yml workflow and intentionally does NOT gate
+  # deployment — a flaky browser/CDN issue there must never block shipping.
   # =============================================================================
 
   deploy-staging:

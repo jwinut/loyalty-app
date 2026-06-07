@@ -9,7 +9,7 @@ name: Trivy Container Scan
 
 on:
   workflow_run:
-    workflows: ["CI Build & E2E"]
+    workflows: ["CI Build & Deploy"]
     types: [completed]
     branches: [main]
   schedule:

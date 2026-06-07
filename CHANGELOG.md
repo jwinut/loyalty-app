@@ -23,6 +23,19 @@ aligned the deploy workflows with the other repos.
   `CLOUDFLARED_VERSION` + cache), matching the SSH-over-cloudflared pattern
   used by the sibling repos. Both already ran on GitHub-hosted
   `ubuntu-latest` (no self-hosted runner).
+- **CI/CD restructure — E2E no longer blocks deploys**: the deploy gate is
+  now the no-browser **API regression/smoke suite** (`regression-api`, the
+  Playwright `api` project) inside `ci-build-e2e.yml`. The full **browser
+  E2E** moved to a new, non-blocking `e2e.yml` that runs inside the
+  `mcr.microsoft.com/playwright` container (browsers pre-baked — no
+  `cdn.playwright.dev` download). This was prompted by a sustained Playwright
+  CDN outage that hung the old browser-install step and blocked the deploy
+  gate even though no code was broken. Supporting CI reliability fixes:
+  install `sqlx-cli` from a prebuilt binary (`taiki-e/install-action`)
+  instead of a flaky from-source `cargo install`, and free the apt lock
+  before any Playwright system-deps install. Also fixed `trivy.yml`'s
+  `workflow_run` trigger, which referenced a stale workflow name
+  (`CI Build & E2E`) and so never fired its post-build image scan.
 - **Supply chain**: pinned the `backend-rust/Dockerfile` base images
   (`rust:1.96-trixie`, `gcr.io/distroless/cc-debian12`) by digest, matching
   the frontend Dockerfile convention.
