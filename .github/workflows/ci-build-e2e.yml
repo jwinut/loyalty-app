@@ -275,23 +275,17 @@ jobs:
           "
           echo "Test data seeded successfully"
 
-      - name: Cache sqlx-cli
-        id: cache-sqlx
-        uses: actions/cache@v5
-        with:
-          # sqlx-cli installs TWO binaries; `cargo sqlx ...` invocations
-          # below need `cargo-sqlx` in PATH. Caching only `sqlx` (as a prior
-          # version of this step did) silently produced cache hits that
-          # restored only half the install — the next run then failed with
-          # "no such command: `sqlx`".
-          path: |
-            /usr/local/cargo/bin/sqlx
-            /usr/local/cargo/bin/cargo-sqlx
-          key: sqlx-cli-container-${{ env.RUST_VERSION }}-v2
-
       - name: Install sqlx-cli
-        if: steps.cache-sqlx.outputs.cache-hit != 'true'
-        run: cargo install sqlx-cli --no-default-features --features postgres --locked
+        # Download a prebuilt sqlx-cli binary instead of `cargo install` from
+        # source. The from-source install is slow and flaky (transient
+        # crates.io / network failures during the dependency compile), and it
+        # recompiles on every Rust-version bump because the toolchain change
+        # invalidates the build cache. taiki-e/install-action fetches a
+        # prebuilt binary (same approach used by cargo-audit.yml) — fast and
+        # reliable, and it provides both `sqlx` and `cargo-sqlx`.
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli
 
       - name: Verify SQLx query cache
         working-directory: ./backend-rust
