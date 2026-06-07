@@ -22,10 +22,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: thehfhotel
   IMAGE_REPO: loyalty-app
-  # Pin cloudflared so the cache key is stable across deploys. Bump this
-  # version (and the cache will repopulate on the next run) when the
-  # cloudflared release we want changes.
-  CLOUDFLARED_VERSION: "2024.10.0"
 
 jobs:
   # =============================================================================
@@ -100,25 +96,13 @@ jobs:
             nginx/nginx.conf
           sparse-checkout-cone-mode: false
 
-      - name: Cache cloudflared binary
-        id: cache-cloudflared
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/cloudflared
-          key: cloudflared-${{ runner.os }}-${{ env.CLOUDFLARED_VERSION }}
-
-      - name: Download cloudflared (cache miss)
-        if: steps.cache-cloudflared.outputs.cache-hit != 'true'
+      - name: Install cloudflared
+        # Reaches evergreen via the same `asgard` tunnel the operators use
+        # for daily SSH. No CF Access app gates evergreen, so no service token.
         run: |
-          mkdir -p ~/.cache/cloudflared
-          curl -fsSL \
-            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64" \
-            -o ~/.cache/cloudflared/cloudflared
-          chmod +x ~/.cache/cloudflared/cloudflared
-
-      - name: Install cloudflared to /usr/local/bin
-        run: |
-          sudo install -m 755 ~/.cache/cloudflared/cloudflared /usr/local/bin/cloudflared
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o /tmp/cloudflared
+          sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared --version
 
       - name: Install SSH key + known_hosts

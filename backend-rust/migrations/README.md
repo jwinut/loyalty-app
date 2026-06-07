@@ -4,7 +4,11 @@ This directory contains database migrations for the Rust backend using SQLx.
 
 ## Overview
 
-The Rust backend uses the same PostgreSQL database schema as the Node.js backend. The initial migration (`20240101000000_init.sql`) is copied from the Prisma migration to ensure compatibility.
+These migrations own the PostgreSQL schema for the Loyalty App. They are
+applied automatically at backend startup via the embedded `sqlx::migrate!()`
+migrator, so a fresh database is brought fully up to date the first time the
+backend boots. The `sqlx` CLI commands below are for local/manual use during
+development.
 
 ## Prerequisites
 
@@ -51,9 +55,11 @@ This creates a new file in the migrations directory with the format:
 
 ## Important Notes
 
-1. **Schema Compatibility**: The initial schema is copied from Prisma migrations to ensure both Node.js and Rust backends work with the same database schema.
+1. **Idempotency**: Migrations are idempotent by convention (`ADD COLUMN IF
+   NOT EXISTS`, `DO`-block constraint guards, `CREATE INDEX IF NOT EXISTS`) so
+   a partial application during a failed deploy doesn't wedge the next attempt.
 
-2. **Stored Procedures**: The migration includes PostgreSQL stored procedures for:
+2. **Stored Procedures**: The migrations include PostgreSQL stored procedures for:
    - `recalculate_user_tier_by_nights()` - Recalculates user tier based on nights stayed
    - `award_points()` - Awards points to users and updates tier
    - `assign_coupon_to_user()` - Assigns coupons with validation
@@ -71,13 +77,17 @@ This creates a new file in the migrations directory with the format:
 
 | Migration | Description |
 |-----------|-------------|
-| `20240101000000_init.sql` | Initial schema (from Prisma migration) |
+| `20240101000000_init.sql` | Initial schema |
+
+See the files in this directory for the full, current list.
 
 ## Troubleshooting
 
 ### Migration already applied
 
-If you see "migration already applied" errors, the database already has the schema. This is expected when sharing a database with the Node.js backend.
+If you see "migration already applied" errors, the database already has the
+schema at that revision. This is expected on a database that has been booted
+before.
 
 ### Type already exists
 

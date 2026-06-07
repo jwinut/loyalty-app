@@ -19,7 +19,7 @@ A high-performance Rust rewrite of the Node.js backend for the Loyalty App. This
 
 ### Purpose
 
-This is a complete Rust rewrite of the Node.js/Express backend, designed to provide:
+This is the production backend for the Loyalty App, built in Rust, designed to provide:
 
 - **Performance**: Native compilation with zero-cost abstractions
 - **Type Safety**: Compile-time guarantees for data types and API contracts

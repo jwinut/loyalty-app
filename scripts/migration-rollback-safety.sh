@@ -34,7 +34,7 @@ print_critical() {
 }
 
 # Configuration
-BACKUP_DIR="./database/backups"
+BACKUP_DIR="./backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 MAX_BACKUPS=10
 

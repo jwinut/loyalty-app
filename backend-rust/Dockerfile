@@ -1,7 +1,7 @@
 # ==============================================================================
 # Stage 1: Chef - Install cargo-chef for dependency caching
 # ==============================================================================
-FROM rust:1.96-trixie AS chef
+FROM rust:1.96-trixie@sha256:fb328f0f58becb23ba1719940a2c94ece8b0b48afa837d05b79ef64bc1e18f6e AS chef
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -45,7 +45,7 @@ RUN cargo build --release --bin loyalty-backend --bin healthcheck
 # ==============================================================================
 # Stage 4: Development - Full development environment with hot reload
 # ==============================================================================
-FROM rust:1.96-trixie AS development
+FROM rust:1.96-trixie@sha256:fb328f0f58becb23ba1719940a2c94ece8b0b48afa837d05b79ef64bc1e18f6e AS development
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -100,7 +100,7 @@ CMD ["cargo", "watch", "-x", "run"]
 #   (no shell, no curl). Replaced by the dedicated `healthcheck` binary
 #   built from `src/bin/healthcheck.rs` in the builder stage above. The
 #   docker-compose.prod.yml healthcheck calls `/app/healthcheck` directly.
-FROM gcr.io/distroless/cc-debian12 AS runner
+FROM gcr.io/distroless/cc-debian12@sha256:aa0b7af67fa8211751ea6e00baa8373ba56cc1417ffc986ec9619bd0e1556b56 AS runner
 
 WORKDIR /app
 

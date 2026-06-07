@@ -12,10 +12,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Removed old SQL migrations - Prisma handles schema migrations now
-      # - ./database/migrations:/docker-entrypoint-initdb.d
-      # - ./database/seeds:/docker-entrypoint-initdb.d/seeds
-      # - ./database/init-db.sh:/docker-entrypoint-initdb.d/zzz-init-db.sh
+      # Schema is owned by the backend: sqlx applies migrations from
+      # backend-rust/migrations/ at startup. No init-time SQL mounts.
     # PORTS: Defined in environment-specific override files (dev/prod)
     # to prevent port conflicts when both environments run on same machine
     healthcheck:

@@ -30,7 +30,7 @@ A production hotel loyalty platform: members, tier progression, points and coupo
 - Stateless Rust API behind nginx reverse proxy
 - Compile-time verified SQL via `sqlx` (offline cache committed to git)
 - Automatic essential-data seeding on startup (tiers, membership ID sequence)
-- Migrations executed via Prisma at deploy time, schema queried by sqlx at runtime
+- Migrations applied at backend startup via the embedded `sqlx::migrate!()` migrator; queries are compile-time verified by sqlx
 - GitHub Actions CI for tests, Trivy vulnerability scanning, and zero-downtime deploys
 
 ## Quick Start
