@@ -46,7 +46,7 @@
 # Source is vendored inline (not COPY'd from context) because the workflow
 # build context is `./backend-binary`, which contains only the pre-built
 # loyalty-backend binary. Keep this in sync with src/bin/healthcheck.rs.
-FROM rust:1.95-slim AS hc-builder
+FROM rust:1.96-slim AS hc-builder
 
 WORKDIR /hc
 

@@ -1,7 +1,7 @@
 # ==============================================================================
 # Stage 1: Chef - Install cargo-chef for dependency caching
 # ==============================================================================
-FROM rust:1.95-trixie AS chef
+FROM rust:1.96-trixie AS chef
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -45,7 +45,7 @@ RUN cargo build --release --bin loyalty-backend --bin healthcheck
 # ==============================================================================
 # Stage 4: Development - Full development environment with hot reload
 # ==============================================================================
-FROM rust:1.95-trixie AS development
+FROM rust:1.96-trixie AS development
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
