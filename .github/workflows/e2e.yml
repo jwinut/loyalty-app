@@ -184,10 +184,12 @@ jobs:
             && echo "Created e2e-admin@test.local" || echo "User may already exist"
           echo "E2E test users seeded"
 
-      - name: Run browser E2E (Playwright container, pre-baked browsers)
-        # Run the tests inside the official Playwright image (browsers already
-        # installed) on the host network so they reach the app on localhost.
-        # No cdn.playwright.dev download happens at any point.
+      - name: Run full E2E suite (Playwright container, pre-baked browsers)
+        # Run the COMPLETE suite (api + browser projects, including the
+        # browser-launching oauth-validation specs) inside the official
+        # Playwright image (browsers already installed) on the host network so
+        # the tests reach the app on localhost. No cdn.playwright.dev download
+        # happens at any point. This is the comprehensive, non-blocking check.
         run: |
           docker run --rm --network host \
             -v "${{ github.workspace }}:/work" -w /work \
@@ -195,7 +197,7 @@ jobs:
             -e BACKEND_URL=http://localhost:4202 \
             -e FRONTEND_URL=http://localhost:3201 \
             ${{ env.PLAYWRIGHT_IMAGE }} \
-            bash -lc "npm ci && npx playwright test --project=browser"
+            bash -lc "npm ci && npx playwright test"
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v6

@@ -619,7 +619,13 @@ jobs:
           echo "E2E test users seeded"
 
       - name: Run API regression & smoke suite
-        run: npx playwright test --project=api
+        # `api` project only, and exclude the OAuth *validation* specs
+        # (oauth-validation.*.api.spec.ts) — those launch a real browser
+        # despite living in the api project, which would drag the browserless
+        # gate back onto the cdn.playwright.dev path. They run in the
+        # browser-capable e2e.yml instead. The browserless OAuth *endpoint*
+        # smoke tests in health/auth-session still run here.
+        run: npx playwright test --project=api --grep-invert "OAuth (Flow|Security) Validation"
         env:
           BACKEND_URL: http://localhost:4202
           FRONTEND_URL: http://localhost:3201
