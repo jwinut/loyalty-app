@@ -40,12 +40,25 @@ if [[ -n "${CURRENT_INGEST_TOKENS:-}" ]]; then
 elif [[ -n "${1:-}" && -f "${1:-}" ]]; then
   current="$(cat -- "$1")"
 else
-  echo "Paste the CURRENT hf-analytics INGEST_TOKENS JSON (input hidden), then Enter."
-  echo "If this is the very first source, just press Enter for {}."
+  echo "Paste the CURRENT hf-analytics INGEST_TOKENS JSON (input hidden), then Enter:"
   read -rs current
   echo
 fi
-[[ -z "${current//[[:space:]]/}" ]] && current='{}'
+# Refuse to proceed on an empty value — uploading would OVERWRITE the secret
+# and DROP every existing source token (host-metrics, room-daily-reporter, …).
+# Only an explicit ALLOW_EMPTY_INGEST=1 permits starting from scratch.
+if [[ -z "${current//[[:space:]]/}" ]]; then
+  if [[ "${ALLOW_EMPTY_INGEST:-0}" == "1" ]]; then
+    current='{}'
+    echo "WARNING: ALLOW_EMPTY_INGEST=1 — starting from {}; any existing tokens WILL be replaced."
+  else
+    echo "ERROR: no current INGEST_TOKENS provided. Refusing — uploading now would clobber the" >&2
+    echo "       secret and drop existing source tokens. Supply the current value (env" >&2
+    echo "       CURRENT_INGEST_TOKENS, a file arg, or paste it), or set ALLOW_EMPTY_INGEST=1" >&2
+    echo "       only if this is genuinely the first source ever." >&2
+    exit 1
+  fi
+fi
 
 if ! jq -e . >/dev/null 2>&1 <<<"$current"; then
   echo "ERROR: the supplied INGEST_TOKENS is not valid JSON — aborting (nothing changed)." >&2
