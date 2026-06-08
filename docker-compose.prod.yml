@@ -49,6 +49,14 @@ services:
     container_name: loyalty_backend_production
     cpus: 1.0
     mem_limit: 512m
+    # Publish the backend on the host loopback ONLY so the host-network
+    # host-metrics-pusher can scrape /metrics (axum-prometheus) for the
+    # hf-analytics dashboard. 127.0.0.1-bound — never publicly exposed; nginx
+    # stays the sole public entry. Note: this reaches the full backend API
+    # from the evergreen host's loopback (app JWT auth + rate-limiting still
+    # apply); /metrics carries no secrets.
+    ports:
+      - "127.0.0.1:4011:4001"
     build:
       target: runner  # Use production-optimized runner stage with Rust binary
     environment:
