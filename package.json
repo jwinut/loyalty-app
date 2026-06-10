@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "allure-playwright": "^3.4.4",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "fast-check": "^4.5.3",
     "glob": "^13.0.0"
   }
