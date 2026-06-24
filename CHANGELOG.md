@@ -4,6 +4,61 @@ All notable changes to this project are tracked here. Format roughly follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are dated
 because the project ships from `main` without semver tags.
 
+## 2026-06-25 — codebase cleanup, security & dependency refresh
+
+A broad review-and-refactor pass: security advisories cleared, dependencies
+updated, ~14k lines of dead code removed, and targeted library/performance
+improvements. All changes are behavior-preserving and verified end-to-end
+(`cargo build` + `clippy -D warnings` + `cargo test` + `cargo audit` +
+`cargo sqlx prepare --check`; `tsc` + `eslint` + `vitest` + `vite build`).
+
+### `chore`: security fixes & version updates
+
+- **Backend:** `quinn-proto 0.11.14 → 0.11.15` (RUSTSEC-2026-0185, high —
+  resolves the "cargo audit failing on main" issue), `thiserror 1 → 2`, and
+  `redis 0.25 → 0.27` (clears a never-type-fallback future-incompatibility that
+  becomes a hard error in edition 2024), plus a compatible `cargo update`.
+  `cargo audit` is clean (0 vulnerabilities).
+- **Frontend / e2e:** `npm audit` advisories cleared — `shell-quote` (critical),
+  `form-data` (high), `vite` (high ×2), `ws` (high ×2), `react-router` (CSRF),
+  and `@hey-api`'s transitive `js-yaml`. `npm audit` reports 0 vulnerabilities
+  across root and frontend.
+- **Dependency hygiene:** dropped the unused `i18next-http-backend`; moved
+  `@types/qrcode` to `devDependencies`.
+
+### `refactor`: remove ~7.7k lines of dead backend code
+
+- Deleted the unused trait-based **service layer** (`auth`, `booking`, `survey`,
+  `notification`, `loyalty`, `coupon`, `user`, plus the `membership_id` helper —
+  ~6.9k lines). Nothing wired it: `AppState` never held it, no route or
+  integration test imported it, and the route handlers do their CRUD directly
+  via `sqlx`. It also carried duplicate type definitions shadowing the live ones
+  in `models/`.
+- Removed the legacy **loyalty router stack** (`LoyaltyState`,
+  `routes_with_state` / `routes_with_app_state` / `routes_stub`, the duplicate
+  `LoyaltyState`-backed handlers and the stub handlers) plus assorted within-file
+  dead code (a legacy `Config` struct, `DbError`, `cors_layer_permissive`,
+  unused model DTOs, the `RedisClient` alias, …). Every removal was confirmed by
+  the compiler (`cargo check` / `clippy -D warnings`), and the `.sqlx` offline
+  cache was regenerated (67 orphaned query entries pruned).
+- Frontend dead code removed as well: the unused `QRCodeDisplay` component,
+  dead exports/props/branches, and a redundant `ProtectedRoute` guard.
+
+### `perf` / `improve`: libraries & runtime
+
+- **Backend:** avatar image processing now runs in `spawn_blocking` (off the
+  async runtime); the broadcast-notification **N+1** collapses into a single
+  multi-row `UNNEST` insert; the membership-id regex is cached in a `OnceLock`;
+  `hex::encode` and a shared `clean_phone` helper replace hand-rolled code; the
+  `require_admin` guard (previously copy-pasted into five `admin_*` modules) is
+  centralized in `middleware::auth`.
+- **Frontend:** route-level **code-splitting** (`React.lazy`) pulls the heavy
+  admin/survey pages (including `chart.js`) out of the initial bundle; `clsx`
+  (previously installed but unused) replaces hand-built conditional classNames;
+  `SurveyAnalytics` chart datasets are memoized; the `RoomTypeManagement`
+  Create/Edit form duplication (~340 lines) collapses into one shared component;
+  duplicate `authService` / `loyaltyService` methods were removed.
+
 ## 2026-06-07 — launch-readiness hardening
 
 ### `chore`: backup auto-activation, prod approval gate, Prometheus metrics
