@@ -63,6 +63,226 @@ const initialFormData: RoomTypeFormData = {
   sortOrder: 0,
 };
 
+interface RoomTypeFormProps {
+  formData: RoomTypeFormData;
+  setFormData: React.Dispatch<React.SetStateAction<RoomTypeFormData>>;
+  imageInput: string;
+  setImageInput: React.Dispatch<React.SetStateAction<string>>;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+  onAddImage: () => void;
+  onRemoveImage: (imageUrl: string) => void;
+  onAmenityToggle: (amenity: string) => void;
+  activeToggleId: string;
+  submitLabel: string;
+  submitDisabled: boolean;
+}
+
+const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
+  formData,
+  setFormData,
+  imageInput,
+  setImageInput,
+  onSubmit,
+  onCancel,
+  onAddImage,
+  onRemoveImage,
+  onAmenityToggle,
+  activeToggleId,
+  submitLabel,
+  submitDisabled,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      {/* Name */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t('admin.booking.roomTypes.name')} *
+        </label>
+        <input
+          type="text"
+          required
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t('admin.booking.roomTypes.description')}
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Price and Max Guests */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('admin.booking.roomTypes.pricePerNight')} (THB) *
+          </label>
+          <input
+            type="number"
+            required
+            min="0"
+            step="0.01"
+            value={formData.pricePerNight}
+            onChange={(e) => setFormData({ ...formData, pricePerNight: parseFloat(e.target.value) || 0 })}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('admin.booking.roomTypes.maxGuests')} *
+          </label>
+          <input
+            type="number"
+            required
+            min="1"
+            value={formData.maxGuests}
+            onChange={(e) => setFormData({ ...formData, maxGuests: parseInt(e.target.value) || 1 })}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Bed Type and Sort Order */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('admin.booking.roomTypes.bedType')}
+          </label>
+          <select
+            value={formData.bedType}
+            onChange={(e) => setFormData({ ...formData, bedType: e.target.value as typeof formData.bedType })}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">{t('admin.booking.roomTypes.selectBedType')}</option>
+            {BED_TYPE_OPTIONS.map((type) => (
+              <option key={type} value={type}>
+                {t(`admin.booking.roomTypes.bedTypes.${type}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('admin.booking.roomTypes.sortOrder')}
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={formData.sortOrder}
+            onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Amenities */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t('admin.booking.roomTypes.amenities')}
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {AMENITIES_OPTIONS.map((amenity) => (
+            <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.amenities.includes(amenity)}
+                onChange={() => onAmenityToggle(amenity)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="text-sm text-gray-700">
+                {t(`admin.booking.roomTypes.amenitiesList.${amenity}`)}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Images */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t('admin.booking.roomTypes.images')}
+        </label>
+        <div className="flex space-x-2 mb-2">
+          <input
+            type="url"
+            value={imageInput}
+            onChange={(e) => setImageInput(e.target.value)}
+            placeholder={t('admin.booking.roomTypes.imageUrlPlaceholder')}
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={onAddImage}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+          >
+            {t('admin.booking.roomTypes.addImage')}
+          </button>
+        </div>
+        {formData.images.length > 0 && (
+          <div className="space-y-2">
+            {formData.images.map((url, index) => (
+              <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
+                <span className="text-sm text-gray-600 truncate flex-1">{url}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemoveImage(url)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  {t('common.remove')}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Active Toggle */}
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id={activeToggleId}
+          checked={formData.isActive}
+          onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor={activeToggleId} className="text-sm text-gray-700">
+          {t('admin.booking.roomTypes.isActive')}
+        </label>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+        >
+          {t('common.cancel')}
+        </button>
+        <button
+          type="submit"
+          disabled={submitDisabled}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+};
+
 const RoomTypeManagement: React.FC = () => {
   const { t } = useTranslation();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -425,194 +645,23 @@ const RoomTypeManagement: React.FC = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleCreate} className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.name')} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.description')}
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Price and Max Guests */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.pricePerNight')} (THB) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.pricePerNight}
-                      onChange={(e) => setFormData({ ...formData, pricePerNight: parseFloat(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.maxGuests')} *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formData.maxGuests}
-                      onChange={(e) => setFormData({ ...formData, maxGuests: parseInt(e.target.value) || 1 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Bed Type and Sort Order */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.bedType')}
-                    </label>
-                    <select
-                      value={formData.bedType}
-                      onChange={(e) => setFormData({ ...formData, bedType: e.target.value as typeof formData.bedType })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">{t('admin.booking.roomTypes.selectBedType')}</option>
-                      {BED_TYPE_OPTIONS.map((type) => (
-                        <option key={type} value={type}>
-                          {t(`admin.booking.roomTypes.bedTypes.${type}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.sortOrder')}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.sortOrder}
-                      onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('admin.booking.roomTypes.amenities')}
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {AMENITIES_OPTIONS.map((amenity) => (
-                      <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.amenities.includes(amenity)}
-                          onChange={() => handleAmenityToggle(amenity)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {t(`admin.booking.roomTypes.amenitiesList.${amenity}`)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Images */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.images')}
-                  </label>
-                  <div className="flex space-x-2 mb-2">
-                    <input
-                      type="url"
-                      value={imageInput}
-                      onChange={(e) => setImageInput(e.target.value)}
-                      placeholder={t('admin.booking.roomTypes.imageUrlPlaceholder')}
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddImage}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                    >
-                      {t('admin.booking.roomTypes.addImage')}
-                    </button>
-                  </div>
-                  {formData.images.length > 0 && (
-                    <div className="space-y-2">
-                      {formData.images.map((url, index) => (
-                        <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-600 truncate flex-1">{url}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(url)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            {t('common.remove')}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Active Toggle */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
-                    {t('admin.booking.roomTypes.isActive')}
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {createMutation.isPending ? t('common.processing') : t('common.create')}
-                  </button>
-                </div>
-              </form>
+              <RoomTypeForm
+                formData={formData}
+                setFormData={setFormData}
+                imageInput={imageInput}
+                setImageInput={setImageInput}
+                onSubmit={handleCreate}
+                onCancel={() => {
+                  setShowCreateModal(false);
+                  resetForm();
+                }}
+                onAddImage={handleAddImage}
+                onRemoveImage={handleRemoveImage}
+                onAmenityToggle={handleAmenityToggle}
+                activeToggleId="isActive"
+                submitLabel={createMutation.isPending ? t('common.processing') : t('common.create')}
+                submitDisabled={createMutation.isPending}
+              />
             </div>
           </div>
         </div>
@@ -637,195 +686,24 @@ const RoomTypeManagement: React.FC = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleUpdate} className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.name')} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.description')}
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Price and Max Guests */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.pricePerNight')} (THB) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.pricePerNight}
-                      onChange={(e) => setFormData({ ...formData, pricePerNight: parseFloat(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.maxGuests')} *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formData.maxGuests}
-                      onChange={(e) => setFormData({ ...formData, maxGuests: parseInt(e.target.value) || 1 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Bed Type and Sort Order */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.bedType')}
-                    </label>
-                    <select
-                      value={formData.bedType}
-                      onChange={(e) => setFormData({ ...formData, bedType: e.target.value as typeof formData.bedType })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">{t('admin.booking.roomTypes.selectBedType')}</option>
-                      {BED_TYPE_OPTIONS.map((type) => (
-                        <option key={type} value={type}>
-                          {t(`admin.booking.roomTypes.bedTypes.${type}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('admin.booking.roomTypes.sortOrder')}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.sortOrder}
-                      onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('admin.booking.roomTypes.amenities')}
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {AMENITIES_OPTIONS.map((amenity) => (
-                      <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.amenities.includes(amenity)}
-                          onChange={() => handleAmenityToggle(amenity)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {t(`admin.booking.roomTypes.amenitiesList.${amenity}`)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Images */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.booking.roomTypes.images')}
-                  </label>
-                  <div className="flex space-x-2 mb-2">
-                    <input
-                      type="url"
-                      value={imageInput}
-                      onChange={(e) => setImageInput(e.target.value)}
-                      placeholder={t('admin.booking.roomTypes.imageUrlPlaceholder')}
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddImage}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                    >
-                      {t('admin.booking.roomTypes.addImage')}
-                    </button>
-                  </div>
-                  {formData.images.length > 0 && (
-                    <div className="space-y-2">
-                      {formData.images.map((url, index) => (
-                        <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
-                          <span className="text-sm text-gray-600 truncate flex-1">{url}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(url)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            {t('common.remove')}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Active Toggle */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActiveEdit"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActiveEdit" className="text-sm text-gray-700">
-                    {t('admin.booking.roomTypes.isActive')}
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setSelectedRoomType(null);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {updateMutation.isPending ? t('common.saving') : t('common.save')}
-                  </button>
-                </div>
-              </form>
+              <RoomTypeForm
+                formData={formData}
+                setFormData={setFormData}
+                imageInput={imageInput}
+                setImageInput={setImageInput}
+                onSubmit={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedRoomType(null);
+                  resetForm();
+                }}
+                onAddImage={handleAddImage}
+                onRemoveImage={handleRemoveImage}
+                onAmenityToggle={handleAmenityToggle}
+                activeToggleId="isActiveEdit"
+                submitLabel={updateMutation.isPending ? t('common.saving') : t('common.save')}
+                submitDisabled={updateMutation.isPending}
+              />
             </div>
           </div>
         </div>

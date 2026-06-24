@@ -195,7 +195,7 @@ export const useAuthStore = create<AuthState>()(
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-          const response = await authService.getMe();
+          const response = await authService.getCurrentUser();
           clearTimeout(timeoutId);
 
           // Update user info and ensure isAuthenticated is true

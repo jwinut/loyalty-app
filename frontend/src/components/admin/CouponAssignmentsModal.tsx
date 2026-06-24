@@ -78,10 +78,6 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
     loadAssignments(1);
   }, [coupon.id, loadAssignments]);
 
-  const formatDate = (date: Date) => {
-    return formatDateToDDMMYYYY(date);
-  };
-
   const getStatusBadge = (assignment: CouponAssignment) => {
     const { usedCount, availableCount } = assignment;
     if (availableCount > 0 && usedCount > 0) {
@@ -281,7 +277,7 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
                           {getStatusBadge(assignment)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(assignment.latestAssignment)}
+                          {formatDateToDDMMYYYY(assignment.latestAssignment)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {assignment.availableCount > 0 ? (

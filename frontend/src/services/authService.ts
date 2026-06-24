@@ -90,11 +90,6 @@ export const authService = {
     return response.data;
   },
 
-  async getMe(): Promise<ApiResponse<User & { profile?: UserProfile }>> {
-    const response = await api.get<ApiResponse<User & { profile?: UserProfile }>>('/auth/me');
-    return response.data;
-  },
-
   async apiCall<T = unknown>(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: unknown): Promise<T> {
     try {
       let response;
