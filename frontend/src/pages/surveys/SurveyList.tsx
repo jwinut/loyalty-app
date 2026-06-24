@@ -7,6 +7,7 @@ import { useAuthRedirect } from '../../hooks/useAuthRedirect';
 import DashboardButton from '../../components/navigation/DashboardButton';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import { useQuery } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { surveyService } from '../../services/surveyService';
 
 const SurveyList: React.FC = () => {
@@ -63,11 +64,11 @@ const SurveyList: React.FC = () => {
                 <h3 className="text-xl font-semibold text-gray-900">
                   {survey.title}
                 </h3>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  survey.access_type === 'public' 
-                    ? 'bg-green-100 text-green-800' 
+                <span className={clsx('inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+                  survey.access_type === 'public'
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-blue-100 text-blue-800'
-                }`}
+                )}
                 >
                   {survey.access_type === 'public' ? (
                     <>
@@ -138,7 +139,7 @@ const SurveyList: React.FC = () => {
                 disabled={loading}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <FiRefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <FiRefreshCw className={clsx('mr-2 h-4 w-4', loading && 'animate-spin')} />
                 Refresh
               </button>
               <LanguageSwitcher />
@@ -175,11 +176,11 @@ const SurveyList: React.FC = () => {
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab('public')}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
                   activeTab === 'public'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                )}
               >
                 <div className="flex items-center">
                   <FiUsers className="mr-2 h-4 w-4" />
@@ -188,11 +189,11 @@ const SurveyList: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab('invited')}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
                   activeTab === 'invited'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                )}
               >
                 <div className="flex items-center">
                   <FiEye className="mr-2 h-4 w-4" />

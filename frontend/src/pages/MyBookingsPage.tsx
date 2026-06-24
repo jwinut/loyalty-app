@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiUsers, FiStar, FiAlertCircle, FiPlus, FiChevronRight, FiX, FiUpload, FiCheckCircle, FiClock, FiDollarSign, FiDownload } from 'react-icons/fi';
 import MainLayout from '../components/layout/MainLayout';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { bookingService } from '../services/bookingService';
 import type { Booking } from '../services/bookingService';
@@ -72,7 +73,7 @@ export default function MyBookingsPage() {
 
   // Handle URL params for auto-opening booking
   useEffect(() => {
-    if (!bookings || isLoading) return;
+    if (!bookings || isLoading) {return;}
 
     const params = new URLSearchParams(location.search);
     const openBookingId = params.get('openBooking');
@@ -230,7 +231,7 @@ export default function MyBookingsPage() {
   }, []);
 
   const handleSlipUpload = useCallback(async () => {
-    if (!slipFile || !slipUploadBookingId) return;
+    if (!slipFile || !slipUploadBookingId) {return;}
 
     setIsUploading(true);
     try {
@@ -331,22 +332,22 @@ export default function MyBookingsPage() {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('current')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'current'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            )}
             data-testid="tab-current"
           >
             {t('booking.currentBookings')} ({currentBookings.length})
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'history'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            )}
             data-testid="tab-history"
           >
             {t('booking.bookingHistory')} ({historyBookings.length})
@@ -892,9 +893,9 @@ export default function MyBookingsPage() {
 
                       {/* Divider with "or" */}
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 border-t border-gray-200"></div>
+                        <div className="flex-1 border-t border-gray-200" />
                         <span className="text-sm text-gray-400">{t('payment.or')}</span>
-                        <div className="flex-1 border-t border-gray-200"></div>
+                        <div className="flex-1 border-t border-gray-200" />
                       </div>
 
                       {/* QR Code Display */}
@@ -955,9 +956,9 @@ export default function MyBookingsPage() {
 
                   {/* Divider with "or" */}
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 border-t border-gray-200"></div>
+                    <div className="flex-1 border-t border-gray-200" />
                     <span className="text-sm text-gray-400">{t('payment.or')}</span>
-                    <div className="flex-1 border-t border-gray-200"></div>
+                    <div className="flex-1 border-t border-gray-200" />
                   </div>
 
                   {/* QR Code Display */}

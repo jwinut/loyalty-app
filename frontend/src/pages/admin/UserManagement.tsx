@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { FiUser, FiUsers, FiUserCheck, FiUserX, FiSearch, FiTrash2, FiEye } from 'react-icons/fi';
@@ -136,10 +137,6 @@ const UserManagement: React.FC = () => {
     } catch (_error) {
       toast.error(t('userManagement.messages.fetchDetailsFailed'));
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return formatDateToDDMMYYYY(dateString);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -341,7 +338,7 @@ const UserManagement: React.FC = () => {
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user, e.target.value)}
-                        className={`text-xs font-semibold px-2 py-1 rounded-full ${getRoleBadgeColor(user.role)}`}
+                        className={clsx('text-xs font-semibold px-2 py-1 rounded-full', getRoleBadgeColor(user.role))}
                       >
                         <option value="customer">{t('userManagement.customer')}</option>
                         <option value="admin">{t('userManagement.admin')}</option>
@@ -349,12 +346,12 @@ const UserManagement: React.FC = () => {
                       </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(user.isActive)}`}>
+                      <span className={clsx('inline-flex px-2 py-1 text-xs font-semibold rounded-full', getStatusBadgeColor(user.isActive))}>
                         {user.isActive ? t('userManagement.active') : t('userManagement.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(user.createdAt)}
+                      {formatDateToDDMMYYYY(user.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
@@ -367,10 +364,12 @@ const UserManagement: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleStatusToggle(user)}
-                          className={`p-1 ${user.isActive 
-                            ? 'text-red-600 hover:text-red-900' 
-                            : 'text-green-600 hover:text-green-900'
-                          }`}
+                          className={clsx(
+                            'p-1',
+                            user.isActive
+                              ? 'text-red-600 hover:text-red-900'
+                              : 'text-green-600 hover:text-green-900'
+                          )}
                           title={user.isActive ? t('userManagement.deactivate') : t('userManagement.activate')}
                         >
                           {user.isActive ? <FiUserX className="h-4 w-4" /> : <FiUserCheck className="h-4 w-4" />}
@@ -446,14 +445,14 @@ const UserManagement: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">{t('userManagement.role')}: </span>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(selectedUser.role)}`}>
-                      {selectedUser.role === 'super_admin' ? t('userManagement.superAdmin') : 
+                    <span className={clsx('px-2 py-1 text-xs font-semibold rounded-full', getRoleBadgeColor(selectedUser.role))}>
+                      {selectedUser.role === 'super_admin' ? t('userManagement.superAdmin') :
                        selectedUser.role === 'admin' ? t('userManagement.admin') : t('userManagement.customer')}
                     </span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">{t('userManagement.status')}: </span>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(selectedUser.isActive)}`}>
+                    <span className={clsx('px-2 py-1 text-xs font-semibold rounded-full', getStatusBadgeColor(selectedUser.isActive))}>
                       {selectedUser.isActive ? t('userManagement.active') : t('userManagement.inactive')}
                     </span>
                   </div>
@@ -463,7 +462,7 @@ const UserManagement: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">{t('userManagement.joined')}: </span>
-                    <span className="text-gray-900">{formatDate(selectedUser.createdAt)}</span>
+                    <span className="text-gray-900">{formatDateToDDMMYYYY(selectedUser.createdAt)}</span>
                   </div>
                 </div>
                 <div className="mt-6">

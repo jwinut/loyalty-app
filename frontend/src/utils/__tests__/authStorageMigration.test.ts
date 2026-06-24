@@ -23,7 +23,7 @@ function createMemoryStorage(initial: Record<string, string> = {}): Storage {
       return Object.keys(store).length;
     },
     clear() {
-      for (const key of Object.keys(store)) delete store[key];
+      for (const key of Object.keys(store)) {delete store[key];}
     },
     getItem(key: string) {
       return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;

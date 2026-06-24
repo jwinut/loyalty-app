@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { formatDistanceToNow } from 'date-fns';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { inAppNotificationService } from '../../services/inAppNotificationService';
+import { logger } from '../../utils/logger';
 import type { Notification, NotificationType } from '../../types/notification';
 
 export default function NotificationCenter() {
@@ -76,7 +77,7 @@ export default function NotificationCenter() {
     try {
       await markAsReadMutation.mutateAsync({ notificationIds });
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      logger.error('Error marking notifications as read:', error);
     }
   };
 
@@ -86,7 +87,7 @@ export default function NotificationCenter() {
     try {
       await markAllAsReadMutation.mutateAsync();
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -96,7 +97,7 @@ export default function NotificationCenter() {
     try {
       await deleteNotificationMutation.mutateAsync({ notificationId });
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      logger.error('Error deleting notification:', error);
     }
   };
 

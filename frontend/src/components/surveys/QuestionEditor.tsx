@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import { FiMove, FiPlus, FiX } from 'react-icons/fi';
 import { SurveyQuestion, QuestionOption } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
@@ -76,9 +77,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     });
   };
 
-  const updateOption = (optionId: string, field: 'text' | 'value', value: string) => {
-    if (field === 'value') {return;}
-
+  const updateOption = (optionId: string, value: string) => {
     setOptions(prevOptions => {
       const updatedOptions = (prevOptions ?? []).map((option, index) =>
         option.id === optionId
@@ -217,11 +216,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             onChange={(e) => handleQuestionTextChange(e.target.value)}
             disabled={disabled}
             rows={2}
-            className={`block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-              !questionText || questionText.trim() === '' 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300'
-            } ${disabled ? 'bg-gray-100' : ''}`}
+            className={clsx(
+              'block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+              !questionText || questionText.trim() === ''
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300',
+              disabled && 'bg-gray-100'
+            )}
             placeholder={t('surveys.admin.questionEditor.questionTextPlaceholder')}
           />
           {(!questionText || questionText.trim() === '') && (
@@ -257,7 +258,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   <input
                     type="text"
                     value={option.text}
-                    onChange={(e) => updateOption(option.id, 'text', e.target.value)}
+                    onChange={(e) => updateOption(option.id, e.target.value)}
                     disabled={disabled}
                     className={`flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${disabled ? 'bg-gray-100' : ''}`}
                     placeholder={t('surveys.admin.questionEditor.optionTextPlaceholder')}

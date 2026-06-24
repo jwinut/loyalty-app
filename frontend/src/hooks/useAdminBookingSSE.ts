@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 
 interface SlipUploadedEvent {
   bookingId: string;
@@ -40,17 +41,17 @@ export function useAdminBookingSSE(onSlipUploaded: (data: SlipUploadedEvent) => 
         const data = JSON.parse(event.data) as SlipUploadedEvent;
         handleSlipUploaded(data);
       } catch (error) {
-        console.error('Failed to parse SSE slip-uploaded event:', error);
+        logger.error('Failed to parse SSE slip-uploaded event:', error);
       }
     });
 
     eventSource.addEventListener('connected', (event) => {
-      console.log('SSE connected:', event.data);
+      logger.log('SSE connected:', event.data);
     });
 
     eventSource.onerror = (error) => {
       // EventSource auto-reconnects on error
-      console.warn('SSE connection error, will auto-reconnect:', error);
+      logger.warn('SSE connection error, will auto-reconnect:', error);
     };
 
     return () => {

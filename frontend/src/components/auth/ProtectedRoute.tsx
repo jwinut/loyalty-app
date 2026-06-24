@@ -58,7 +58,7 @@ export default function ProtectedRoute({
   }
 
   // Check role requirements if specified
-  if (requiredRole && user) {
+  if (requiredRole) {
     const roleHierarchy = {
       'customer': 0,
       'staff': 1,

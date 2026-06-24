@@ -48,21 +48,6 @@ export function getUserDisplayName(user: User | null): string {
 }
 
 /**
- * Gets a user avatar URL or returns null for default avatar
- */
-export function getUserAvatarUrl(user: User | null): string | null {
-  if (!user) {return null;}
-  return user.avatarUrl ?? null;
-}
-
-/**
- * Checks if user is an OAuth user
- */
-export function isOAuthUser(user: User | null): boolean {
-  return !!(user?.oauthProvider);
-}
-
-/**
  * Gets the OAuth provider display name
  */
 export function getOAuthProviderName(user: User | null): string | null {

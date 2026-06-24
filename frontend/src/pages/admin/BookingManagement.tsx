@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import {
@@ -288,7 +289,7 @@ const BookingManagement: React.FC = () => {
     const badge = badges[status] ?? badges.pending;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${badge?.className ?? ''}`}>
+      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
         {badge?.icon}
         {badge?.text}
       </span>
@@ -317,7 +318,7 @@ const BookingManagement: React.FC = () => {
     const badge = badges[status] ?? badges.pending;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${badge?.className ?? ''}`}>
+      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
         {badge?.icon}
         {badge?.text}
       </span>
@@ -346,7 +347,7 @@ const BookingManagement: React.FC = () => {
     const badge = badges[status] ?? badges.confirmed;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${badge?.className ?? ''}`}>
+      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
         {badge?.icon}
         {badge?.text}
       </span>
@@ -354,7 +355,7 @@ const BookingManagement: React.FC = () => {
   };
 
   const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
-    if (sortField !== field) return null;
+    if (sortField !== field) {return null;}
     return sortDirection === 'asc' ? (
       <FiChevronUp className="w-4 h-4" />
     ) : (
@@ -404,7 +405,7 @@ const BookingManagement: React.FC = () => {
                 disabled={bookingsQuery.isRefetching}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                <FiRefreshCw className={`w-4 h-4 mr-2 ${bookingsQuery.isRefetching ? 'animate-spin' : ''}`} />
+                <FiRefreshCw className={clsx('w-4 h-4 mr-2', bookingsQuery.isRefetching && 'animate-spin')} />
                 {t('common.refresh')}
               </button>
               <DashboardButton variant="outline" size="md" />
@@ -424,41 +425,45 @@ const BookingManagement: React.FC = () => {
                 <nav className="-mb-px flex">
                   <button
                     onClick={() => setStatusFilter('')}
-                    className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                    className={clsx(
+                      'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === ''
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    )}
                   >
                     {t('admin.booking.bookingManagement.allStatuses')} ({statusCounts.all})
                   </button>
                   <button
                     onClick={() => setStatusFilter('confirmed')}
-                    className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                    className={clsx(
+                      'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'confirmed'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    )}
                   >
                     {t('booking.status.confirmed')} ({statusCounts.confirmed})
                   </button>
                   <button
                     onClick={() => setStatusFilter('cancelled')}
-                    className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                    className={clsx(
+                      'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'cancelled'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    )}
                   >
                     {t('booking.status.cancelled')} ({statusCounts.cancelled})
                   </button>
                   <button
                     onClick={() => setStatusFilter('completed')}
-                    className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                    className={clsx(
+                      'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'completed'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    )}
                   >
                     {t('booking.status.completed')} ({statusCounts.completed})
                   </button>
@@ -579,9 +584,10 @@ const BookingManagement: React.FC = () => {
                           key={booking.id}
                           onClick={() => handleRowClick(booking)}
                           onDoubleClick={() => handleEditBooking(booking)}
-                          className={`hover:bg-gray-50 cursor-pointer ${
-                            selectedBooking?.id === booking.id ? 'bg-blue-50' : ''
-                          }`}
+                          className={clsx(
+                            'hover:bg-gray-50 cursor-pointer',
+                            selectedBooking?.id === booking.id && 'bg-blue-50'
+                          )}
                         >
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatDateTimeToEuropean(booking.createdAt)}
@@ -641,7 +647,7 @@ const BookingManagement: React.FC = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (booking.slip) handleVerifySlip(booking.id);
+                                  if (booking.slip) {handleVerifySlip(booking.id);}
                                 }}
                                 disabled={!booking.slip || verifySlipMutation.isPending}
                                 className="p-1 text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -654,7 +660,7 @@ const BookingManagement: React.FC = () => {
                                   e.stopPropagation();
                                   if (booking.slip) {
                                     const notes = prompt(t('admin.booking.bookingManagement.actions.enterNotes'));
-                                    if (notes) handleNeedsAction(booking.id, notes);
+                                    if (notes) {handleNeedsAction(booking.id, notes);}
                                   }
                                 }}
                                 disabled={!booking.slip || markNeedsActionMutation.isPending}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import CouponCard from '../../components/coupons/CouponCard';
@@ -139,11 +140,11 @@ const CouponWallet: React.FC = () => {
               {/* Active Tab */}
               <button
                 onClick={() => handleFilterChange('active')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'active'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                )}
               >
                 {t('coupons.activeCoupons')}
               </button>
@@ -151,11 +152,11 @@ const CouponWallet: React.FC = () => {
               {/* Used Tab */}
               <button
                 onClick={() => handleFilterChange('used')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'used'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                )}
               >
                 {t('coupons.usedCoupons', 'Used')}
               </button>
@@ -163,11 +164,11 @@ const CouponWallet: React.FC = () => {
               {/* Expired Tab */}
               <button
                 onClick={() => handleFilterChange('expired')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'expired'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                )}
               >
                 {t('coupons.expiredCoupons', 'Expired')}
               </button>
@@ -282,26 +283,26 @@ const CouponWallet: React.FC = () => {
         {(activeFilter === 'used' || activeFilter === 'expired') && coupons.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center mb-4">
-              <div className={`p-2 rounded-full mr-3 ${
-                activeFilter === 'used' 
-                  ? 'bg-gray-100' 
+              <div className={clsx('p-2 rounded-full mr-3',
+                activeFilter === 'used'
+                  ? 'bg-gray-100'
                   : 'bg-red-100'
-              }`}
+              )}
               >
-                <span className={`text-xl ${
-                  activeFilter === 'used' 
-                    ? 'text-gray-600' 
+                <span className={clsx('text-xl',
+                  activeFilter === 'used'
+                    ? 'text-gray-600'
                     : 'text-red-600'
-                }`}
+                )}
                 >
                   {activeFilter === 'used' ? '✓' : '⏰'}
                 </span>
               </div>
-              <h2 className={`text-xl font-semibold ${
-                activeFilter === 'used' 
-                  ? 'text-gray-900' 
+              <h2 className={clsx('text-xl font-semibold',
+                activeFilter === 'used'
+                  ? 'text-gray-900'
                   : 'text-red-700'
-              }`}
+              )}
               >
                 {activeFilter === 'used' 
                   ? t('coupons.usedCoupons', 'Used Coupons')

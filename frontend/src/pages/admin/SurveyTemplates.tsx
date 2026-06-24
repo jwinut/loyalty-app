@@ -7,16 +7,12 @@ import {
   FiUsers,
   FiHelpCircle,
   FiPlus,
-  FiCopy,
-  FiTrash2,
-  FiEdit
+  FiCopy
 } from 'react-icons/fi';
 import DashboardButton from '../../components/navigation/DashboardButton';
-import { Survey, SurveyQuestion } from '../../types/survey';
-import { surveyService } from '../../services/surveyService';
+import { SurveyQuestion } from '../../types/survey';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
-import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 interface SurveyTemplate {
   id: string;
@@ -253,25 +249,15 @@ const SurveyTemplates: React.FC = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [customTemplates, setCustomTemplates] = useState<Survey[]>([]);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       setTemplates(getPredefinedTemplates(t));
-      loadCustomTemplates();
     } catch (error) {
       logger.error('Error initializing templates:', error);
       toast.error('Failed to load survey templates');
     }
   }, [t]);
-
-  const loadCustomTemplates = () => {
-    // Custom templates functionality is disabled for now
-    // Templates are provided as predefined options only
-    setCustomTemplates([]);
-  };
 
   const categories = [
     { key: 'all', label: t('surveys.admin.templates.allTemplates') },
@@ -297,23 +283,6 @@ const SurveyTemplates: React.FC = () => {
         }
       }
     });
-  };
-
-  const handleDeleteCustomTemplate = async () => {
-    if (!templateToDelete) {return;}
-
-    setDeleteConfirmOpen(false);
-
-    try {
-      await surveyService.deleteSurvey(templateToDelete);
-      toast.success(t('surveys.admin.templates.templateDeleted'));
-      loadCustomTemplates();
-    } catch (error) {
-      logger.error('Error deleting template:', error);
-      toast.error(t('surveys.admin.templates.deleteFailed'));
-    } finally {
-      setTemplateToDelete(null);
-    }
   };
 
   return (
@@ -422,85 +391,8 @@ const SurveyTemplates: React.FC = () => {
               </div>
             ))}
           </div>
-
-          {/* Custom Templates Section */}
-          {customTemplates.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold text-gray-900 mt-12 mb-6">
-                {t('surveys.admin.templates.customTemplatesTitle')}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {customTemplates.map(template => (
-                  <div
-                    key={template.id}
-                    className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="text-purple-600">
-                          <FiFileText className="h-8 w-8" />
-                        </div>
-                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                          {t('surveys.admin.templates.categories.custom')}
-                        </span>
-                      </div>
-                      
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {template.title}
-                      </h3>
-                      
-                      <p className="text-sm text-gray-600 mb-4">
-                        {template.description ?? t('surveys.admin.templates.noDescription')}
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                        <span>{template.questions.length} questions</span>
-                        <span>
-                          {t('surveys.admin.templates.created', { date: new Date(template.created_at).toLocaleDateString() })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => navigate(`/admin/surveys/${template.id}/edit`)}
-                          className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          <FiEdit className="mr-2 h-4 w-4" />
-                          {t('surveys.admin.templates.edit')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTemplateToDelete(template.id);
-                            setDeleteConfirmOpen(true);
-                          }}
-                          className="inline-flex items-center justify-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
-                        >
-                          <FiTrash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       </main>
-
-      {/* Confirm Delete Dialog */}
-      <ConfirmDialog
-        isOpen={deleteConfirmOpen}
-        title={t('surveys.admin.templates.deleteConfirm')}
-        message={t('surveys.admin.templates.deleteConfirmMessage', 'Are you sure you want to delete this template? This action cannot be undone.')}
-        confirmText={t('common.delete', 'Delete')}
-        cancelText={t('common.cancel', 'Cancel')}
-        onConfirm={handleDeleteCustomTemplate}
-        onCancel={() => {
-          setDeleteConfirmOpen(false);
-          setTemplateToDelete(null);
-        }}
-        variant="danger"
-      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { FiCalendar, FiUsers, FiCheck, FiStar, FiWifi, FiTv, FiCoffee, FiUpload, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiDownload } from 'react-icons/fi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import clsx from 'clsx';
 import MainLayout from '../components/layout/MainLayout';
 import { bookingService } from '../services/bookingService';
 import { paymentService } from '../services/paymentService';
@@ -187,7 +188,7 @@ export default function BookingPage() {
   }, []);
 
   const handleSlipUpload = useCallback(async () => {
-    if (!slipFile || !createdBooking) return;
+    if (!slipFile || !createdBooking) {return;}
 
     setIsUploading(true);
     try {
@@ -257,20 +258,20 @@ export default function BookingPage() {
         <div className="flex items-center justify-center">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                currentStep === step.number
-                  ? 'bg-primary-600 text-white'
-                  : step.completed
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
-              }`}>
+              <div
+                className={clsx('flex items-center justify-center w-10 h-10 rounded-full', {
+                  'bg-primary-600 text-white': currentStep === step.number,
+                  'bg-green-500 text-white': currentStep !== step.number && step.completed,
+                  'bg-gray-200 text-gray-600': currentStep !== step.number && !step.completed,
+                })}
+              >
                 {step.completed ? <FiCheck className="w-5 h-5" /> : step.number}
               </div>
-              <span className={`ml-2 ${currentStep === step.number ? 'font-semibold' : 'text-gray-500'}`}>
+              <span className={clsx('ml-2', currentStep === step.number ? 'font-semibold' : 'text-gray-500')}>
                 {step.title}
               </span>
               {index < steps.length - 1 && (
-                <div className={`w-16 h-1 mx-4 ${step.completed ? 'bg-green-500' : 'bg-gray-200'}`} />
+                <div className={clsx('w-16 h-1 mx-4', step.completed ? 'bg-green-500' : 'bg-gray-200')} />
               )}
             </div>
           ))}
@@ -374,9 +375,9 @@ export default function BookingPage() {
               {roomTypesWithAvailability?.map((roomType) => (
                 <div
                   key={roomType.id}
-                  className={`bg-white rounded-lg shadow overflow-hidden ${
+                  className={clsx('bg-white rounded-lg shadow overflow-hidden',
                     roomType.availableRooms === 0 ? 'opacity-50' : 'hover:shadow-lg cursor-pointer'
-                  }`}
+                  )}
                   onClick={() => roomType.availableRooms > 0 && handleRoomTypeSelect(roomType.id)}
                   data-testid={`room-type-${roomType.id}`}
                 >
@@ -444,9 +445,10 @@ export default function BookingPage() {
                         </div>
                       </div>
 
-                      <div className={`mt-2 text-sm ${
+                      <div className={clsx('mt-2 text-sm',
                         roomType.availableRooms === 0 ? 'text-red-600' : 'text-green-600'
-                      }`}>
+                      )}
+                      >
                         {roomType.availableRooms === 0
                           ? t('booking.soldOut')
                           : t('booking.roomsLeft', { count: roomType.availableRooms })}
@@ -604,9 +606,9 @@ export default function BookingPage() {
                 <>
                   <div className="space-y-3">
                     <label
-                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
                         paymentType === 'deposit' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      )}
                     >
                       <input
                         type="radio"
@@ -628,9 +630,9 @@ export default function BookingPage() {
                     </label>
 
                     <label
-                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
                         paymentType === 'full' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      )}
                     >
                       <input
                         type="radio"
@@ -775,9 +777,9 @@ export default function BookingPage() {
 
                   {slipStatus === 'pending' && !slipPreview && (
                     <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                      className={clsx('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
                         isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'
-                      }`}
+                      )}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}

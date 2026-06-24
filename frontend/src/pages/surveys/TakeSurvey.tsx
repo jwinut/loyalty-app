@@ -8,6 +8,8 @@ import SurveyProgress from '../../components/surveys/SurveyProgress';
 import DashboardButton from '../../components/navigation/DashboardButton';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import clsx from 'clsx';
+import { logger } from '../../utils/logger';
 
 const TakeSurvey: React.FC = () => {
   const { t } = useTranslation();
@@ -73,7 +75,7 @@ const TakeSurvey: React.FC = () => {
       }
     } catch (err) {
       // Error is already handled by tRPC
-      console.error('Error saving progress:', err);
+      logger.error('Error saving progress:', err);
     }
   }, [survey, id, answers, submitResponseMutation]);
 
@@ -288,13 +290,11 @@ const TakeSurvey: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => goToQuestion(index)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      index === currentQuestion
-                        ? 'bg-blue-600'
-                        : answers[q.id]
-                        ? 'bg-green-400'
-                        : 'bg-gray-300'
-                    }`}
+                    className={clsx('w-3 h-3 rounded-full transition-colors', {
+                      'bg-blue-600': index === currentQuestion,
+                      'bg-green-400': index !== currentQuestion && answers[q.id],
+                      'bg-gray-300': index !== currentQuestion && !answers[q.id],
+                    })}
                   />
                 );
               })}

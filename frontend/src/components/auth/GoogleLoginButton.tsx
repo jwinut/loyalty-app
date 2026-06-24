@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { initiateOAuth, checkPWAInstallPrompt } from '../../utils/pwaUtils';
 
 interface GoogleLoginButtonProps {
-  onSuccess?: () => void;
-  onFailure?: () => void;
   theme?: 'light' | 'dark' | 'neutral';
   variant?: 'signIn' | 'continue';
 }

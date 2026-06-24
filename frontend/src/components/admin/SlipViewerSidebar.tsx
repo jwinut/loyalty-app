@@ -159,7 +159,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
   // Get slips array - prefer multi-slip, fallback to legacy single slip
   const getSlips = (): BookingSlip[] => {
-    if (!booking) return [];
+    if (!booking) {return [];}
 
     // Check for multi-slip array first
     if (booking.slips && booking.slips.length > 0) {
@@ -190,7 +190,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
   // Legacy verify handler (for backward compatibility)
   const handleLegacyVerifyClick = async () => {
-    if (!booking) return;
+    if (!booking) {return;}
     await onVerify(booking.id);
   };
 
@@ -205,7 +205,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   };
 
   const handleNotesSubmit = async () => {
-    if (!booking || !notesInput.trim()) return;
+    if (!booking || !notesInput.trim()) {return;}
 
     if (activeSlipId) {
       // Multi-slip: mark specific slip
@@ -224,10 +224,10 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   };
 
   const handleReplaceSlip = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!booking || !event.target.files || event.target.files.length === 0) return;
+    if (!booking || !event.target.files || event.target.files.length === 0) {return;}
 
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {return;}
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -741,7 +741,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                       )}
                       {entry.notes && (
                         <p className="mt-1 text-sm text-gray-500 italic">
-                          "{entry.notes}"
+                          &quot;{entry.notes}&quot;
                         </p>
                       )}
                     </div>

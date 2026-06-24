@@ -405,7 +405,7 @@ describe('Phase 3 — HttpOnly cookie refresh contract', () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     const firstCall = postSpy.mock.calls[0];
-    if (!firstCall) throw new Error('expected /auth/refresh post call');
+    if (!firstCall) {throw new Error('expected /auth/refresh post call');}
     const [url, body] = firstCall;
     expect(url).toBe('/auth/refresh');
     // Empty body — no `refreshToken` field. Phase 3 backend ignores
@@ -433,7 +433,7 @@ describe('Phase 3 — HttpOnly cookie refresh contract', () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     const firstCall = postSpy.mock.calls[0];
-    if (!firstCall) throw new Error('expected /auth/logout post call');
+    if (!firstCall) {throw new Error('expected /auth/logout post call');}
     const [url, body] = firstCall;
     expect(url).toBe('/auth/logout');
     expect(body).toEqual({});

@@ -8,6 +8,7 @@ import DashboardButton from '../../components/navigation/DashboardButton';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { surveyService } from '../../services/surveyService';
 
 const SurveyDetailsPage: React.FC = () => {
@@ -95,11 +96,11 @@ const SurveyDetailsPage: React.FC = () => {
                       <FiCalendar className="mr-1 h-3 w-3" />
                       {t('surveys.created')} {formatDate(survey.created_at)}
                     </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      survey.access_type === 'public' 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={clsx('inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+                      survey.access_type === 'public'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-blue-100 text-blue-800'
-                    }`}
+                    )}
                     >
                       {survey.access_type === 'public' ? (
                         <>

@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { initiateOAuth, checkPWAInstallPrompt } from '../../utils/pwaUtils';
 
 interface LineLoginButtonProps {
-  onSuccess?: () => void;
-  onFailure?: () => void;
   size?: 'small' | 'medium' | 'large';
   variant?: 'signIn' | 'continue';
 }
@@ -23,8 +21,7 @@ export default function LineLoginButton({ size = 'medium', variant = 'signIn' }:
   const lineColors = {
     base: '#06C755',
     hover: '#05B04A', // Base + 10% black opacity approximation
-    pressed: '#048A3D', // Base + 30% black opacity approximation
-    disabled: '#FFFFFF'
+    pressed: '#048A3D' // Base + 30% black opacity approximation
   };
 
   // Size configurations

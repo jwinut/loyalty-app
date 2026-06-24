@@ -62,12 +62,11 @@ export const getApiUrl = (): string => {
 export const API_BASE_URL = getApiUrl();
 
 // Log API configuration on module load (helpful for E2E debugging)
-// Dev-only: avoid polluting end-user consoles in production builds.
-if (import.meta.env.DEV) {
-  console.log('[apiConfig] API_BASE_URL:', API_BASE_URL);
-  console.log('[apiConfig] VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('[apiConfig] isBrowser:', typeof window !== 'undefined');
-}
+// Dev-only: logger.debug already gates on import.meta.env.DEV, so these
+// stay out of end-user consoles in production builds.
+logger.debug('[apiConfig] API_BASE_URL:', API_BASE_URL);
+logger.debug('[apiConfig] VITE_API_URL:', import.meta.env.VITE_API_URL);
+logger.debug('[apiConfig] isBrowser:', typeof window !== 'undefined');
 
 /**
  * Check if the application is running in development mode

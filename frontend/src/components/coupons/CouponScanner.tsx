@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import { RedeemCouponResponse, Coupon, UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import { logger } from '../../utils/logger';
@@ -189,7 +190,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
     : null;
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg ${className}`}>
+    <div className={clsx('bg-white rounded-lg shadow-lg', className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-xl font-semibold text-gray-900">
@@ -210,21 +211,23 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
         <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
           <button
             onClick={() => setScanMode('manual')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              scanMode === 'manual' 
-                ? 'bg-white text-gray-900 shadow-sm' 
+            className={clsx(
+              'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+              scanMode === 'manual'
+                ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+            )}
           >
             {t('coupons.manualEntry')}
           </button>
           <button
             onClick={() => setScanMode('camera')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              scanMode === 'camera' 
-                ? 'bg-white text-gray-900 shadow-sm' 
+            className={clsx(
+              'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+              scanMode === 'camera'
+                ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+            )}
           >
             {t('coupons.scanCamera')}
           </button>
@@ -267,15 +270,18 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
           {/* Validation Result */}
           {validationResult && (
-            <div className={`p-3 rounded-md ${
-              validationResult.valid 
-                ? 'bg-green-50 border border-green-200' 
+            <div className={clsx(
+              'p-3 rounded-md',
+              validationResult.valid
+                ? 'bg-green-50 border border-green-200'
                 : 'bg-red-50 border border-red-200'
-            }`}
+            )}
             >
-              <div className={`flex items-center ${
-                validationResult.valid ? 'text-green-800' : 'text-red-800 bg-red-50 border-red-200'
-              } ${validationResult.valid ? '' : 'bg-red-50 border border-red-200 rounded-md p-2'}`}
+              <div className={clsx(
+                'flex items-center',
+                validationResult.valid ? 'text-green-800' : 'text-red-800 bg-red-50 border-red-200',
+                !validationResult.valid && 'bg-red-50 border border-red-200 rounded-md p-2'
+              )}
               >
                 <span className="mr-2">
                   {validationResult.valid ? '✅' : '❌'}
@@ -385,15 +391,17 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
         {/* Redemption Result */}
         {redemptionResult && (
-          <div className={`mt-6 p-4 rounded-md ${
-            redemptionResult.success 
-              ? 'bg-green-50 border border-green-200' 
+          <div className={clsx(
+            'mt-6 p-4 rounded-md',
+            redemptionResult.success
+              ? 'bg-green-50 border border-green-200'
               : 'bg-red-50 border border-red-200'
-          }`}
+          )}
           >
-            <div className={`flex items-center mb-2 ${
+            <div className={clsx(
+              'flex items-center mb-2',
               redemptionResult.success ? 'text-green-800' : 'text-red-800'
-            }`}
+            )}
             >
               <span className="mr-2 text-xl">
                 {redemptionResult.success ? '🎉' : '❌'}

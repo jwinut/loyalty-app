@@ -60,13 +60,6 @@ export function getAllEmojiOptions(): string[] {
 }
 
 /**
- * Get a random emoji from the full collection
- */
-export function getRandomEmoji(): string {
-  return PROFILE_EMOJIS[Math.floor(Math.random() * PROFILE_EMOJIS.length)] ?? '👤';
-}
-
-/**
  * Check if a string is a valid emoji avatar
  */
 export function isValidEmojiAvatar(emoji: string): boolean {
@@ -102,15 +95,6 @@ export function formatEmojiAvatar(avatar: string | null | undefined, size: 'sm' 
     isEmoji: !!isEmoji,
     className: `${sizeClasses[size]} select-none`,
   };
-}
-
-/**
- * Generate avatar URL for emoji (returns emoji directly for frontend use)
- * For consistency with existing avatar system
- */
-export function generateEmojiAvatarUrl(emoji: string): string {
-  // Return the emoji directly - frontend will handle display
-  return `emoji:${emoji}`;
 }
 
 /**

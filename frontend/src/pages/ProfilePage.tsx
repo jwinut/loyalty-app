@@ -55,12 +55,7 @@ export default function ProfilePage() {
   });
   const [emailMutationPending, setEmailMutationPending] = useState(false);
 
-  const {
-    register: _register,
-    handleSubmit: _handleSubmit,
-    formState: { errors: _errors },
-    reset,
-  } = useForm<ProfileFormData>({
+  const { reset } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
 

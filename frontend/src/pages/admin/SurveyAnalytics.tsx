@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   FiArrowLeft,
@@ -122,24 +122,27 @@ const SurveyAnalytics: React.FC = () => {
     }
   };
 
-  const getChartOptions = <T extends 'bar' | 'line' | 'pie'>(title: string): ChartOptions<T> => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
+  const getChartOptions = useCallback(
+    <T extends 'bar' | 'line' | 'pie'>(title: string): ChartOptions<T> => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top' as const,
+        },
+        title: {
+          display: true,
+          text: title,
+          font: {
+            size: 16
+          }
+        },
       },
-      title: {
-        display: true,
-        text: title,
-        font: {
-          size: 16
-        }
-      },
-    },
-  } as ChartOptions<T>);
+    } as ChartOptions<T>),
+    []
+  );
 
-  const getResponseTrendData = (): ChartData<'line'> => {
+  const responseTrendData = useMemo<ChartData<'line'>>(() => {
     if (!analytics) {return { labels: [], datasets: [] };}
 
     return {
@@ -154,12 +157,11 @@ const SurveyAnalytics: React.FC = () => {
         }
       ]
     };
-  };
+  }, [analytics]);
 
-  const getQuestionChartData = (question: QuestionAnalytics, _chartType: 'bar' | 'pie' = 'bar'): ChartData<'bar'> | ChartData<'pie'> => {
-    const labels = Object.keys(question.responses);
-    const data = Object.values(question.responses) as number[];
-    
+  const questionChartData = useMemo<Record<string, ChartData<'bar'> | ChartData<'pie'>>>(() => {
+    if (!analytics) {return {};}
+
     const backgroundColors = [
       'rgba(255, 99, 132, 0.6)',
       'rgba(54, 162, 235, 0.6)',
@@ -169,17 +171,24 @@ const SurveyAnalytics: React.FC = () => {
       'rgba(255, 159, 64, 0.6)',
     ];
 
-    return {
-      labels,
-      datasets: [{
-        label: 'Responses',
-        data,
-        backgroundColor: backgroundColors.slice(0, labels.length),
-        borderColor: backgroundColors.slice(0, labels.length).map(c => c.replace('0.6', '1')),
-        borderWidth: 1
-      }]
-    };
-  };
+    const result: Record<string, ChartData<'bar'> | ChartData<'pie'>> = {};
+    for (const question of analytics.questionAnalytics) {
+      const labels = Object.keys(question.responses);
+      const data = Object.values(question.responses) as number[];
+
+      result[question.questionId] = {
+        labels,
+        datasets: [{
+          label: 'Responses',
+          data,
+          backgroundColor: backgroundColors.slice(0, labels.length),
+          borderColor: backgroundColors.slice(0, labels.length).map(c => c.replace('0.6', '1')),
+          borderWidth: 1
+        }]
+      };
+    }
+    return result;
+  }, [analytics]);
 
   if (loading) {
     return (
@@ -306,7 +315,7 @@ const SurveyAnalytics: React.FC = () => {
             </h2>
             <div className="h-64">
               <Line
-                data={getResponseTrendData()}
+                data={responseTrendData}
                 options={getChartOptions<'line'>('Daily Response Count')}
               />
             </div>
@@ -327,13 +336,13 @@ const SurveyAnalytics: React.FC = () => {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="h-64">
                       <Bar
-                        data={getQuestionChartData(question, 'bar') as ChartData<'bar'>}
+                        data={questionChartData[question.questionId] as ChartData<'bar'>}
                         options={getChartOptions<'bar'>('Response Distribution')}
                       />
                     </div>
                     <div className="h-64">
                       <Pie
-                        data={getQuestionChartData(question, 'pie') as ChartData<'pie'>}
+                        data={questionChartData[question.questionId] as ChartData<'pie'>}
                         options={getChartOptions<'pie'>('Response Percentage')}
                       />
                     </div>
@@ -344,7 +353,7 @@ const SurveyAnalytics: React.FC = () => {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="h-64">
                       <Bar
-                        data={getQuestionChartData(question, 'bar') as ChartData<'bar'>}
+                        data={questionChartData[question.questionId] as ChartData<'bar'>}
                         options={getChartOptions<'bar'>('Rating Distribution')}
                       />
                     </div>
@@ -365,7 +374,7 @@ const SurveyAnalytics: React.FC = () => {
                 {question.type === 'yes_no' && (
                   <div className="h-64 max-w-md mx-auto">
                     <Pie
-                      data={getQuestionChartData(question, 'pie') as ChartData<'pie'>}
+                      data={questionChartData[question.questionId] as ChartData<'pie'>}
                       options={getChartOptions<'pie'>('Yes/No Distribution')}
                     />
                   </div>

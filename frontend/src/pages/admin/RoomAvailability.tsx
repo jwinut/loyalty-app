@@ -173,7 +173,7 @@ const RoomAvailability: React.FC = () => {
     // Mark booked dates
     if (bookings) {
       bookings.forEach((booking: Booking) => {
-        if (booking.status === 'cancelled') return;
+        if (booking.status === 'cancelled') {return;}
 
         const checkIn = new Date(booking.checkInDate);
         const checkOut = new Date(booking.checkOutDate);
@@ -248,7 +248,7 @@ const RoomAvailability: React.FC = () => {
 
   const handleMouseDown = useCallback((roomId: string, date: Date) => {
     const { status } = getCellStatus(roomId, date);
-    if (status !== 'available') return;
+    if (status !== 'available') {return;}
 
     setIsDragging(true);
     setDragMoved(false);
@@ -259,10 +259,10 @@ const RoomAvailability: React.FC = () => {
   }, [getCellStatus, getCellKey]);
 
   const handleMouseEnter = useCallback((roomId: string, date: Date) => {
-    if (!isDragging || roomId !== selectedRoomId) return;
+    if (!isDragging || roomId !== selectedRoomId) {return;}
 
     const { status } = getCellStatus(roomId, date);
-    if (status !== 'available') return;
+    if (status !== 'available') {return;}
 
     const key = getCellKey(roomId, date);
     setDragMoved(true); // Mark that we've moved during drag
@@ -280,12 +280,12 @@ const RoomAvailability: React.FC = () => {
   }, []);
 
   const handleBlockSelected = useCallback(() => {
-    if (selectedCells.size === 0 || !selectedRoomId) return;
+    if (selectedCells.size === 0 || !selectedRoomId) {return;}
     setShowBlockModal(true);
   }, [selectedCells, selectedRoomId]);
 
   const confirmBlock = useCallback(() => {
-    if (!selectedRoomId || !blockReason.trim()) return;
+    if (!selectedRoomId || !blockReason.trim()) {return;}
 
     const dates = Array.from(selectedCells).map(key => {
       // Key format: {roomId}-{YYYY-MM-DD}, date is always last 10 chars
@@ -302,7 +302,7 @@ const RoomAvailability: React.FC = () => {
   }, [selectedRoomId, blockReason, selectedCells, blockMutation]);
 
   const handleUnblockSelected = useCallback(() => {
-    if (!selectedRoomId || selectedCells.size === 0) return;
+    if (!selectedRoomId || selectedCells.size === 0) {return;}
 
     const dates = Array.from(selectedCells).map(key => {
       // Key format: {roomId}-{YYYY-MM-DD}, date is always last 10 chars

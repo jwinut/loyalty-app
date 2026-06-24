@@ -261,7 +261,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     return actionMap[action] ?? action;
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -652,7 +652,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                       )}
                       {entry.notes && (
                         <p className="mt-2 text-sm text-gray-500 italic border-l-2 border-gray-300 pl-2">
-                          "{entry.notes}"
+                          &quot;{entry.notes}&quot;
                         </p>
                       )}
                     </div>

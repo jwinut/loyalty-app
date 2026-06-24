@@ -190,7 +190,7 @@ const RoomTypeManagement: React.FC = () => {
 
   const handleUpdate = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRoomType) return;
+    if (!selectedRoomType) {return;}
 
     const data = {
       name: formData.name,
@@ -211,7 +211,7 @@ const RoomTypeManagement: React.FC = () => {
 
   const handleDelete = useCallback(() => {
     const deleteKeyword = t('admin.booking.roomTypes.deleteKeyword');
-    if (!selectedRoomType || deleteConfirmText !== deleteKeyword) return;
+    if (!selectedRoomType || deleteConfirmText !== deleteKeyword) {return;}
     deleteMutation.mutate({ id: selectedRoomType.id });
   }, [selectedRoomType, deleteConfirmText, deleteMutation, t]);
 
@@ -377,7 +377,8 @@ const RoomTypeManagement: React.FC = () => {
                           roomType.isActive
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        }`}
+                        >
                           {roomType.isActive ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>

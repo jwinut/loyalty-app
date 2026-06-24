@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Coupon, CreateCouponRequest, CouponType, CouponStatus } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
@@ -425,13 +426,14 @@ const CouponManagement: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      <span className={clsx(
+                        'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
                         coupon.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : coupon.status === 'paused'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
-                      }`}
+                      )}
                       >
                         {coupon.status === 'active' ? t('admin.coupons.active') : 
                          coupon.status === 'paused' ? t('admin.coupons.paused') : 
@@ -460,11 +462,12 @@ const CouponManagement: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleToggleCouponStatus(coupon)}
-                          className={`text-left ${
+                          className={clsx(
+                            'text-left',
                             coupon.status === 'active'
                               ? 'text-orange-600 hover:text-orange-900'
                               : 'text-green-600 hover:text-green-900'
-                          }`}
+                          )}
                         >
                           {coupon.status === 'active' ? t('admin.coupons.pause') : t('admin.coupons.activate')}
                         </button>
