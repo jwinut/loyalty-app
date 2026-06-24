@@ -22,9 +22,6 @@ pub struct RedisManager {
     pub connection: ConnectionManager,
 }
 
-/// Type alias for Redis connection manager (for backwards compatibility)
-pub type RedisClient = RedisManager;
-
 impl RedisManager {
     /// Initialize a new Redis connection manager from the provided URL
     ///
