@@ -324,6 +324,19 @@ pub fn has_role(user: &AuthUser, required_role: &str) -> bool {
     }
 }
 
+/// Require admin privileges (admin or super_admin), returning a 403 otherwise.
+///
+/// Centralizes the identical guard previously copy-pasted into every
+/// `admin_*` route module.
+pub fn require_admin(user: &AuthUser) -> crate::error::AppResult<()> {
+    if !has_role(user, "admin") {
+        return Err(crate::error::AppError::Forbidden(
+            "Admin access required".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 /// Require specific role middleware factory
 ///
 /// Creates a middleware that checks if the authenticated user has the required role.

@@ -39,20 +39,12 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::{has_role, AuthUser};
+use crate::middleware::auth::{require_admin, AuthUser};
 use crate::state::AppState;
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/// Reject the request unless the caller has the `admin` role (or higher).
-fn require_admin(user: &AuthUser) -> AppResult<()> {
-    if !has_role(user, "admin") {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-    Ok(())
-}
 
 /// Allowed values for `room_types.bed_type`. Mirrors the CHECK constraint
 /// and the frontend's BED_TYPE_OPTIONS list.

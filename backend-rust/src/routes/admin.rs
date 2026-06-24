@@ -18,7 +18,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::{auth_middleware, has_role, AuthUser};
+use crate::middleware::auth::{auth_middleware, has_role, require_admin, AuthUser};
 use crate::models::notification::NotificationType;
 use crate::models::user::UserRole;
 use crate::models::user_loyalty::UserLoyaltyResponse;
@@ -367,14 +367,6 @@ pub struct BroadcastNotificationResponse {
 // ============================================================================
 // Middleware Helper
 // ============================================================================
-
-/// Check if the authenticated user has admin privileges
-fn require_admin(user: &AuthUser) -> AppResult<()> {
-    if !has_role(user, "admin") {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-    Ok(())
-}
 
 /// Check if the authenticated user has super_admin privileges
 fn require_super_admin(user: &AuthUser) -> AppResult<()> {

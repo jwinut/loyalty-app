@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::{has_role, AuthUser};
+use crate::middleware::auth::{require_admin, AuthUser};
 use crate::services::email::{EmailService, EmailServiceImpl};
 use crate::state::AppState;
 use crate::utils::hash_email;
@@ -153,17 +153,6 @@ pub struct TestEmailResponse {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/// Reject the request unless the caller has the `admin` role (or higher).
-///
-/// Duplicated locally for the same reason `admin_rooms` does it — keeps this
-/// module independent of `admin`'s private helpers.
-fn require_admin(user: &AuthUser) -> AppResult<()> {
-    if !has_role(user, "admin") {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-    Ok(())
-}
 
 /// Build a fresh `EmailServiceImpl` from current `Settings`.
 ///

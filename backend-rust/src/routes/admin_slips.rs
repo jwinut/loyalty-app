@@ -49,7 +49,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::{has_role, AuthUser};
+use crate::middleware::auth::{require_admin, AuthUser};
 use crate::state::AppState;
 
 // ============================================================================
@@ -107,13 +107,6 @@ pub struct AdminSlipResponse {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-fn require_admin(user: &AuthUser) -> AppResult<()> {
-    if !has_role(user, "admin") {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-    Ok(())
-}
 
 /// Parse the admin's user id from the JWT, returning a typed error on
 /// malformed claims rather than panicking with `unwrap`. We need a real

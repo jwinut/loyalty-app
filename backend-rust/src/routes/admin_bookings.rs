@@ -56,23 +56,12 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::{has_role, AuthUser};
+use crate::middleware::auth::{require_admin, AuthUser};
 use crate::state::AppState;
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/// Reject the request unless the caller has the `admin` role (or higher).
-///
-/// Mirrors `routes::admin::require_admin`. Duplicated so this module stays
-/// independent of the parent file's private helpers.
-fn require_admin(user: &AuthUser) -> AppResult<()> {
-    if !has_role(user, "admin") {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-    Ok(())
-}
 
 /// Parse the JWT subject into a UUID, surfacing a 401 (not 500) if the
 /// token shape is unexpected.
