@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 // Removed unused useTranslation import
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -9,33 +9,38 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthSuccessPage from './pages/auth/OAuthSuccessPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
-import LoyaltyAdminPage from './pages/admin/LoyaltyAdminPage';
-import CouponManagement from './pages/admin/CouponManagement';
 import CouponWallet from './pages/coupons/CouponWallet';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import SessionManager from './components/auth/SessionManager';
 import LanguageProvider from './components/LanguageProvider';
 import DevTools from './components/dev/DevTools';
-import SurveyList from './pages/surveys/SurveyList';
-import TakeSurvey from './pages/surveys/TakeSurvey';
-import SurveyDetailsPage from './pages/surveys/SurveyDetailsPage';
-import SurveyManagement from './pages/admin/SurveyManagement';
-import SurveyBuilder from './pages/admin/SurveyBuilder';
-import SurveyAnalytics from './pages/admin/SurveyAnalytics';
-import SurveyPreviewPage from './pages/admin/SurveyPreview';
-import SurveyTemplates from './pages/admin/SurveyTemplates';
-import SurveyInvitations from './pages/admin/SurveyInvitations';
-import ThaiSurveyDebug from './pages/admin/ThaiSurveyDebug';
-import UserManagement from './pages/admin/UserManagement';
-import NewMemberCouponSettings from './pages/admin/NewMemberCouponSettings';
-import AdminTransactionHistoryPage from './pages/admin/AdminTransactionHistoryPage';
-import EmailServicePage from './pages/admin/EmailServicePage';
-import BookingPage from './pages/BookingPage';
-import MyBookingsPage from './pages/MyBookingsPage';
-import RoomTypeManagement from './pages/admin/RoomTypeManagement';
-import RoomManagement from './pages/admin/RoomManagement';
-import RoomAvailability from './pages/admin/RoomAvailability';
-import BookingManagement from './pages/admin/BookingManagement';
+
+// Code-split heavy admin + survey pages so they load on demand. These
+// pages (charts, builders, management tables) are not on the critical
+// auth/dashboard path, so lazy-loading them shrinks the initial bundle.
+// All render under the <Suspense> boundary below.
+const LoyaltyAdminPage = lazy(() => import('./pages/admin/LoyaltyAdminPage'));
+const CouponManagement = lazy(() => import('./pages/admin/CouponManagement'));
+const SurveyList = lazy(() => import('./pages/surveys/SurveyList'));
+const TakeSurvey = lazy(() => import('./pages/surveys/TakeSurvey'));
+const SurveyDetailsPage = lazy(() => import('./pages/surveys/SurveyDetailsPage'));
+const SurveyManagement = lazy(() => import('./pages/admin/SurveyManagement'));
+const SurveyBuilder = lazy(() => import('./pages/admin/SurveyBuilder'));
+const SurveyAnalytics = lazy(() => import('./pages/admin/SurveyAnalytics'));
+const SurveyPreviewPage = lazy(() => import('./pages/admin/SurveyPreview'));
+const SurveyTemplates = lazy(() => import('./pages/admin/SurveyTemplates'));
+const SurveyInvitations = lazy(() => import('./pages/admin/SurveyInvitations'));
+const ThaiSurveyDebug = lazy(() => import('./pages/admin/ThaiSurveyDebug'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const NewMemberCouponSettings = lazy(() => import('./pages/admin/NewMemberCouponSettings'));
+const AdminTransactionHistoryPage = lazy(() => import('./pages/admin/AdminTransactionHistoryPage'));
+const EmailServicePage = lazy(() => import('./pages/admin/EmailServicePage'));
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage'));
+const RoomTypeManagement = lazy(() => import('./pages/admin/RoomTypeManagement'));
+const RoomManagement = lazy(() => import('./pages/admin/RoomManagement'));
+const RoomAvailability = lazy(() => import('./pages/admin/RoomAvailability'));
+const BookingManagement = lazy(() => import('./pages/admin/BookingManagement'));
 import { useEffect, useState, useRef } from 'react';
 import { checkPWAInstallPrompt } from './utils/pwaUtils';
 import { notificationService } from './services/notificationService';
