@@ -7,7 +7,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
-use validator::Validate;
 
 /// User role enumeration matching the PostgreSQL enum `user_role`
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
@@ -92,39 +91,6 @@ impl User {
     pub fn is_active_and_verified(&self) -> bool {
         self.is_active.unwrap_or(false) && self.email_verified.unwrap_or(false)
     }
-}
-
-/// Request payload for creating a new user
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct CreateUserRequest {
-    /// User's email address
-    #[validate(email(message = "Invalid email format"))]
-    pub email: String,
-
-    /// User's password (will be hashed before storage)
-    #[validate(length(min = 8, message = "Password must be at least 8 characters"))]
-    pub password: String,
-
-    /// Optional role assignment (defaults to Customer)
-    pub role: Option<UserRole>,
-}
-
-/// Request payload for updating an existing user
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct UpdateUserRequest {
-    /// New email address (optional)
-    #[validate(email(message = "Invalid email format"))]
-    pub email: Option<String>,
-
-    /// New password (optional, will be hashed)
-    #[validate(length(min = 8, message = "Password must be at least 8 characters"))]
-    pub password: Option<String>,
-
-    /// Update role (admin only)
-    pub role: Option<UserRole>,
-
-    /// Update active status (admin only)
-    pub is_active: Option<bool>,
 }
 
 /// Safe user response DTO (excludes sensitive fields like password_hash)

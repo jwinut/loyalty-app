@@ -68,12 +68,6 @@ pub struct SlipUploadResponse {
     pub url: String,
 }
 
-/// Response for upload errors
-#[derive(Debug, Serialize)]
-pub struct UploadErrorResponse {
-    pub error: String,
-}
-
 // ============================================================================
 // Allowed MIME Types
 // ============================================================================

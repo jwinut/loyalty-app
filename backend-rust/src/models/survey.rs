@@ -146,14 +146,6 @@ pub struct SurveyResponseDto {
     pub created_at: Option<NaiveDateTime>,
 }
 
-/// Submit survey response request DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubmitSurveyResponseRequest {
-    pub survey_id: Uuid,
-    pub answers: serde_json::Value,
-    pub is_completed: bool,
-}
-
 /// Survey response answer DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

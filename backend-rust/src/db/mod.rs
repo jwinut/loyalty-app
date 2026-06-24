@@ -167,40 +167,6 @@ pub async fn init_pool_with_url(database_url: &str, config: Option<DbConfig>) ->
     Ok(Database { pool })
 }
 
-/// Error types specific to database operations
-#[derive(Debug, thiserror::Error)]
-pub enum DbError {
-    #[error("Database connection failed: {0}")]
-    ConnectionFailed(#[from] sqlx::Error),
-
-    #[error("Migration failed: {0}")]
-    MigrationFailed(#[from] sqlx::migrate::MigrateError),
-
-    #[error("Database configuration error: {0}")]
-    ConfigError(String),
-
-    #[error("Query execution failed: {0}")]
-    QueryFailed(String),
-
-    #[error("Record not found")]
-    NotFound,
-
-    #[error("Duplicate record")]
-    Duplicate,
-}
-
-impl DbError {
-    /// Check if this error indicates a connection issue
-    pub fn is_connection_error(&self) -> bool {
-        matches!(self, DbError::ConnectionFailed(_))
-    }
-
-    /// Check if this error indicates a migration issue
-    pub fn is_migration_error(&self) -> bool {
-        matches!(self, DbError::MigrationFailed(_))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,17 +186,5 @@ mod tests {
         let config = DbConfig::from_env();
         assert!(config.max_connections > 0);
         assert!(config.min_connections > 0);
-    }
-
-    #[test]
-    fn test_db_error_is_connection_error() {
-        let err = DbError::ConfigError("test".to_string());
-        assert!(!err.is_connection_error());
-    }
-
-    #[test]
-    fn test_db_error_is_migration_error() {
-        let err = DbError::ConfigError("test".to_string());
-        assert!(!err.is_migration_error());
     }
 }

@@ -4,7 +4,7 @@
 //! allowing the frontend to make requests to the backend.
 
 use axum::http::{HeaderValue, Method};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 /// Creates a CORS layer configured for the loyalty app
 ///
@@ -66,44 +66,6 @@ pub fn cors_layer() -> CorsLayer {
         .max_age(std::time::Duration::from_secs(3600))
 }
 
-/// Creates a permissive CORS layer for development
-///
-/// WARNING: This should only be used in development environments.
-/// It allows any origin to make requests.
-///
-/// # Usage
-///
-/// ```rust,ignore
-/// use loyalty_backend::middleware::cors::cors_layer_permissive;
-///
-/// let cors = if cfg!(debug_assertions) {
-///     cors_layer_permissive()
-/// } else {
-///     cors_layer()
-/// };
-/// ```
-pub fn cors_layer_permissive() -> CorsLayer {
-    CorsLayer::new()
-        .allow_origin(Any)
-        .allow_credentials(false) // Cannot use credentials with Any origin
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::PATCH,
-            Method::DELETE,
-            Method::OPTIONS,
-        ])
-        .allow_headers([
-            axum::http::header::CONTENT_TYPE,
-            axum::http::header::AUTHORIZATION,
-            axum::http::header::ACCEPT,
-            axum::http::header::ORIGIN,
-            axum::http::header::HeaderName::from_static("x-requested-with"),
-        ])
-        .max_age(std::time::Duration::from_secs(3600))
-}
-
 /// Creates a CORS layer with multiple allowed origins
 ///
 /// Useful when the API needs to be accessed from multiple frontend URLs
@@ -162,11 +124,6 @@ mod tests {
     fn test_cors_layer_creation() {
         // Just verify that the layer can be created without panicking
         let _layer = cors_layer();
-    }
-
-    #[test]
-    fn test_cors_layer_permissive_creation() {
-        let _layer = cors_layer_permissive();
     }
 
     #[test]

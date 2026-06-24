@@ -8,7 +8,6 @@
 
 use axum::{
     extract::{Extension, Path, Query, State},
-    http::StatusCode,
     middleware,
     routing::{delete, get, post, put},
     Json, Router,
@@ -606,36 +605,6 @@ pub fn router() -> Router<AppState> {
 /// Alias for router() - backwards compatibility
 pub fn routes() -> Router<AppState> {
     router()
-}
-
-/// Not implemented response (for routes without state)
-#[derive(Serialize)]
-pub struct NotImplementedResponse {
-    pub error: String,
-    pub message: String,
-}
-
-async fn not_implemented() -> (StatusCode, Json<NotImplementedResponse>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(NotImplementedResponse {
-            error: "not_implemented".to_string(),
-            message: "This endpoint is not yet implemented".to_string(),
-        }),
-    )
-}
-
-/// Create notification routes without state (stub version)
-///
-/// Returns routes that will return 501 Not Implemented.
-/// Used when running without database/Redis.
-pub fn routes_stub() -> Router {
-    Router::new()
-        .route("/", get(not_implemented))
-        .route("/unread-count", get(not_implemented))
-        .route("/:id/read", put(not_implemented))
-        .route("/read-all", put(not_implemented))
-        .route("/:id", delete(not_implemented))
 }
 
 #[cfg(test)]

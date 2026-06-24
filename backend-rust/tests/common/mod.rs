@@ -654,7 +654,6 @@ fn create_test_config() -> loyalty_backend::Settings {
         },
         redis: RedisConfig {
             url: test_redis_url(),
-            pool_size: 2,
         },
         auth: AuthConfig {
             jwt_secret: TEST_JWT_SECRET.to_string(),

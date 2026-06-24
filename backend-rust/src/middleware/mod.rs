@@ -18,7 +18,7 @@ pub use auth::{
     build_refresh_cookie, build_refresh_cookie_header, optional_auth_middleware, AuthUser, Claims,
     REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH,
 };
-pub use cors::{cors_layer, cors_layer_permissive};
+pub use cors::cors_layer;
 pub use rate_limit::{
     default_rate_limit_layer, rate_limit_middleware, strict_rate_limit_layer, RateLimitConfig,
     RateLimiter,

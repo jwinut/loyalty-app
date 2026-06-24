@@ -18,10 +18,7 @@ pub mod user_profile;
 // Re-export commonly used types for convenience
 
 // User models
-pub use user::{
-    CreateUserRequest, UpdateUserRequest, User, UserResponse, UserRole, UserSummary,
-    UserWithProfile,
-};
+pub use user::{User, UserResponse, UserRole, UserSummary, UserWithProfile};
 
 // User profile models
 pub use user_profile::{
@@ -56,9 +53,9 @@ pub use coupon::{
 
 // Survey models
 pub use survey::{
-    CreateSurveyRequest, SubmitSurveyResponseRequest, Survey, SurveyAnswerDto, SurveyInvitation,
-    SurveyQuestion, SurveyQuestionOption, SurveyQuestionType, SurveyQuestionValidation,
-    SurveyResponse, SurveyResponseDto, UpdateSurveyRequest,
+    CreateSurveyRequest, Survey, SurveyAnswerDto, SurveyInvitation, SurveyQuestion,
+    SurveyQuestionOption, SurveyQuestionType, SurveyQuestionValidation, SurveyResponse,
+    SurveyResponseDto, UpdateSurveyRequest,
 };
 
 // Booking models
@@ -69,14 +66,8 @@ pub use booking::{
 
 // Notification models
 pub use notification::{
-    CreateNotificationRequest, Notification, NotificationCountResponse, NotificationPreference,
-    NotificationPreferenceResponse, NotificationResponse, NotificationType,
-    PaginatedNotificationsResponse, UpdateNotificationPreferenceRequest, UpdateNotificationRequest,
+    Notification, NotificationPreference, NotificationType,
 };
 
 // Password reset models
-pub use password_reset::{
-    EmailVerificationResponse, EmailVerificationToken, PasswordResetResponse, PasswordResetToken,
-    RequestEmailVerificationRequest, RequestPasswordResetRequest, ResetPasswordRequest,
-    VerifyEmailRequest,
-};
+pub use password_reset::{EmailVerificationToken, PasswordResetToken};

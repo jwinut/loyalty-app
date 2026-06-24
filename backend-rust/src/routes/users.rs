@@ -5,7 +5,6 @@
 
 use axum::{
     extract::{Extension, Multipart, Path, Query, State},
-    http::StatusCode,
     middleware,
     routing::{delete, get, put},
     Json, Router,
@@ -1010,48 +1009,6 @@ pub fn routes() -> Router<FullAppState> {
         .route("/:id", get(get_user_by_id))
         // Apply authentication middleware to all routes
         .layer(middleware::from_fn(auth_middleware))
-}
-
-/// Not implemented response for placeholder routes
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NotImplementedResponse {
-    pub error: String,
-    pub message: String,
-}
-
-#[allow(dead_code)]
-fn not_implemented_response() -> (StatusCode, Json<NotImplementedResponse>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(NotImplementedResponse {
-            error: "not_implemented".to_string(),
-            message: "This endpoint requires database connection. Use routes_with_state()."
-                .to_string(),
-        }),
-    )
-}
-
-/// Create user routes with application state
-///
-/// Returns fully functional routes with database access and authentication.
-pub fn routes_with_state(state: FullAppState) -> Router {
-    // Protected routes requiring authentication
-    Router::new()
-        // Current user routes
-        .route("/users/me", get(get_current_user))
-        .route("/users/me", put(update_current_user))
-        .route("/users/me/password", put(change_password))
-        .route("/users/me/loyalty", get(get_loyalty_status))
-        // Avatar routes
-        .route("/users/avatar", put(upload_avatar))
-        .route("/users/avatar", delete(delete_avatar))
-        // Account management
-        .route("/users/account", delete(delete_account))
-        // Admin routes (authorization checked in handlers)
-        .route("/users", get(list_users))
-        .route("/users/:id", get(get_user_by_id))
-        .layer(middleware::from_fn(auth_middleware))
-        .with_state(state)
 }
 
 #[cfg(test)]

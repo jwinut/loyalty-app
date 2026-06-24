@@ -113,25 +113,16 @@ pub struct RedisConfig {
     /// Redis connection URL
     #[serde(default = "default_redis_url")]
     pub url: String,
-
-    /// Connection pool size
-    #[serde(default = "default_redis_pool_size")]
-    pub pool_size: u32,
 }
 
 fn default_redis_url() -> String {
     "redis://localhost:6379".to_string()
 }
 
-fn default_redis_pool_size() -> u32 {
-    5
-}
-
 impl Default for RedisConfig {
     fn default() -> Self {
         Self {
             url: default_redis_url(),
-            pool_size: default_redis_pool_size(),
         }
     }
 }
@@ -507,7 +498,6 @@ impl Settings {
             .set_default("database.min_connections", 1)?
             .set_default("database.connection_timeout_secs", 30)?
             .set_default("redis.url", "redis://localhost:6379")?
-            .set_default("redis.pool_size", 5)?
             .set_default("auth.access_token_expiry_secs", 900)?
             .set_default("auth.refresh_token_expiry_secs", 604800)?
             .set_default("email.smtp.port", 587)?
@@ -743,42 +733,6 @@ impl Settings {
     }
 }
 
-/// Legacy Config struct for backward compatibility
-/// Use Settings for new code
-#[derive(Debug, Clone)]
-pub struct Config {
-    /// Server port
-    pub port: u16,
-    /// Database URL
-    pub database_url: String,
-    /// Redis URL
-    pub redis_url: String,
-    /// JWT secret for authentication
-    pub jwt_secret: String,
-    /// Environment (development, staging, production)
-    pub environment: String,
-}
-
-impl Config {
-    /// Load configuration from environment variables (legacy method)
-    pub fn from_env() -> anyhow::Result<Self> {
-        let settings = Settings::new()?;
-
-        Ok(Self {
-            port: settings.server.port,
-            database_url: settings.database.url,
-            redis_url: settings.redis.url,
-            jwt_secret: settings.auth.jwt_secret,
-            environment: settings.environment.to_string(),
-        })
-    }
-
-    /// Check if running in production
-    pub fn is_production(&self) -> bool {
-        self.environment == "production"
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -816,7 +770,6 @@ mod tests {
         assert_eq!(settings.environment, Environment::Development);
         assert_eq!(settings.server.port, 4001);
         assert_eq!(settings.database.max_connections, 10);
-        assert_eq!(settings.redis.pool_size, 5);
     }
 
     #[test]
