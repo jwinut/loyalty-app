@@ -42,14 +42,8 @@ use sha2::{Digest, Sha256};
 pub fn hash_email(email: &str) -> String {
     let normalized = email.trim().to_lowercase();
     let digest = Sha256::digest(normalized.as_bytes());
-    let mut out = String::with_capacity(12);
-    for byte in digest.iter().take(6) {
-        use std::fmt::Write as _;
-        // `write!` to a `String` is infallible; the result is ignored
-        // intentionally.
-        let _ = write!(&mut out, "{:02x}", byte);
-    }
-    out
+    // First 6 bytes (48 bits) as lowercase hex => 12 chars.
+    hex::encode(&digest[..6])
 }
 
 #[cfg(test)]

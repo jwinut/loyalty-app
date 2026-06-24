@@ -1132,25 +1132,26 @@ async fn broadcast_notification(
     let notification_type_str = format!("{:?}", notification_type).to_lowercase();
     let data_json = payload.data.unwrap_or(serde_json::json!({}));
 
-    let mut count: i64 = 0;
-    for user_id in &user_ids {
-        let notification_id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-            INSERT INTO notifications (id, user_id, title, message, type, data, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5::notification_type, $6, NOW(), NOW())
-            "#,
-        )
-        .bind(notification_id)
-        .bind(user_id)
-        .bind(&payload.title)
-        .bind(&payload.message)
-        .bind(&notification_type_str)
-        .bind(&data_json)
-        .execute(state.db())
-        .await?;
-        count += 1;
-    }
+    // Single multi-row insert instead of one round-trip per user. Ids are
+    // generated here (matching the previous per-row Uuid::new_v4) and paired
+    // with the target user ids via UNNEST so the whole broadcast is one query.
+    let notification_ids: Vec<Uuid> = user_ids.iter().map(|_| Uuid::new_v4()).collect();
+    let count = sqlx::query(
+        r#"
+        INSERT INTO notifications (id, user_id, title, message, type, data, created_at, updated_at)
+        SELECT nid, uid, $1, $2, $3::notification_type, $4, NOW(), NOW()
+        FROM UNNEST($5::uuid[], $6::uuid[]) AS t(nid, uid)
+        "#,
+    )
+    .bind(&payload.title)
+    .bind(&payload.message)
+    .bind(&notification_type_str)
+    .bind(&data_json)
+    .bind(&notification_ids)
+    .bind(&user_ids)
+    .execute(state.db())
+    .await?
+    .rows_affected() as i64;
 
     Ok(Json(BroadcastNotificationResponse {
         success: true,

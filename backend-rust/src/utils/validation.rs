@@ -225,16 +225,21 @@ pub fn validate_phone(phone: &str) -> bool {
     }
 
     // Remove common separators for validation
-    let cleaned: String = phone
-        .chars()
-        .filter(|c| c.is_ascii_digit() || *c == '+')
-        .collect();
+    let cleaned = clean_phone(phone);
 
     if cleaned.is_empty() {
         return false;
     }
 
     thai_phone_regex().is_match(&cleaned)
+}
+
+/// Strips a phone string down to ASCII digits and a leading `+`.
+fn clean_phone(phone: &str) -> String {
+    phone
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '+')
+        .collect()
 }
 
 /// Normalizes a Thai phone number to a standard format.
@@ -250,10 +255,7 @@ pub fn validate_phone(phone: &str) -> bool {
 ///
 /// The normalized phone number or None if invalid
 pub fn normalize_phone(phone: &str) -> Option<String> {
-    let cleaned: String = phone
-        .chars()
-        .filter(|c| c.is_ascii_digit() || *c == '+')
-        .collect();
+    let cleaned = clean_phone(phone);
 
     if cleaned.is_empty() {
         return None;

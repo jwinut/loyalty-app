@@ -476,7 +476,6 @@ pub struct AdminSpendingWithNightsResult {
 // Handlers
 // ============================================================================
 
-
 /// Helper to get next tier info
 async fn get_next_tier_info(
     pool: &PgPool,
@@ -512,7 +511,6 @@ async fn get_next_tier_info(
         }
     }))
 }
-
 
 // ============================================================================
 // Router
@@ -1864,7 +1862,6 @@ async fn admin_deduct_nights(
         "Nights deducted successfully",
     )))
 }
-
 
 // ============================================================================
 // Tests

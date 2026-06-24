@@ -65,9 +65,7 @@ pub use booking::{
 };
 
 // Notification models
-pub use notification::{
-    Notification, NotificationPreference, NotificationType,
-};
+pub use notification::{Notification, NotificationPreference, NotificationType};
 
 // Password reset models
 pub use password_reset::{EmailVerificationToken, PasswordResetToken};

@@ -19,6 +19,7 @@ use axum::{
 use regex_lite::Regex;
 use serde::Serialize;
 use sqlx::FromRow;
+use std::sync::OnceLock;
 use uuid::Uuid;
 
 use crate::error::AppError;
@@ -119,8 +120,10 @@ pub struct RegenerateMembershipResponse {
 
 /// Validate membership ID format (8 digits starting with 269)
 fn validate_membership_id(membership_id: &str) -> bool {
-    let re = Regex::new(r"^269\d{5}$").unwrap();
-    re.is_match(membership_id)
+    static MEMBERSHIP_ID_REGEX: OnceLock<Regex> = OnceLock::new();
+    MEMBERSHIP_ID_REGEX
+        .get_or_init(|| Regex::new(r"^269\d{5}$").unwrap())
+        .is_match(membership_id)
 }
 
 // ============================================================================

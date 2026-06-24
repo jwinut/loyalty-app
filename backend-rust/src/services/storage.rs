@@ -342,8 +342,16 @@ impl StorageService {
             )));
         }
 
-        // Process image: decode, resize, convert to JPEG
-        let processed = process_avatar_image(&data, self.config.avatar_size)?;
+        // Process image off the async runtime: decode/resize/encode is
+        // CPU-bound and would otherwise block a tokio worker thread under
+        // concurrent uploads. `Bytes::clone` is O(1) (refcounted).
+        let avatar_size = self.config.avatar_size;
+        let data_for_processing = data.clone();
+        let processed = tokio::task::spawn_blocking(move || {
+            process_avatar_image(&data_for_processing, avatar_size)
+        })
+        .await
+        .map_err(|e| AppError::Internal(format!("Avatar processing task panicked: {}", e)))??;
 
         // Delete old avatar if exists
         self.delete_user_avatar(user_id).await?;
