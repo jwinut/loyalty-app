@@ -204,7 +204,7 @@ async fn increment_test_email_quota(state: &AppState, admin_id: &str) -> u32 {
     match script
         .key(&key)
         .arg(129_600_i64)
-        .invoke_async::<_, i64>(&mut conn)
+        .invoke_async::<i64>(&mut conn)
         .await
     {
         Ok(count) => count.max(0) as u32,

@@ -103,7 +103,7 @@ async fn health_check_redis(
 
     let mut redis_conn = state.redis();
     match redis::cmd("PING")
-        .query_async::<_, String>(&mut redis_conn)
+        .query_async::<String>(&mut redis_conn)
         .await
     {
         Ok(_) => Ok(Json(RedisHealthResponse {
@@ -139,7 +139,7 @@ async fn health_check_full(
     // Check Redis
     let mut redis_conn = state.redis();
     let redis_status = match redis::cmd("PING")
-        .query_async::<_, String>(&mut redis_conn)
+        .query_async::<String>(&mut redis_conn)
         .await
     {
         Ok(_) => "healthy".to_string(),

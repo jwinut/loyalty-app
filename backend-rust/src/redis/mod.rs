@@ -379,7 +379,7 @@ impl RedisManager {
     /// * `Result<()>` - Ok if Redis is reachable
     pub async fn health_check(&mut self) -> Result<()> {
         redis::cmd("PING")
-            .query_async::<_, String>(self.conn())
+            .query_async::<String>(self.conn())
             .await
             .context("Redis health check failed")?;
 
@@ -390,7 +390,7 @@ impl RedisManager {
     /// Get Redis info for monitoring
     pub async fn info(&mut self) -> Result<String> {
         let info: String = redis::cmd("INFO")
-            .query_async::<_, String>(self.conn())
+            .query_async::<String>(self.conn())
             .await
             .context("Failed to get Redis info")?;
 

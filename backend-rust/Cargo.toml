@@ -49,7 +49,7 @@ lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
 regex-lite = "0.1"
 
 # Redis
-redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 
 # Utilities
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
