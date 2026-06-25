@@ -43,9 +43,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: thehfhotel
   IMAGE_REPO: loyalty-app
-  # Must match the @playwright/test version in package-lock.json so the
-  # pre-baked browsers match the test runner.
-  PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.59.1-jammy
 
 jobs:
   browser-e2e:
@@ -86,6 +83,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve Playwright image from lockfile
+        # Pin the Playwright container to the EXACT @playwright/test version in
+        # package-lock.json so the pre-baked browsers always match the test
+        # runner. Deriving it here (rather than a hardcoded env) means a
+        # Playwright version bump can never silently desync the image again —
+        # which is exactly what broke this suite (image v1.59.1 vs runner 1.60.0,
+        # "chrome-headless-shell executable doesn't exist").
+        id: pwimage
+        run: |
+          VER="$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)"
+          if [ -z "$VER" ] || [ "$VER" = "null" ]; then
+            echo "::error::Could not resolve @playwright/test version from package-lock.json"
+            exit 1
+          fi
+          echo "Resolved @playwright/test version: $VER"
+          echo "image=mcr.microsoft.com/playwright:v${VER}-jammy" >> "$GITHUB_OUTPUT"
 
       - name: Resolve image tag
         id: tag
@@ -196,7 +210,7 @@ jobs:
             -e CI=true \
             -e BACKEND_URL=http://localhost:4202 \
             -e FRONTEND_URL=http://localhost:3201 \
-            ${{ env.PLAYWRIGHT_IMAGE }} \
+            ${{ steps.pwimage.outputs.image }} \
             bash -lc "npm ci && npx playwright test"
 
       - name: Upload Playwright report
