@@ -3,6 +3,12 @@ name: CI Tests
 on:
   push:
     branches: [main]
+    # See ci-build-e2e.yml: skip workflow/docs-only pushes so a CI-config or
+    # documentation change doesn't spin up the deploy-gating test pipeline.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
 
