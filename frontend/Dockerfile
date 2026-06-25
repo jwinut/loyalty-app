@@ -9,7 +9,7 @@
 # On code-only changes, only layers 3+ rebuild (fast)
 # On dependency changes, layers 1+ rebuild (slow but necessary)
 
-FROM node:26-alpine@sha256:7c6af15abe4e3de859690e7db171d0d711bf37d27528eddfe625b2fe89e097f8 AS base
+FROM node:26-alpine@sha256:725aeba2364a9b16beae49e180d83bd597dbd0b15c47f1f28875c290bfd255b9 AS base
 WORKDIR /app
 
 # =============================================================================
@@ -52,9 +52,13 @@ RUN test -f dist/index.html && \
 # =============================================================================
 # STAGE 3: Production runtime (nginx - minimal)
 # =============================================================================
-FROM nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a AS production
+FROM nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa AS production
 
-# Update packages to fix CVEs (e.g., CVE-2025-62408 in c-ares)
+# Refreshed base digest + apk upgrade to pull patched Alpine packages. Bumping
+# the FROM digest is what makes the upgrade effective: it invalidates the cached
+# upgrade layer so the rebuild fetches the latest libssl3/libcrypto3/libexpat
+# (resolving the OpenSSL + expat CVE cluster Trivy was flagging at 3.5.6-r0 /
+# 2.7.5-r0).
 RUN apk upgrade --no-cache
 
 COPY --from=builder /app/dist /usr/share/nginx/html
