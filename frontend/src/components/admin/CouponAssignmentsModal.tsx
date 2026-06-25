@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { couponService } from '../../services/couponService';
 import { Coupon } from '../../types/coupon';
@@ -52,12 +52,26 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
   const [userToRemove, setUserToRemove] = useState<CouponAssignment | null>(null);
   const limit = 10;
 
+  // Track mount status so the async handlers below never call setState after
+  // the modal has unmounted (e.g. closed mid-request). A late setState into a
+  // torn-down React root throws, and because the handlers are wired as
+  // fire-and-forget onClick callbacks that throw would surface as an unhandled
+  // promise rejection.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const loadAssignments = useCallback(async (pageNum: number = 1) => {
     try {
       setLoading(true);
       setError(null);
       const result = await couponService.getCouponAssignments(coupon.id, pageNum, limit);
-      
+      if (!isMountedRef.current) {return;}
+
       setAssignments(result.assignments);
       setSummary(result.summary);
       setPage(result.page);
@@ -65,12 +79,15 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
       setTotal(result.total);
     } catch (err: unknown) {
       logger.error('Error loading coupon assignments:', err);
+      if (!isMountedRef.current) {return;}
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
       setError(errorMessage ?? t('errors.failedToLoadAssignments', 'Failed to load assignments'));
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [coupon.id, limit, t]);
 
@@ -122,16 +139,19 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
       // Reload assignments to reflect changes
       await loadAssignments(page);
 
-
+      if (!isMountedRef.current) {return;}
       setUserToRemove(null);
     } catch (err: unknown) {
       logger.error('Error removing user coupons:', err);
+      if (!isMountedRef.current) {return;}
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
       setError(errorMessage ?? t('errors.failedToRemoveCoupons', 'Failed to remove user coupons'));
     } finally {
-      setRemovingUserId(null);
+      if (isMountedRef.current) {
+        setRemovingUserId(null);
+      }
     }
   };
 
