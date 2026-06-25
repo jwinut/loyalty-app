@@ -1,0 +1,74 @@
+name: CodeQL
+
+# Static analysis / code scanning via CodeQL (advanced setup, committed to the
+# repo so language and version changes are reviewable). This replaces the
+# previously GitHub-managed *default* setup, which went stale (last scan
+# 2026-02-06, javascript-typescript only) and is now reported as
+# `not-configured`. Advanced setup also lets us cover the GitHub Actions
+# workflows and the Rust backend, which default setup was not analysing.
+#
+# Languages:
+#   - actions               : scans .github/workflows/* for script-injection
+#                             and supply-chain misconfigurations
+#   - javascript-typescript : the React/TS frontend (+ root tooling)
+#   - rust                  : the Axum backend
+#
+# All languages use build-mode: none — CodeQL extracts from source and does not
+# need a project build, which keeps the run fast and avoids coupling code
+# scanning to the (heavier) compile pipeline in ci-build-e2e.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 4 * * 1'  # weekly, Monday 04:23 UTC
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege default for the workflow; the analyze job below elevates only
+# to what CodeQL needs (security-events: write). Keeping an explicit top-level
+# block also satisfies CodeQL's own actions/missing-workflow-permissions query.
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    permissions:
+      security-events: write   # upload SARIF code-scanning results
+      packages: read           # codeql-action may pull the CodeQL bundle from GHCR
+      actions: read            # read workflow run metadata (needed for `actions` analysis)
+      contents: read
+
+    strategy:
+      fail-fast: false         # one language failing must not cancel the others
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: rust
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
