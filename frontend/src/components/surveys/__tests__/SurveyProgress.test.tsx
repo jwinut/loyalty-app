@@ -107,7 +107,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarContainer = container.querySelector('.bg-gray-200.rounded-full.h-2');
+      const progressBarContainer = container.querySelector('.bg-stone-200.rounded-full.h-2');
       expect(progressBarContainer).toBeInTheDocument();
     });
 
@@ -116,7 +116,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full');
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full');
       expect(progressBarFill).toBeInTheDocument();
     });
 
@@ -125,7 +125,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '20%' });
     });
 
@@ -134,12 +134,12 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      let progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      let progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '20%' });
 
       rerender(<SurveyProgress current={3} total={5} progress={60} />);
 
-      progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '60%' });
     });
 
@@ -148,7 +148,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={5} total={5} progress={100} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '100%' });
     });
 
@@ -157,7 +157,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={0} total={5} progress={0} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '0%' });
     });
 
@@ -166,7 +166,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full');
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full');
       expect(progressBarFill).toHaveClass('transition-all', 'duration-300');
     });
   });
@@ -314,7 +314,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={5} total={5} progress={100} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '100%' });
     });
   });
@@ -342,21 +342,21 @@ describe('SurveyProgress', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const progressText = screen.getByText(/Progress:.*1 of 5/);
-      expect(progressText).toHaveClass('text-sm', 'font-medium', 'text-gray-700');
+      expect(progressText).toHaveClass('text-sm', 'font-medium', 'text-stone-700');
     });
 
     it('should style percentage text correctly', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const percentageText = screen.getByText('20%');
-      expect(percentageText).toHaveClass('text-sm', 'font-medium', 'text-blue-600');
+      expect(percentageText).toHaveClass('text-sm', 'font-medium', 'text-brand-600');
     });
 
     it('should style auto-save message correctly', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const message = screen.getByText('Your progress is automatically saved');
-      expect(message).toHaveClass('text-xs', 'text-gray-500', 'mt-1');
+      expect(message).toHaveClass('text-xs', 'text-stone-500', 'mt-1');
     });
 
     it('should have rounded progress bar container', () => {
@@ -364,7 +364,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarContainer = container.querySelector('.bg-gray-200.rounded-full.h-2');
+      const progressBarContainer = container.querySelector('.bg-stone-200.rounded-full.h-2');
       expect(progressBarContainer).toHaveClass('w-full');
     });
 
@@ -373,7 +373,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full');
+      const progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full');
       expect(progressBarFill).toHaveClass('transition-all', 'duration-300');
     });
   });
@@ -383,14 +383,14 @@ describe('SurveyProgress', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const progressText = screen.getByText(/Progress:.*1 of 5/);
-      expect(progressText).toHaveClass('text-gray-700');
+      expect(progressText).toHaveClass('text-stone-700');
     });
 
     it('should have visible progress percentage', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const percentageText = screen.getByText('20%');
-      expect(percentageText).toHaveClass('text-blue-600');
+      expect(percentageText).toHaveClass('text-brand-600');
     });
 
     it('should maintain semantic HTML structure', () => {
@@ -422,12 +422,12 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      let progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      let progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '20%' });
 
       rerender(<SurveyProgress current={2} total={5} progress={40} />);
 
-      progressBarFill = container.querySelector('.bg-blue-600.h-2.rounded-full') as HTMLElement;
+      progressBarFill = container.querySelector('.bg-brand-600.h-2.rounded-full') as HTMLElement;
       expect(progressBarFill).toHaveStyle({ width: '40%' });
     });
 

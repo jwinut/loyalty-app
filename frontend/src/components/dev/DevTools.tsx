@@ -36,7 +36,7 @@ export default function DevTools() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm z-50">
+    <div className="fixed bottom-4 right-4 bg-brand-600 text-white p-4 rounded-lg shadow-lg max-w-sm z-50">
       <div className="flex items-start space-x-2">
         <div className="flex-shrink-0">
           ⚛️
@@ -51,13 +51,13 @@ export default function DevTools() {
               href="https://reactjs.org/link/react-devtools"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded"
+              className="text-xs bg-brand-500 hover:bg-brand-400 px-2 py-1 rounded"
             >
               Install
             </a>
             <button
               onClick={() => setShowDevInfo(false)}
-              className="text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded"
+              className="text-xs bg-stone-600 hover:bg-stone-500 px-2 py-1 rounded"
             >
               Dismiss
             </button>

@@ -140,7 +140,7 @@ describe('TierStatus', () => {
       const silverElements = screen.getAllByText('Silver');
       // Find the one in the header (has the color style)
       const headerTierName = silverElements.find(el =>
-        el.classList.contains('font-medium') && !el.classList.contains('text-gray-900')
+        el.classList.contains('font-medium') && !el.classList.contains('text-stone-900')
       );
       expect(headerTierName).toHaveStyle({ color: '#C0C0C0' });
     });

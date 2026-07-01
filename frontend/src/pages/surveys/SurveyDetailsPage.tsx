@@ -42,11 +42,11 @@ const SurveyDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">{t('surveys.loading')}</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
           </div>
         </div>
       </div>
@@ -56,7 +56,7 @@ const SurveyDetailsPage: React.FC = () => {
    
   if (error || !survey) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="text-center py-12">
             <div className="text-red-500 text-xl mb-4">
@@ -64,7 +64,7 @@ const SurveyDetailsPage: React.FC = () => {
             </div>
             <Link
               to="/surveys"
-              className="inline-flex items-center text-blue-600 hover:text-blue-800"
+              className="inline-flex items-center text-brand-600 hover:text-brand-800"
             >
               <FiArrowLeft className="mr-2 h-4 w-4" />
               {t('surveys.backToSurveys')}
@@ -76,7 +76,7 @@ const SurveyDetailsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,14 +84,14 @@ const SurveyDetailsPage: React.FC = () => {
             <div className="flex items-center">
               <Link
                 to="/surveys"
-                className="mr-4 text-gray-400 hover:text-gray-600"
+                className="mr-4 text-stone-400 hover:text-stone-600"
               >
                 <FiArrowLeft className="h-6 w-6" />
               </Link>
               <div className="flex items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                  <h1 className="text-2xl font-bold text-stone-900">{survey.title}</h1>
+                  <div className="flex items-center space-x-4 text-sm text-stone-500 mt-1">
                     <span className="flex items-center">
                       <FiCalendar className="mr-1 h-3 w-3" />
                       {t('surveys.created')} {formatDate(survey.created_at)}
@@ -99,7 +99,7 @@ const SurveyDetailsPage: React.FC = () => {
                     <span className={clsx('inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
                       survey.access_type === 'public'
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-blue-100 text-blue-800'
+                        : 'bg-brand-100 text-brand-800'
                     )}
                     >
                       {survey.access_type === 'public' ? (
@@ -121,7 +121,7 @@ const SurveyDetailsPage: React.FC = () => {
             <div className="flex items-center space-x-4">
               <Link
                 to={`/surveys/${survey.id}/take`}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="bg-brand-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors"
               >
                 {t('surveys.takeSurvey')}
               </Link>
@@ -136,13 +136,13 @@ const SurveyDetailsPage: React.FC = () => {
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {survey.description && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('surveys.description')}</h2>
-            <p className="text-gray-600">{survey.description}</p>
+            <h2 className="text-lg font-semibold text-stone-900 mb-2">{t('surveys.description')}</h2>
+            <p className="text-stone-600">{survey.description}</p>
           </div>
         )}
 
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg font-semibold text-stone-900 mb-4">
             {t('surveys.preview', { count: survey.questions?.length ?? 0 })}
           </h2>
           <SurveyPreview

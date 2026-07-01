@@ -179,7 +179,7 @@ describe('CouponScanner', () => {
       render(<CouponScanner />, { wrapper });
 
       const manualButton = screen.getByText('Manual Entry');
-      expect(manualButton).toHaveClass('bg-white', 'text-gray-900', 'shadow-sm');
+      expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
     });
 
     it('should switch to camera mode when camera button clicked', async () => {
@@ -189,7 +189,7 @@ describe('CouponScanner', () => {
       const cameraButton = screen.getByText('Scan Camera');
       await user.click(cameraButton);
 
-      expect(cameraButton).toHaveClass('bg-white', 'text-gray-900', 'shadow-sm');
+      expect(cameraButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
     });
 
     it('should switch back to manual mode when manual button clicked', async () => {
@@ -202,7 +202,7 @@ describe('CouponScanner', () => {
       await user.click(cameraButton);
       await user.click(manualButton);
 
-      expect(manualButton).toHaveClass('bg-white', 'text-gray-900', 'shadow-sm');
+      expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
     });
 
     it('should not display camera view in manual mode', () => {
@@ -265,7 +265,7 @@ describe('CouponScanner', () => {
 
       await waitFor(() => {
         const manualButton = screen.getByText('Manual Entry');
-        expect(manualButton).toHaveClass('bg-white', 'text-gray-900', 'shadow-sm');
+        expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
       });
     });
   });

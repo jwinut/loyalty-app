@@ -254,10 +254,10 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
-          <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
+          <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
         </div>
       </div>
     );
@@ -272,7 +272,7 @@ export default function ProfilePage() {
           <div className="px-4 py-5 sm:p-6">
             {/* Profile Header with Settings Button */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-stone-900">
                 {t('profile.personalInformation')}
               </h2>
               <button
@@ -297,7 +297,7 @@ export default function ProfilePage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-3 mb-4">
-                  <h3 className="text-lg font-medium text-gray-900" data-testid="profile-name">
+                  <h3 className="text-lg font-medium text-stone-900" data-testid="profile-name">
                     {profile ? `${profile.firstName} ${profile.lastName}` : 'Loading...'}
                   </h3>
                   {user?.role && user.role !== 'customer' && (
@@ -305,8 +305,8 @@ export default function ProfilePage() {
                       user.role === 'super_admin'
                         ? 'bg-purple-100 text-purple-800'
                         : user.role === 'admin'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-brand-100 text-brand-800'
+                        : 'bg-stone-100 text-stone-800'
                     }`}
                     >
                       {user.role === 'super_admin' ? t('profile.superAdmin') :
@@ -318,7 +318,7 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <dt className="font-medium text-gray-500 flex items-center gap-2">
+                    <dt className="font-medium text-stone-500 flex items-center gap-2">
                       {t('profile.email')}
                       {user?.emailVerified === false && (
                         <button
@@ -349,15 +349,15 @@ export default function ProfilePage() {
 
                   {profile?.phone && (
                     <div>
-                      <dt className="font-medium text-gray-500">{t('auth.phone')}</dt>
-                      <dd className="mt-1 text-gray-900">{profile.phone}</dd>
+                      <dt className="font-medium text-stone-500">{t('auth.phone')}</dt>
+                      <dd className="mt-1 text-stone-900">{profile.phone}</dd>
                     </div>
                   )}
 
                   {profile?.dateOfBirth && (
                     <div>
-                      <dt className="font-medium text-gray-500">{t('profile.dateOfBirth')}</dt>
-                      <dd className="mt-1 text-gray-900">
+                      <dt className="font-medium text-stone-500">{t('profile.dateOfBirth')}</dt>
+                      <dd className="mt-1 text-stone-900">
                         {formatDateToDDMMYYYY(profile.dateOfBirth)}
                       </dd>
                     </div>
@@ -365,8 +365,8 @@ export default function ProfilePage() {
 
                   {profile?.gender && (
                     <div>
-                      <dt className="font-medium text-gray-500">{t('profile.gender')}</dt>
-                      <dd className="mt-1 text-gray-900">
+                      <dt className="font-medium text-stone-500">{t('profile.gender')}</dt>
+                      <dd className="mt-1 text-stone-900">
                         {profile.gender === 'male' ? t('profile.male') :
                          profile.gender === 'female' ? t('profile.female') :
                          profile.gender === 'other' ? t('profile.other') :
@@ -378,23 +378,23 @@ export default function ProfilePage() {
 
                   {profile?.occupation && (
                     <div>
-                      <dt className="font-medium text-gray-500">{t('profile.occupation')}</dt>
-                      <dd className="mt-1 text-gray-900">{profile.occupation}</dd>
+                      <dt className="font-medium text-stone-500">{t('profile.occupation')}</dt>
+                      <dd className="mt-1 text-stone-900">{profile.occupation}</dd>
                     </div>
                   )}
 
                   <div>
-                    <dt className="font-medium text-gray-500">{t('profile.memberSince')}</dt>
-                    <dd className="mt-1 text-gray-900">
+                    <dt className="font-medium text-stone-500">{t('profile.memberSince')}</dt>
+                    <dd className="mt-1 text-stone-900">
                       {profile ? formatDateToDDMMYYYY(profile.createdAt) : '...'}
                     </dd>
                   </div>
 
                   {profile?.membershipId && (
                     <div>
-                      <dt className="font-medium text-gray-500">{t('profile.membershipId')}</dt>
+                      <dt className="font-medium text-stone-500">{t('profile.membershipId')}</dt>
                       <dd className="mt-1 flex items-center space-x-2">
-                        <span className="font-mono bg-gray-100 px-2 py-1 rounded text-gray-800">
+                        <span className="font-mono bg-stone-100 px-2 py-1 rounded text-stone-800">
                           {profile.membershipId}
                         </span>
                         <button
@@ -404,7 +404,7 @@ export default function ProfilePage() {
                               notify.success(t('profile.membershipIdCopied'));
                             }
                           }}
-                          className="text-gray-400 hover:text-gray-600 p-1"
+                          className="text-stone-400 hover:text-stone-600 p-1"
                           title={t('profile.copyMembershipId')}
                         >
                           <FiCopy className="h-3 w-3" />
@@ -417,7 +417,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Logout Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="mt-6 pt-6 border-t border-stone-200">
               <button
                 onClick={logout}
                 data-testid="logout-button"

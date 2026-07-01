@@ -340,7 +340,7 @@ const BookingManagement: React.FC = () => {
       completed: {
         icon: <FiCheck className="w-3 h-3" />,
         text: t('booking.status.completed'),
-        className: 'bg-blue-100 text-blue-800'
+        className: 'bg-brand-100 text-brand-800'
       }
     };
 
@@ -366,14 +366,14 @@ const BookingManagement: React.FC = () => {
   // Loading state
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-stone-50 p-4">
         <div className="max-w-full mx-auto">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-64 mb-6" />
-            <div className="h-12 bg-gray-300 rounded mb-6" />
+            <div className="h-8 bg-stone-300 rounded w-64 mb-6" />
+            <div className="h-12 bg-stone-300 rounded mb-6" />
             <div className="bg-white rounded-lg shadow p-6">
               {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-16 bg-gray-200 rounded mb-4" />
+                <div key={i} className="h-16 bg-stone-200 rounded mb-4" />
               ))}
             </div>
           </div>
@@ -383,18 +383,18 @@ const BookingManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-full mx-auto px-4 py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
-              <FiCalendar className="h-8 w-8 text-blue-600 mr-3" />
+              <FiCalendar className="h-8 w-8 text-brand-600 mr-3" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-stone-900">
                   {t('admin.booking.bookingManagement.title')}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-stone-600">
                   {t('admin.booking.bookingManagement.subtitle')}
                 </p>
               </div>
@@ -403,7 +403,7 @@ const BookingManagement: React.FC = () => {
               <button
                 onClick={() => bookingsQuery.refetch()}
                 disabled={bookingsQuery.isRefetching}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
               >
                 <FiRefreshCw className={clsx('w-4 h-4 mr-2', bookingsQuery.isRefetching && 'animate-spin')} />
                 {t('common.refresh')}
@@ -421,15 +421,15 @@ const BookingManagement: React.FC = () => {
           <div className="w-[70%]">
             {/* Status Tabs */}
             <div className="bg-white rounded-lg shadow mb-6">
-              <div className="border-b border-gray-200">
+              <div className="border-b border-stone-200">
                 <nav className="-mb-px flex">
                   <button
                     onClick={() => setStatusFilter('')}
                     className={clsx(
                       'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === ''
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-brand-500 text-brand-600'
+                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                     )}
                   >
                     {t('admin.booking.bookingManagement.allStatuses')} ({statusCounts.all})
@@ -439,8 +439,8 @@ const BookingManagement: React.FC = () => {
                     className={clsx(
                       'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'confirmed'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-brand-500 text-brand-600'
+                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                     )}
                   >
                     {t('booking.status.confirmed')} ({statusCounts.confirmed})
@@ -450,8 +450,8 @@ const BookingManagement: React.FC = () => {
                     className={clsx(
                       'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'cancelled'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-brand-500 text-brand-600'
+                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                     )}
                   >
                     {t('booking.status.cancelled')} ({statusCounts.cancelled})
@@ -461,8 +461,8 @@ const BookingManagement: React.FC = () => {
                     className={clsx(
                       'py-4 px-6 border-b-2 font-medium text-sm',
                       statusFilter === 'completed'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-brand-500 text-brand-600'
+                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                     )}
                   >
                     {t('booking.status.completed')} ({statusCounts.completed})
@@ -475,22 +475,22 @@ const BookingManagement: React.FC = () => {
             <div className="bg-white p-6 rounded-lg shadow mb-6">
               <form onSubmit={handleSearch}>
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400" />
                   <input
                     type="text"
                     placeholder={t('admin.booking.bookingManagement.searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-10 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
                   {isSearching && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+                      <div className="animate-spin h-4 w-4 border-2 border-brand-500 border-t-transparent rounded-full" />
                     </div>
                   )}
                 </div>
               </form>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-stone-500 mt-2">
                 {t('admin.booking.bookingManagement.searchHint')}
               </p>
             </div>
@@ -499,16 +499,16 @@ const BookingManagement: React.FC = () => {
             <div className="bg-white rounded-lg shadow overflow-hidden relative">
               {isSearching && (
                 <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-                  <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+                  <div className="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full" />
                 </div>
               )}
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-stone-200">
+                  <thead className="bg-stone-50">
                     <tr>
                       <th
                         onClick={() => handleSort('created_at')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.created')}
@@ -517,7 +517,7 @@ const BookingManagement: React.FC = () => {
                       </th>
                       <th
                         onClick={() => handleSort('user_name')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.user')}
@@ -526,7 +526,7 @@ const BookingManagement: React.FC = () => {
                       </th>
                       <th
                         onClick={() => handleSort('room_type')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.roomType')}
@@ -535,7 +535,7 @@ const BookingManagement: React.FC = () => {
                       </th>
                       <th
                         onClick={() => handleSort('check_in_date')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.dates')}
@@ -544,7 +544,7 @@ const BookingManagement: React.FC = () => {
                       </th>
                       <th
                         onClick={() => handleSort('status')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.status')}
@@ -553,28 +553,28 @@ const BookingManagement: React.FC = () => {
                       </th>
                       <th
                         onClick={() => handleSort('total_price')}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                       >
                         <div className="flex items-center gap-1">
                           {t('admin.booking.bookingManagement.table.payment')}
                           <SortIcon field="total_price" />
                         </div>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                         {t('admin.booking.bookingManagement.table.slipStatus')}
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                         {t('admin.booking.bookingManagement.table.adminStatus')}
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                         {t('admin.booking.bookingManagement.table.actions')}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-stone-200">
                     {bookings.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan={9} className="px-4 py-8 text-center text-stone-500">
                           {t('admin.booking.bookingManagement.noBookings')}
                         </td>
                       </tr>
@@ -585,29 +585,29 @@ const BookingManagement: React.FC = () => {
                           onClick={() => handleRowClick(booking)}
                           onDoubleClick={() => handleEditBooking(booking)}
                           className={clsx(
-                            'hover:bg-gray-50 cursor-pointer',
-                            selectedBooking?.id === booking.id && 'bg-blue-50'
+                            'hover:bg-stone-50 cursor-pointer',
+                            selectedBooking?.id === booking.id && 'bg-brand-50'
                           )}
                         >
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
                             {formatDateTimeToEuropean(booking.createdAt)}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-stone-900">
                               {booking.user.firstName && booking.user.lastName
                                 ? `${booking.user.firstName} ${booking.user.lastName}`
                                 : booking.user.email}
                             </div>
-                            <div className="text-xs text-gray-500 font-mono">
+                            <div className="text-xs text-stone-500 font-mono">
                               {booking.user.membershipId ?? '-'}
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
                             {booking.roomType.name}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
                             <div>{formatDateToDDMMYYYY(booking.checkInDate)}</div>
-                            <div className="text-gray-500">
+                            <div className="text-stone-500">
                               - {formatDateToDDMMYYYY(booking.checkOutDate)}
                             </div>
                           </td>
@@ -615,12 +615,12 @@ const BookingManagement: React.FC = () => {
                             <BookingStatusBadge status={booking.status} />
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-stone-900">
                               {booking.paymentType === 'full'
                                 ? t('admin.booking.bookingManagement.paymentType.full')
                                 : t('admin.booking.bookingManagement.paymentType.deposit')}
                             </div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-stone-900">
                               {booking.paymentAmount !== null
                                 ? `${booking.paymentAmount.toLocaleString()} THB`
                                 : '-'}
@@ -630,7 +630,7 @@ const BookingManagement: React.FC = () => {
                             {booking.slip ? (
                               <SlipOkStatusBadge status={booking.slip.slipokStatus} />
                             ) : (
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-stone-400">
                                 {t('admin.booking.bookingManagement.noSlip')}
                               </span>
                             )}
@@ -639,7 +639,7 @@ const BookingManagement: React.FC = () => {
                             {booking.slip ? (
                               <AdminStatusBadge status={booking.slip.adminStatus} />
                             ) : (
-                              <span className="text-xs text-gray-400">-</span>
+                              <span className="text-xs text-stone-400">-</span>
                             )}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -674,7 +674,7 @@ const BookingManagement: React.FC = () => {
                                   e.stopPropagation();
                                   handleEditBooking(booking);
                                 }}
-                                className="p-1 text-blue-600 hover:text-blue-900"
+                                className="p-1 text-brand-600 hover:text-brand-900"
                                 title={t('admin.booking.bookingManagement.actions.edit')}
                               >
                                 <FiCalendar className="w-4 h-4" />
@@ -692,7 +692,7 @@ const BookingManagement: React.FC = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-between items-center mt-6">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-stone-700">
                   {t('admin.booking.bookingManagement.pagination', {
                     current: currentPage,
                     total: totalPages
@@ -702,14 +702,14 @@ const BookingManagement: React.FC = () => {
                   <button
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('common.previous')}
                   </button>
                   <button
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('common.next')}
                   </button>

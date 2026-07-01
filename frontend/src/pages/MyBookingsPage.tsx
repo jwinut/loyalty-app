@@ -17,7 +17,7 @@ type BookingTab = 'current' | 'history';
 const statusColors: Record<BookingStatus | 'cancelledByAdmin', { bg: string; text: string }> = {
   confirmed: { bg: 'bg-green-100', text: 'text-green-800' },
   cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
-  completed: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  completed: { bg: 'bg-brand-100', text: 'text-brand-800' },
   cancelledByAdmin: { bg: 'bg-amber-100', text: 'text-amber-800' },
 };
 
@@ -328,14 +328,14 @@ export default function MyBookingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-stone-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('current')}
             className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'current'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             )}
             data-testid="tab-current"
           >
@@ -346,7 +346,7 @@ export default function MyBookingsPage() {
             className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'history'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             )}
             data-testid="tab-history"
           >
@@ -358,11 +358,11 @@ export default function MyBookingsPage() {
       {/* Empty State */}
       {displayedBookings.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <FiCalendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <FiCalendar className="w-16 h-16 text-stone-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-stone-900 mb-2">
             {activeTab === 'current' ? t('booking.noCurrentBookings') : t('booking.noBookingHistory')}
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-stone-500 mb-6">
             {activeTab === 'current'
               ? t('booking.noCurrentBookingsDescription')
               : t('booking.noBookingHistoryDescription')}
@@ -434,9 +434,9 @@ export default function MyBookingsPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-stone-600">
                       <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-gray-400" />
+                        <FiCalendar className="mr-2 text-stone-400" />
                         <div>
                           <span className="font-medium">{t('booking.checkIn')}:</span>{' '}
                           {new Date(booking.checkInDate).toLocaleDateString()}
@@ -444,7 +444,7 @@ export default function MyBookingsPage() {
                       </div>
 
                       <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-gray-400" />
+                        <FiCalendar className="mr-2 text-stone-400" />
                         <div>
                           <span className="font-medium">{t('booking.checkOut')}:</span>{' '}
                           {new Date(booking.checkOutDate).toLocaleDateString()}
@@ -459,7 +459,7 @@ export default function MyBookingsPage() {
                       <div className="text-2xl font-bold text-primary-600">
                         ฿{Number(booking.totalPrice).toLocaleString()}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-stone-500">
                         {calculateNights(booking.checkInDate, booking.checkOutDate)} {t('booking.nights')}
                       </div>
                       {/* Payment amount if exists */}
@@ -469,13 +469,13 @@ export default function MyBookingsPage() {
                         </div>
                       )}
                     </div>
-                    <FiChevronRight className="text-gray-400 text-xl" />
+                    <FiChevronRight className="text-stone-400 text-xl" />
                   </div>
                 </div>
               </div>
 
               {/* Booking Footer */}
-              <div className="bg-gray-50 px-6 py-3 text-sm text-gray-500 flex items-center justify-between">
+              <div className="bg-stone-50 px-6 py-3 text-sm text-stone-500 flex items-center justify-between">
                 <span>{t('booking.bookedOn')}: {new Date(booking.createdAt).toLocaleDateString()}</span>
                 <span className="text-primary-600">{t('booking.clickForDetails')}</span>
               </div>
@@ -511,7 +511,7 @@ export default function MyBookingsPage() {
               </div>
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-stone-400 hover:text-stone-600"
                 data-testid="booking-details-close"
               >
                 <FiX className="text-2xl" />
@@ -523,14 +523,14 @@ export default function MyBookingsPage() {
               {/* Dates Section */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">{t('booking.checkIn')}</div>
+                  <div className="text-sm text-stone-500 mb-1">{t('booking.checkIn')}</div>
                   <div className="font-semibold flex items-center">
                     <FiCalendar className="mr-2 text-primary-600" />
                     {new Date(selectedBooking.checkInDate).toLocaleDateString()}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">{t('booking.checkOut')}</div>
+                  <div className="text-sm text-stone-500 mb-1">{t('booking.checkOut')}</div>
                   <div className="font-semibold flex items-center">
                     <FiCalendar className="mr-2 text-primary-600" />
                     {new Date(selectedBooking.checkOutDate).toLocaleDateString()}
@@ -539,11 +539,11 @@ export default function MyBookingsPage() {
               </div>
 
               {/* Nights Count */}
-              <div className="text-center py-3 bg-gray-50 rounded-lg" data-testid="booking-nights-count">
+              <div className="text-center py-3 bg-stone-50 rounded-lg" data-testid="booking-nights-count">
                 <span className="text-lg font-semibold text-primary-600">
                   {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate)}
                 </span>{' '}
-                <span className="text-gray-600">
+                <span className="text-stone-600">
                   {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate) === 1
                     ? t('booking.night')
                     : t('booking.nights')}
@@ -553,9 +553,9 @@ export default function MyBookingsPage() {
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center">
-                  <FiUsers className="mr-2 text-gray-400" />
+                  <FiUsers className="mr-2 text-stone-400" />
                   <div>
-                    <div className="text-sm text-gray-500">{t('booking.guests')}</div>
+                    <div className="text-sm text-stone-500">{t('booking.guests')}</div>
                     <div className="font-semibold">
                       {selectedBooking.numGuests} {selectedBooking.numGuests === 1 ? t('booking.guest') : t('booking.guests')}
                     </div>
@@ -564,8 +564,8 @@ export default function MyBookingsPage() {
                 <div className="flex items-center">
                   <FiStar className="mr-2 text-yellow-500" />
                   <div>
-                    <div className="text-sm text-gray-500">{t('booking.pointsEarned')}</div>
-                    <div className={`font-semibold ${selectedBooking.status === 'cancelled' ? 'text-gray-400' : 'text-yellow-600'}`}>
+                    <div className="text-sm text-stone-500">{t('booking.pointsEarned')}</div>
+                    <div className={`font-semibold ${selectedBooking.status === 'cancelled' ? 'text-stone-400' : 'text-yellow-600'}`}>
                       {selectedBooking.status === 'cancelled' ? (
                         '-'
                       ) : (
@@ -578,7 +578,7 @@ export default function MyBookingsPage() {
 
               {/* Total Price */}
               <div className="text-center py-4 bg-primary-50 rounded-lg">
-                <div className="text-sm text-gray-500 mb-1">{t('booking.totalPrice')}</div>
+                <div className="text-sm text-stone-500 mb-1">{t('booking.totalPrice')}</div>
                 <div className="text-3xl font-bold text-primary-600">
                   ฿{Number(selectedBooking.totalPrice).toLocaleString()}
                 </div>
@@ -648,9 +648,9 @@ export default function MyBookingsPage() {
 
               {/* Notes */}
               {selectedBooking.notes && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700 mb-1">{t('booking.notes')}</div>
-                  <div className="text-gray-600">{selectedBooking.notes}</div>
+                <div className="p-4 bg-stone-50 rounded-lg">
+                  <div className="text-sm font-medium text-stone-700 mb-1">{t('booking.notes')}</div>
+                  <div className="text-stone-600">{selectedBooking.notes}</div>
                 </div>
               )}
 
@@ -681,16 +681,16 @@ export default function MyBookingsPage() {
               )}
 
               {/* Booked On */}
-              <div className="text-center text-sm text-gray-500">
+              <div className="text-center text-sm text-stone-500">
                 {t('booking.bookedOn')}: {new Date(selectedBooking.createdAt).toLocaleDateString()}
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t bg-stone-50">
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100"
+                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100"
               >
                 {t('common.close')}
               </button>
@@ -713,10 +713,10 @@ export default function MyBookingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6" data-testid="cancel-modal">
             <h3 className="text-lg font-semibold mb-4">{t('booking.cancelBookingTitle')}</h3>
-            <p className="text-gray-600 mb-4">{t('booking.cancelBookingConfirm')}</p>
+            <p className="text-stone-600 mb-4">{t('booking.cancelBookingConfirm')}</p>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t('booking.cancelReason')} ({t('common.optional')})
               </label>
               <textarea
@@ -724,7 +724,7 @@ export default function MyBookingsPage() {
                 onChange={(e) => setCancelReason(e.target.value)}
                 rows={3}
                 placeholder={t('booking.cancelReasonPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                 data-testid="cancel-reason-input"
               />
             </div>
@@ -743,7 +743,7 @@ export default function MyBookingsPage() {
                   setSelectedBookingId(null);
                   setCancelReason('');
                 }}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-50"
                 data-testid="cancel-modal-close"
               >
                 {t('common.close')}
@@ -751,7 +751,7 @@ export default function MyBookingsPage() {
               <button
                 onClick={handleConfirmCancel}
                 disabled={cancelBookingMutation.isPending}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-stone-300"
                 data-testid="confirm-cancel-button"
               >
                 {cancelBookingMutation.isPending ? (
@@ -785,7 +785,7 @@ export default function MyBookingsPage() {
               <h3 className="text-xl font-semibold">{t('payment.uploadSlip')}</h3>
               <button
                 onClick={closeSlipUploadModal}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-stone-400 hover:text-stone-600"
                 data-testid="slip-upload-modal-close"
               >
                 <FiX className="text-2xl" />
@@ -795,9 +795,9 @@ export default function MyBookingsPage() {
             {/* Modal Body */}
             <div className="p-6 space-y-6">
               {/* Booking Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-stone-50 rounded-lg p-4">
                 <h4 className="font-medium mb-2">{slipUploadBooking.roomTypeName}</h4>
-                <div className="text-sm text-gray-600 grid grid-cols-2 gap-2">
+                <div className="text-sm text-stone-600 grid grid-cols-2 gap-2">
                   <div>{t('booking.checkIn')}: {new Date(slipUploadBooking.checkInDate).toLocaleDateString()}</div>
                   <div>{t('booking.checkOut')}: {new Date(slipUploadBooking.checkOutDate).toLocaleDateString()}</div>
                 </div>
@@ -866,42 +866,42 @@ export default function MyBookingsPage() {
                       <div className="text-center">
                         <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
                         <div
-                          className="p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
+                          className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
                           onClick={() => {
                             navigator.clipboard.writeText('0461430473');
                             toast.success(t('payment.copied'));
                           }}
                         >
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">{t('payment.bankName')}</span>
+                            <span className="text-stone-500">{t('payment.bankName')}</span>
                             <div className="flex items-center gap-2">
                               <img src={kbankLogo} alt="KBank" className="h-6" />
                               <span className="font-medium">กสิกรไทย</span>
                             </div>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-500">{t('payment.accountName')}</span>
+                            <span className="text-stone-500">{t('payment.accountName')}</span>
                             <span className="font-medium">บจก. สายชล เฮอริเทจ</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">{t('payment.accountNumber')}</span>
+                            <span className="text-stone-500">{t('payment.accountNumber')}</span>
                             <span className="font-medium font-mono">046-1-43047-3</span>
                           </div>
-                          <p className="text-xs text-gray-400 text-center">{t('payment.clickToCopy')}</p>
+                          <p className="text-xs text-stone-400 text-center">{t('payment.clickToCopy')}</p>
                         </div>
                       </div>
 
                       {/* Divider with "or" */}
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 border-t border-gray-200" />
-                        <span className="text-sm text-gray-400">{t('payment.or')}</span>
-                        <div className="flex-1 border-t border-gray-200" />
+                        <div className="flex-1 border-t border-stone-200" />
+                        <span className="text-sm text-stone-400">{t('payment.or')}</span>
+                        <div className="flex-1 border-t border-stone-200" />
                       </div>
 
                       {/* QR Code Display */}
                       <div className="text-center">
                         <h4 className="font-medium mb-3">{t('payment.scanQRCode')}</h4>
-                        <div className="p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                        <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm">
                           <img
                             src={promptPayQRUrl}
                             alt="PromptPay QR Code"
@@ -913,7 +913,7 @@ export default function MyBookingsPage() {
                           <a
                             href={promptPayQRUrl}
                             download="promptpay-qr.png"
-                            className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+                            className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
                           >
                             <FiDownload className="w-4 h-4" />
                             {t('payment.downloadQR')}
@@ -929,42 +929,42 @@ export default function MyBookingsPage() {
                   <div className="text-center">
                     <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
                     <div
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
+                      className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
                       onClick={() => {
                         navigator.clipboard.writeText('0461430473');
                         toast.success(t('payment.copied'));
                       }}
                     >
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">{t('payment.bankName')}</span>
+                        <span className="text-stone-500">{t('payment.bankName')}</span>
                         <div className="flex items-center gap-2">
                           <img src={kbankLogo} alt="KBank" className="h-6" />
                           <span className="font-medium">กสิกรไทย</span>
                         </div>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">{t('payment.accountName')}</span>
+                        <span className="text-stone-500">{t('payment.accountName')}</span>
                         <span className="font-medium">บจก. สายชล เฮอริเทจ</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">{t('payment.accountNumber')}</span>
+                        <span className="text-stone-500">{t('payment.accountNumber')}</span>
                         <span className="font-medium font-mono">046-1-43047-3</span>
                       </div>
-                      <p className="text-xs text-gray-400 text-center">{t('payment.clickToCopy')}</p>
+                      <p className="text-xs text-stone-400 text-center">{t('payment.clickToCopy')}</p>
                     </div>
                   </div>
 
                   {/* Divider with "or" */}
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 border-t border-gray-200" />
-                    <span className="text-sm text-gray-400">{t('payment.or')}</span>
-                    <div className="flex-1 border-t border-gray-200" />
+                    <div className="flex-1 border-t border-stone-200" />
+                    <span className="text-sm text-stone-400">{t('payment.or')}</span>
+                    <div className="flex-1 border-t border-stone-200" />
                   </div>
 
                   {/* QR Code Display */}
                   <div className="text-center">
                     <h4 className="font-medium mb-3">{t('payment.scanQRCode')}</h4>
-                    <div className="p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                    <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm">
                       <img
                         src={promptPayQRUrl}
                         alt="PromptPay QR Code"
@@ -976,7 +976,7 @@ export default function MyBookingsPage() {
                       <a
                         href={promptPayQRUrl}
                         download="promptpay-qr.png"
-                        className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+                        className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
                       >
                         <FiDownload className="w-4 h-4" />
                         {t('payment.downloadQR')}
@@ -993,7 +993,7 @@ export default function MyBookingsPage() {
                 {!slipPreview ? (
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                      isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'
+                      isDragging ? 'border-primary-500 bg-primary-50' : 'border-stone-300 hover:border-primary-400'
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -1001,9 +1001,9 @@ export default function MyBookingsPage() {
                     onClick={() => fileInputRef.current?.click()}
                     data-testid="slip-upload-dropzone"
                   >
-                    <FiUpload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-2">{t('payment.dragDropSlip')}</p>
-                    <p className="text-xs text-gray-400">JPG, PNG (max 10MB)</p>
+                    <FiUpload className="w-10 h-10 text-stone-400 mx-auto mb-3" />
+                    <p className="text-stone-600 mb-2">{t('payment.dragDropSlip')}</p>
+                    <p className="text-xs text-stone-400">JPG, PNG (max 10MB)</p>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1018,7 +1018,7 @@ export default function MyBookingsPage() {
                     <img
                       src={slipPreview}
                       alt="Transfer slip preview"
-                      className="w-full max-h-48 object-contain bg-gray-100"
+                      className="w-full max-h-48 object-contain bg-stone-100"
                     />
                     <button
                       onClick={removeSlip}
@@ -1033,17 +1033,17 @@ export default function MyBookingsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t bg-stone-50">
               <button
                 onClick={closeSlipUploadModal}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100"
+                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100"
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={handleSlipUpload}
                 disabled={!slipFile || isUploading}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed flex items-center"
                 data-testid="slip-upload-submit"
               >
                 {isUploading ? (

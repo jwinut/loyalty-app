@@ -219,7 +219,7 @@ describe('EmojiAvatar', () => {
       );
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('hover:ring-2', 'hover:ring-blue-500');
+      expect(avatar).toHaveClass('hover:ring-2', 'hover:ring-brand-500');
     });
 
     it('should add scale transition when onClick provided', () => {
@@ -269,14 +269,14 @@ describe('EmojiAvatar', () => {
       const { container } = render(<EmojiAvatar avatarUrl="emoji:😀" />);
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('border-2', 'border-gray-200');
+      expect(avatar).toHaveClass('border-2', 'border-stone-200');
     });
 
     it('should have background color', () => {
       const { container } = render(<EmojiAvatar avatarUrl="emoji:😀" />);
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('bg-gray-100');
+      expect(avatar).toHaveClass('bg-stone-100');
     });
   });
 
@@ -405,7 +405,7 @@ describe('EmojiAvatar', () => {
       );
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('hover:ring-2', 'hover:ring-blue-500');
+      expect(avatar).toHaveClass('hover:ring-2', 'hover:ring-brand-500');
     });
 
     it('should not have scale effect for images', () => {

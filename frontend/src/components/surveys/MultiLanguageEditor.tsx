@@ -110,13 +110,13 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-stone-700">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
 
       {/* Language Tabs */}
-      <div className="flex items-center space-x-2 border-b border-gray-200">
+      <div className="flex items-center space-x-2 border-b border-stone-200">
         <div className="flex space-x-1">
           {enabledLanguages.map(lang => {
             const isActive = activeTab === lang.code;
@@ -127,8 +127,8 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
                   onClick={() => setActiveTab(lang.code)}
                   className={`px-3 py-2 text-sm font-medium rounded-t-md flex items-center space-x-2 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-500'
+                      : 'text-stone-500 hover:text-stone-700'
                   }`}
                 >
                   <span className="flex items-center space-x-2">
@@ -162,21 +162,21 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-              className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1"
+              className="px-3 py-2 text-sm text-stone-500 hover:text-stone-700 flex items-center space-x-1"
             >
               <FiPlus className="h-4 w-4" />
               <FiGlobe className="h-4 w-4" />
             </button>
 
             {showLanguageSelector && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-md shadow-lg z-20">
                 <div className="p-2">
-                  <p className="text-xs text-gray-500 mb-2">Add Language:</p>
+                  <p className="text-xs text-stone-500 mb-2">Add Language:</p>
                   {availableToAdd.map(lang => (
                     <button
                       key={lang.code}
                       onClick={() => addLanguage(lang.code)}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-stone-100 rounded flex items-center space-x-2"
                     >
                       <span>{lang.flag}</span>
                       <span>{lang.name}</span>
@@ -192,14 +192,14 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
       {/* Text Editor */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-stone-500">
             Editing: {currentLang.flag} {currentLang.name}
           </span>
           {activeTab !== 'en' && translations['en'] && (
             <button
               type="button"
               onClick={() => handleTextChange(activeTab, translations['en'] ?? '')}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-brand-600 hover:text-brand-800"
             >
               Copy from English
             </button>
@@ -212,7 +212,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
             onChange={(e) => handleTextChange(activeTab, e.target.value)}
             placeholder={placeholder ? `${placeholder} (${currentLang.name})` : `Enter text in ${currentLang.name}...`}
             rows={3}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-stone-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         ) : (
           <input
@@ -220,13 +220,13 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
             value={currentText}
             onChange={(e) => handleTextChange(activeTab, e.target.value)}
             placeholder={placeholder ? `${placeholder} (${currentLang.name})` : `Enter text in ${currentLang.name}...`}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-stone-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         )}
       </div>
       
       {/* Translation Status */}
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-stone-500">
         <div className="flex items-center space-x-4">
           <span>
             Translations: {Object.keys(translations).filter(key => translations[key]?.trim()).length} / {enabledLanguages.length}
@@ -236,7 +236,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
               <span
                 key={lang.code}
                 className={`inline-block w-2 h-2 rounded-full ${
-                  translations[lang.code]?.trim() ? 'bg-green-400' : 'bg-gray-300'
+                  translations[lang.code]?.trim() ? 'bg-green-400' : 'bg-stone-300'
                 }`}
                 title={`${lang.name}: ${translations[lang.code]?.trim() ? 'Translated' : 'Missing'}`}
               />

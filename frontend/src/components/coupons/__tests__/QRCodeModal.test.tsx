@@ -193,7 +193,7 @@ describe('QRCodeModal', () => {
       });
 
       const heading = screen.getByText('Use Coupon');
-      expect(heading).toHaveClass('text-lg', 'font-semibold', 'text-gray-900');
+      expect(heading).toHaveClass('text-lg', 'font-semibold', 'text-stone-900');
     });
 
     it('should have border at bottom of header', async () => {
@@ -258,7 +258,7 @@ describe('QRCodeModal', () => {
 
       const closeButton = screen.getByText('×');
       expect(closeButton.tagName).toBe('BUTTON');
-      expect(closeButton).toHaveClass('text-gray-400', 'hover:text-gray-600', 'text-xl', 'font-bold');
+      expect(closeButton).toHaveClass('text-stone-400', 'hover:text-stone-600', 'text-xl', 'font-bold');
     });
 
     it('should handle multiple close button clicks', async () => {
@@ -300,7 +300,7 @@ describe('QRCodeModal', () => {
 
       const nameElement = screen.getByText('20% Off Your Purchase');
       expect(nameElement.tagName).toBe('H4');
-      expect(nameElement).toHaveClass('text-xl', 'font-bold', 'text-gray-900');
+      expect(nameElement).toHaveClass('text-xl', 'font-bold', 'text-stone-900');
     });
 
     it('should display coupon code', async () => {
@@ -331,7 +331,7 @@ describe('QRCodeModal', () => {
       });
 
       const codeElement = screen.getByText('SAVE20');
-      expect(codeElement).toHaveClass('text-lg', 'font-mono', 'bg-gray-100');
+      expect(codeElement).toHaveClass('text-lg', 'font-mono', 'bg-stone-100');
     });
 
     it('should handle very long coupon name', async () => {
@@ -516,7 +516,7 @@ describe('QRCodeModal', () => {
       const { container } = render(<QRCodeModal coupon={mockCoupon} />);
 
       await waitFor(() => {
-        const qrWrapper = container.querySelector('.border-2.border-gray-200');
+        const qrWrapper = container.querySelector('.border-2.border-stone-200');
         expect(qrWrapper).toBeInTheDocument();
       });
     });
@@ -609,7 +609,7 @@ describe('QRCodeModal', () => {
         expect(screen.getByAltText('QR Code for SAVE20')).toBeInTheDocument();
       });
 
-      const numbers = container.querySelectorAll('.bg-blue-200.rounded-full');
+      const numbers = container.querySelectorAll('.bg-brand-200.rounded-full');
 
       expect(numbers.length).toBeGreaterThanOrEqual(3);
     });
@@ -621,7 +621,7 @@ describe('QRCodeModal', () => {
         expect(screen.getByAltText('QR Code for SAVE20')).toBeInTheDocument();
       });
 
-      const instructionsSection = container.querySelector('.bg-blue-50');
+      const instructionsSection = container.querySelector('.bg-brand-50');
       expect(instructionsSection).toBeInTheDocument();
     });
 
@@ -765,7 +765,7 @@ describe('QRCodeModal', () => {
       });
 
       const copyButton = screen.getByText('Copy Code');
-      expect(copyButton).toHaveClass('bg-gray-100', 'text-gray-700');
+      expect(copyButton).toHaveClass('bg-stone-100', 'text-stone-700');
     });
 
     it('should have clipboard icon on copy button', async () => {

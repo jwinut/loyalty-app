@@ -193,13 +193,13 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
     <div className={clsx('bg-white rounded-lg shadow-lg', className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-stone-900">
           {t('coupons.scanCoupon')}
         </h2>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
           >
             ×
           </button>
@@ -208,14 +208,14 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
       <div className="p-6">
         {/* Scan Mode Toggle */}
-        <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+        <div className="flex mb-6 bg-stone-100 rounded-lg p-1">
           <button
             onClick={() => setScanMode('manual')}
             className={clsx(
               'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
               scanMode === 'manual'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
             )}
           >
             {t('coupons.manualEntry')}
@@ -225,8 +225,8 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
             className={clsx(
               'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
               scanMode === 'camera'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
             )}
           >
             {t('coupons.scanCamera')}
@@ -240,10 +240,10 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
               ref={videoRef}
               autoPlay
               playsInline
-              className="w-full max-w-sm mx-auto rounded-lg bg-gray-100"
+              className="w-full max-w-sm mx-auto rounded-lg bg-stone-100"
             />
             {cameraActive && (
-              <p className="text-center text-sm text-gray-600 mt-2">
+              <p className="text-center text-sm text-stone-600 mt-2">
                 {t('coupons.pointCameraAtQR')}
               </p>
             )}
@@ -254,7 +254,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
         <form onSubmit={handleRedeemCoupon} className="space-y-4" noValidate>
           {/* QR Code Input */}
           <div>
-            <label htmlFor="qrCode" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="qrCode" className="block text-sm font-medium text-stone-700 mb-1">
               {t('coupons.qrCode')} *
             </label>
             <input
@@ -263,7 +263,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
               value={qrCode}
               onChange={(e) => handleQRCodeChange(e.target.value)}
               placeholder={t('coupons.enterQRCode')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
@@ -303,11 +303,11 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
           {/* Original Amount */}
           <div>
-            <label htmlFor="originalAmount" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="originalAmount" className="block text-sm font-medium text-stone-700 mb-1">
               {t('coupons.originalAmount')} *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-500">$</span>
+              <span className="absolute left-3 top-2 text-stone-500">$</span>
               <input
                 type="number"
                 id="originalAmount"
@@ -316,7 +316,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-8 pr-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                 required
               />
             </div>
@@ -324,24 +324,24 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
           {/* Discount Preview */}
           {discountPreview && discountPreview.isValid && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <h4 className="font-medium text-blue-900 mb-2">
+            <div className="bg-brand-50 border border-brand-200 rounded-md p-3">
+              <h4 className="font-medium text-brand-900 mb-2">
                 {t('coupons.discountPreview')}
               </h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-blue-700">{t('coupons.originalAmount')}:</span>
+                  <span className="text-brand-700">{t('coupons.originalAmount')}:</span>
                   <span className="font-medium">฿{parseFloat(originalAmount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-blue-700">{t('coupons.discount')}:</span>
+                  <span className="text-brand-700">{t('coupons.discount')}:</span>
                   <span className="font-medium text-green-600">
                     -฿{discountPreview.discountAmount.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-blue-200 pt-1">
-                  <span className="text-blue-900 font-medium">{t('coupons.finalAmount')}:</span>
-                  <span className="font-bold text-blue-900">
+                <div className="flex justify-between border-t border-brand-200 pt-1">
+                  <span className="text-brand-900 font-medium">{t('coupons.finalAmount')}:</span>
+                  <span className="font-bold text-brand-900">
                     ฿{discountPreview.finalAmount.toFixed(2)}
                   </span>
                 </div>
@@ -351,7 +351,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
 
           {/* Transaction Reference */}
           <div>
-            <label htmlFor="transactionReference" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="transactionReference" className="block text-sm font-medium text-stone-700 mb-1">
               {t('coupons.transactionReference')}
             </label>
             <input
@@ -360,13 +360,13 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
               value={transactionReference}
               onChange={(e) => setTransactionReference(e.target.value)}
               placeholder={t('coupons.enterTransactionReference')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
           {/* Location */}
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="location" className="block text-sm font-medium text-stone-700 mb-1">
               {t('coupons.location')}
             </label>
             <input
@@ -375,7 +375,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder={t('coupons.enterLocation')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -383,7 +383,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
           <button
             type="submit"
             disabled={isRedeeming || !qrCode.trim() || !originalAmount}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-brand-600 text-white py-3 px-4 rounded-md font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isRedeeming ? t('common.processing') : t('coupons.redeemCoupon')}
           </button>

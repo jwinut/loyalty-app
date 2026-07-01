@@ -192,11 +192,11 @@ const SurveyAnalytics: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">Loading analytics...</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">Loading analytics...</span>
           </div>
         </div>
       </div>
@@ -206,7 +206,7 @@ const SurveyAnalytics: React.FC = () => {
    
   if (error || !analytics) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <p>{error ?? 'Survey not found'}</p>
@@ -220,7 +220,7 @@ const SurveyAnalytics: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -228,19 +228,19 @@ const SurveyAnalytics: React.FC = () => {
             <div className="flex items-center">
               <Link
                 to="/admin/surveys"
-                className="mr-4 text-gray-400 hover:text-gray-600"
+                className="mr-4 text-stone-400 hover:text-stone-600"
               >
                 <FiArrowLeft className="h-6 w-6" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Survey Analytics</h1>
-                <p className="text-sm text-gray-600 mt-1">{analytics.survey.title}</p>
+                <h1 className="text-3xl font-bold text-stone-900">Survey Analytics</h1>
+                <p className="text-sm text-stone-600 mt-1">{analytics.survey.title}</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleExportAnalytics}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
               >
                 <FiDownload className="mr-2 h-4 w-4" />
                 Export CSV
@@ -259,11 +259,11 @@ const SurveyAnalytics: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <FiUsers className="h-8 w-8 text-blue-500" />
+                  <FiUsers className="h-8 w-8 text-brand-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Responses</p>
-                  <p className="text-2xl font-semibold text-gray-900">{analytics.totalResponses}</p>
+                  <p className="text-sm font-medium text-stone-500">Total Responses</p>
+                  <p className="text-2xl font-semibold text-stone-900">{analytics.totalResponses}</p>
                 </div>
               </div>
             </div>
@@ -274,8 +274,8 @@ const SurveyAnalytics: React.FC = () => {
                   <FiCheckCircle className="h-8 w-8 text-green-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Completion Rate</p>
-                  <p className="text-2xl font-semibold text-gray-900">{analytics.completionRate.toFixed(1)}%</p>
+                  <p className="text-sm font-medium text-stone-500">Completion Rate</p>
+                  <p className="text-2xl font-semibold text-stone-900">{analytics.completionRate.toFixed(1)}%</p>
                 </div>
               </div>
             </div>
@@ -286,8 +286,8 @@ const SurveyAnalytics: React.FC = () => {
                   <FiClock className="h-8 w-8 text-yellow-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Avg. Completion Time</p>
-                  <p className="text-2xl font-semibold text-gray-900">
+                  <p className="text-sm font-medium text-stone-500">Avg. Completion Time</p>
+                  <p className="text-2xl font-semibold text-stone-900">
                     {Math.floor(analytics.averageCompletionTime / 60)}m {analytics.averageCompletionTime % 60}s
                   </p>
                 </div>
@@ -300,8 +300,8 @@ const SurveyAnalytics: React.FC = () => {
                   <FiBarChart className="h-8 w-8 text-purple-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Questions</p>
-                  <p className="text-2xl font-semibold text-gray-900">{analytics.survey.questions.length}</p>
+                  <p className="text-sm font-medium text-stone-500">Questions</p>
+                  <p className="text-2xl font-semibold text-stone-900">{analytics.survey.questions.length}</p>
                 </div>
               </div>
             </div>
@@ -309,7 +309,7 @@ const SurveyAnalytics: React.FC = () => {
 
           {/* Response Trend */}
           <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <h2 className="text-lg font-semibold text-stone-900 mb-4 flex items-center">
               <FiTrendingUp className="mr-2 h-5 w-5" />
               Response Trend
             </h2>
@@ -323,11 +323,11 @@ const SurveyAnalytics: React.FC = () => {
 
           {/* Question Analytics */}
           <div className="space-y-8">
-            <h2 className="text-lg font-semibold text-gray-900">Question Breakdown</h2>
+            <h2 className="text-lg font-semibold text-stone-900">Question Breakdown</h2>
             
             {analytics.questionAnalytics.map((question, index) => (
               <div key={question.questionId} className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-md font-semibold text-gray-900 mb-4">
+                <h3 className="text-md font-semibold text-stone-900 mb-4">
                   Q{index + 1}: {question.question}
                 </h3>
                 
@@ -359,11 +359,11 @@ const SurveyAnalytics: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-center">
                       <div className="text-center">
-                        <p className="text-gray-500 text-sm">Average Rating</p>
-                        <p className="text-5xl font-bold text-blue-600">
+                        <p className="text-stone-500 text-sm">Average Rating</p>
+                        <p className="text-5xl font-bold text-brand-600">
                           {question.averageRating?.toFixed(1) ?? '0'}
                         </p>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-stone-500 text-sm">
                           out of {question.type === 'rating_5' ? '5' : '10'}
                         </p>
                       </div>
@@ -381,11 +381,11 @@ const SurveyAnalytics: React.FC = () => {
                 )}
                 
                 {(question.type === 'text' || question.type === 'textarea') && (
-                  <div className="bg-gray-50 rounded p-4">
-                    <p className="text-gray-600">
+                  <div className="bg-stone-50 rounded p-4">
+                    <p className="text-stone-600">
                       {Object.keys(question.responses).length} text responses collected
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-stone-500 mt-2">
                       Text responses are included in the CSV export
                     </p>
                   </div>

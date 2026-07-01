@@ -72,16 +72,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
             {t('auth.signIn')}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-stone-600">
             {t('common.or')}{' '}
             <Link
               to="/register"
@@ -99,7 +99,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
+                  <FiMail className="h-5 w-5 text-stone-400" />
                 </div>
                 <input
                   {...register('email')}
@@ -107,7 +107,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   data-testid="login-email"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-stone-300 placeholder-stone-500 text-stone-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder={t('auth.email')}
                 />
               </div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
+                  <FiLock className="h-5 w-5 text-stone-400" />
                 </div>
                 <input
                   {...register('password')}
@@ -129,7 +129,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   data-testid="login-password"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 placeholder-stone-500 text-stone-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder={t('auth.password')}
                 />
                 <button
@@ -138,9 +138,9 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400" />
+                    <FiEyeOff className="h-5 w-5 text-stone-400" />
                   ) : (
-                    <FiEye className="h-5 w-5 text-gray-400" />
+                    <FiEye className="h-5 w-5 text-stone-400" />
                   )}
                 </button>
               </div>
@@ -156,9 +156,9 @@ export default function LoginPage() {
                 {...register('rememberMe')}
                 id="rememberMe"
                 type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-stone-300 rounded"
               />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-stone-900">
                 {t('auth.rememberMe')}
               </label>
             </div>
@@ -188,10 +188,10 @@ export default function LoginPage() {
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-stone-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">{t('auth.continueWith')}</span>
+              <span className="px-2 bg-stone-50 text-stone-500">{t('auth.continueWith')}</span>
             </div>
           </div>
 

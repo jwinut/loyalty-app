@@ -305,7 +305,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        const icon = container.querySelector('svg.text-gray-400');
+        const icon = container.querySelector('svg.text-stone-400');
         expect(icon).toBeInTheDocument();
       });
     });
@@ -397,7 +397,7 @@ describe('SurveyCouponAssignments', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Inactive')).toBeInTheDocument();
-        expect(screen.getByText('Inactive')).toHaveClass('bg-gray-100', 'text-gray-800');
+        expect(screen.getByText('Inactive')).toHaveClass('bg-stone-100', 'text-stone-800');
       });
     });
 

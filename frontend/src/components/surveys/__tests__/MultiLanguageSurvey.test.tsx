@@ -284,7 +284,7 @@ describe('MultiLanguageSurvey', () => {
       await user.click(button);
 
       const englishOption = screen.getAllByText('English')[1]!.closest('button');
-      expect(englishOption).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(englishOption).toHaveClass('bg-brand-50', 'text-brand-700');
     });
   });
 
@@ -896,7 +896,7 @@ describe('MultiLanguageSurvey', () => {
         />
       );
 
-      const statusSection = container.querySelector('.bg-blue-50.rounded-lg');
+      const statusSection = container.querySelector('.bg-brand-50.rounded-lg');
       expect(statusSection).toBeInTheDocument();
     });
   });

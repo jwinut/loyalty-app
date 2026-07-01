@@ -267,32 +267,32 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-stone-900">
               {t('admin.booking.bookingManagement.editModal.title')}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-stone-600 mt-1">
               {t('admin.booking.bookingManagement.editModal.bookingId')}: {booking.id.substring(0, 8)}...
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-stone-400 hover:text-stone-600"
           >
             <FiX className="w-6 h-6" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-stone-200">
           <nav className="flex -mb-px">
             <button
               onClick={() => setActiveTab('details')}
               className={`px-6 py-3 text-sm font-medium border-b-2 ${
                 activeTab === 'details'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-brand-500 text-brand-600'
+                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
               }`}
             >
               <FiCalendar className="w-4 h-4 inline-block mr-2" />
@@ -302,8 +302,8 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
               onClick={() => setActiveTab('payment')}
               className={`px-6 py-3 text-sm font-medium border-b-2 ${
                 activeTab === 'payment'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-brand-500 text-brand-600'
+                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
               }`}
             >
               <FiDollarSign className="w-4 h-4 inline-block mr-2" />
@@ -313,8 +313,8 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
               onClick={() => setActiveTab('audit')}
               className={`px-6 py-3 text-sm font-medium border-b-2 ${
                 activeTab === 'audit'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-brand-500 text-brand-600'
+                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
               }`}
             >
               <FiClock className="w-4 h-4 inline-block mr-2" />
@@ -327,8 +327,8 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                 activeTab === 'cancel'
                   ? 'border-red-500 text-red-600'
                   : isBookingCancelled
-                    ? 'border-transparent text-gray-300 cursor-not-allowed'
-                    : 'border-transparent text-gray-500 hover:text-red-600 hover:border-red-300'
+                    ? 'border-transparent text-stone-300 cursor-not-allowed'
+                    : 'border-transparent text-stone-500 hover:text-red-600 hover:border-red-300'
               }`}
             >
               <FiAlertTriangle className="w-4 h-4 inline-block mr-2" />
@@ -343,33 +343,33 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
           {activeTab === 'details' && (
             <div className="space-y-6">
               {/* User Info (Read-only) */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <div className="bg-stone-50 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-stone-700 mb-3 flex items-center gap-2">
                   <FiUser className="w-4 h-4" />
                   {t('admin.booking.bookingManagement.editModal.userInfo')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
-                    <span className="ml-2 text-gray-900">
+                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
+                    <span className="ml-2 text-stone-900">
                       {booking.user.firstName && booking.user.lastName
                         ? `${booking.user.firstName} ${booking.user.lastName}`
                         : booking.user.email}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.email')}:</span>
-                    <span className="ml-2 text-gray-900">{booking.user.email}</span>
+                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.email')}:</span>
+                    <span className="ml-2 text-stone-900">{booking.user.email}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.membershipId')}:</span>
-                    <span className="ml-2 text-gray-900 font-mono">
+                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.membershipId')}:</span>
+                    <span className="ml-2 text-stone-900 font-mono">
                       {booking.user.membershipId ?? '-'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.phone')}:</span>
-                    <span className="ml-2 text-gray-900">{booking.user.phone ?? '-'}</span>
+                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.phone')}:</span>
+                    <span className="ml-2 text-stone-900">{booking.user.phone ?? '-'}</span>
                   </div>
                 </div>
               </div>
@@ -377,18 +377,18 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
               {/* Editable Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.booking.bookingManagement.editModal.checkInDate')}
                   </label>
                   <input
                     type="date"
                     value={checkInDate}
                     onChange={(e) => setCheckInDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.booking.bookingManagement.editModal.checkOutDate')}
                   </label>
                   <input
@@ -396,14 +396,14 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                     value={checkOutDate}
                     onChange={(e) => setCheckOutDate(e.target.value)}
                     min={checkInDate}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.booking.bookingManagement.editModal.numberOfGuests')}
                   </label>
                   <input
@@ -412,17 +412,17 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                     onChange={(e) => setNumberOfGuests(parseInt(e.target.value) || 1)}
                     min={1}
                     max={10}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.booking.bookingManagement.editModal.roomType')}
                   </label>
                   <select
                     value={roomTypeId}
                     onChange={(e) => setRoomTypeId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   >
                     {roomTypes.map((rt) => (
                       <option key={rt.id} value={rt.id}>
@@ -436,10 +436,10 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
               {/* Original Booking Notes (Read-only) */}
               {booking.notes && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.booking.bookingManagement.editModal.originalNotes')}
                   </label>
-                  <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-600">
+                  <div className="bg-stone-50 rounded-md p-3 text-sm text-stone-600">
                     {booking.notes}
                   </div>
                 </div>
@@ -447,7 +447,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
 
               {/* Admin Notes (Editable) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 mb-1">
                   {t('admin.booking.bookingManagement.editModal.adminNotes')}
                 </label>
                 <textarea
@@ -455,7 +455,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder={t('admin.booking.bookingManagement.editModal.adminNotesPlaceholder')}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />
               </div>
             </div>
@@ -465,26 +465,26 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
           {activeTab === 'payment' && (
             <div className="space-y-6">
               {/* Current Payment Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
+              <div className="bg-stone-50 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-stone-700 mb-3">
                   {t('admin.booking.bookingManagement.editModal.currentPayment')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">
+                    <span className="text-stone-500">
                       {t('admin.booking.bookingManagement.editModal.paymentType')}:
                     </span>
-                    <span className="ml-2 text-gray-900 font-medium">
+                    <span className="ml-2 text-stone-900 font-medium">
                       {booking.paymentType === 'full'
                         ? t('admin.booking.bookingManagement.paymentType.full')
                         : t('admin.booking.bookingManagement.paymentType.deposit')}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">
+                    <span className="text-stone-500">
                       {t('admin.booking.bookingManagement.editModal.paymentAmount')}:
                     </span>
-                    <span className="ml-2 text-gray-900 font-medium">
+                    <span className="ml-2 text-stone-900 font-medium">
                       {booking.paymentAmount !== null
                         ? `${booking.paymentAmount.toLocaleString()} THB`
                         : '-'}
@@ -495,7 +495,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
 
               {/* Total Price (Editable) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 mb-1">
                   {t('admin.booking.bookingManagement.editModal.totalPrice')}
                 </label>
                 <div className="relative">
@@ -505,13 +505,13 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                     onChange={(e) => setTotalPrice(parseFloat(e.target.value) || 0)}
                     min={0}
                     step={0.01}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500">
                     THB
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {t('admin.booking.bookingManagement.editModal.calculatedPayment')}:{' '}
                   {calculatePaymentAmount(totalPrice).toLocaleString()} THB
                 </p>
@@ -539,18 +539,18 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
               {!showDiscountForm ? (
                 <button
                   onClick={() => setShowDiscountForm(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-gray-600 hover:border-blue-500 hover:text-blue-600"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-dashed border-stone-300 rounded-md text-stone-600 hover:border-brand-500 hover:text-brand-600"
                 >
                   <FiPercent className="w-4 h-4" />
                   {t('admin.booking.bookingManagement.editModal.applyDiscount')}
                 </button>
               ) : (
-                <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-gray-700">
+                <div className="border border-stone-200 rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-stone-700">
                     {t('admin.booking.bookingManagement.editModal.applyDiscount')}
                   </h4>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">
+                    <label className="block text-sm text-stone-600 mb-1">
                       {t('admin.booking.bookingManagement.editModal.discountAmount')}
                     </label>
                     <div className="relative">
@@ -561,15 +561,15 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                         min={0}
                         max={totalPrice}
                         step={0.01}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full border border-stone-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500">
                         THB
                       </span>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">
+                    <label className="block text-sm text-stone-600 mb-1">
                       {t('admin.booking.bookingManagement.editModal.discountReason')} *
                     </label>
                     <input
@@ -577,7 +577,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                       value={discountReason}
                       onChange={(e) => setDiscountReason(e.target.value)}
                       placeholder={t('admin.booking.bookingManagement.editModal.discountReasonPlaceholder')}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     />
                   </div>
                   <div className="flex gap-3">
@@ -587,7 +587,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                         setDiscountAmount(booking.discountAmount ?? 0);
                         setDiscountReason(booking.discountReason ?? '');
                       }}
-                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                      className="flex-1 px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
                     >
                       {t('common.cancel')}
                     </button>
@@ -614,18 +614,18 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                   {booking.auditHistory.map((entry) => (
                     <div
                       key={entry.id}
-                      className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg"
+                      className="border-l-4 border-brand-500 pl-4 py-3 bg-stone-50 rounded-r-lg"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-stone-900">
                             {formatAuditAction(entry.action)}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-stone-600">
                             {entry.adminName}
                           </p>
                         </div>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-stone-500 flex items-center gap-1">
                           <FiClock className="w-3 h-3" />
                           {formatDateTimeToEuropean(entry.createdAt)}
                         </span>
@@ -637,7 +637,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                               <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">
                                 {t('admin.booking.bookingManagement.editModal.auditOld')}
                               </span>
-                              <span className="text-gray-600">{entry.oldValue}</span>
+                              <span className="text-stone-600">{entry.oldValue}</span>
                             </div>
                           )}
                           {entry.newValue && (
@@ -645,13 +645,13 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                               <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
                                 {t('admin.booking.bookingManagement.editModal.auditNew')}
                               </span>
-                              <span className="text-gray-600">{entry.newValue}</span>
+                              <span className="text-stone-600">{entry.newValue}</span>
                             </div>
                           )}
                         </div>
                       )}
                       {entry.notes && (
-                        <p className="mt-2 text-sm text-gray-500 italic border-l-2 border-gray-300 pl-2">
+                        <p className="mt-2 text-sm text-stone-500 italic border-l-2 border-stone-300 pl-2">
                           &quot;{entry.notes}&quot;
                         </p>
                       )}
@@ -659,7 +659,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-stone-500">
                   <FiClock className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>{t('admin.booking.bookingManagement.editModal.noAuditHistory')}</p>
                 </div>
@@ -672,9 +672,9 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
             <div className="space-y-6">
               {isBookingCancelled ? (
                 /* Already Cancelled State */
-                <div className="bg-gray-50 rounded-lg p-6 text-center">
-                  <FiAlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600">{t('admin.booking.cancel.alreadyCancelled')}</p>
+                <div className="bg-stone-50 rounded-lg p-6 text-center">
+                  <FiAlertTriangle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+                  <p className="text-stone-600">{t('admin.booking.cancel.alreadyCancelled')}</p>
                 </div>
               ) : (
                 <>
@@ -694,35 +694,35 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                   </div>
 
                   {/* Booking Summary */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="bg-stone-50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-stone-700 mb-3 flex items-center gap-2">
                       <FiUser className="w-4 h-4" />
                       {t('admin.booking.bookingManagement.editModal.userInfo')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
+                        <span className="ml-2 text-stone-900">
                           {booking.user.firstName && booking.user.lastName
                             ? `${booking.user.firstName} ${booking.user.lastName}`
                             : booking.user.email}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.checkInDate')}:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.checkInDate')}:</span>
+                        <span className="ml-2 text-stone-900">
                           {new Date(booking.checkInDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.checkOutDate')}:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.checkOutDate')}:</span>
+                        <span className="ml-2 text-stone-900">
                           {new Date(booking.checkOutDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('admin.booking.bookingManagement.editModal.totalPrice')}:</span>
-                        <span className="ml-2 text-gray-900 font-medium">
+                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.totalPrice')}:</span>
+                        <span className="ml-2 text-stone-900 font-medium">
                           {booking.totalPrice.toLocaleString()} THB
                         </span>
                       </div>
@@ -731,7 +731,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
 
                   {/* Cancellation Reason */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.booking.cancel.reasonLabel')}
                     </label>
                     <textarea
@@ -739,7 +739,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                       onChange={(e) => setCancelReason(e.target.value)}
                       placeholder={t('admin.booking.cancel.reasonPlaceholder')}
                       rows={3}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
                   </div>
 
@@ -750,9 +750,9 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
                       id="confirmCancel"
                       checked={confirmCancel}
                       onChange={(e) => setConfirmCancel(e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="w-4 h-4 text-red-600 border-stone-300 rounded focus:ring-red-500"
                     />
-                    <label htmlFor="confirmCancel" className="text-sm text-gray-700">
+                    <label htmlFor="confirmCancel" className="text-sm text-stone-700">
                       {t('admin.booking.cancel.confirmCheckbox')}
                     </label>
                   </div>
@@ -774,10 +774,10 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-stone-200 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
           >
             {t('common.cancel')}
           </button>
@@ -785,7 +785,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
             >
               {isSaving ? t('common.saving') : t('common.save')}
             </button>

@@ -185,7 +185,7 @@ describe('SettingsModal', () => {
     it('should render modal with backdrop', () => {
       render(<SettingsModal {...defaultProps} />, { wrapper });
 
-      const backdrop = document.querySelector('.bg-gray-500');
+      const backdrop = document.querySelector('.bg-stone-500');
       expect(backdrop).toBeInTheDocument();
       expect(backdrop).toHaveClass('bg-opacity-75');
     });
@@ -705,7 +705,7 @@ describe('SettingsModal', () => {
       const onClose = vi.fn();
       render(<SettingsModal {...defaultProps} onClose={onClose} />, { wrapper });
 
-      const backdrop = document.querySelector('.bg-gray-500') as HTMLElement;
+      const backdrop = document.querySelector('.bg-stone-500') as HTMLElement;
       await user.click(backdrop);
 
       expect(onClose).toHaveBeenCalled();

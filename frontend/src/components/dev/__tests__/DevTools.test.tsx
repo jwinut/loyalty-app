@@ -105,7 +105,7 @@ describe('DevTools', () => {
       const { container } = render(<DevTools />);
       const notification = container.querySelector('.fixed.bottom-4.right-4');
       expect(notification).toBeInTheDocument();
-      expect(notification?.className).toContain('bg-blue-600');
+      expect(notification?.className).toContain('bg-brand-600');
       expect(notification?.className).toContain('text-white');
       expect(notification?.className).toContain('p-4');
       expect(notification?.className).toContain('rounded-lg');
@@ -167,8 +167,8 @@ describe('DevTools', () => {
       render(<DevTools />);
       const link = screen.getByRole('link', { name: /install/i });
       expect(link.className).toContain('text-xs');
-      expect(link.className).toContain('bg-blue-500');
-      expect(link.className).toContain('hover:bg-blue-400');
+      expect(link.className).toContain('bg-brand-500');
+      expect(link.className).toContain('hover:bg-brand-400');
       expect(link.className).toContain('px-2');
       expect(link.className).toContain('py-1');
       expect(link.className).toContain('rounded');
@@ -210,8 +210,8 @@ describe('DevTools', () => {
       render(<DevTools />);
       const button = screen.getByRole('button', { name: /dismiss/i });
       expect(button.className).toContain('text-xs');
-      expect(button.className).toContain('bg-gray-600');
-      expect(button.className).toContain('hover:bg-gray-500');
+      expect(button.className).toContain('bg-stone-600');
+      expect(button.className).toContain('hover:bg-stone-500');
       expect(button.className).toContain('px-2');
       expect(button.className).toContain('py-1');
       expect(button.className).toContain('rounded');

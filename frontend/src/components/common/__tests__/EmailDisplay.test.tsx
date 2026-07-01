@@ -46,7 +46,7 @@ describe('EmailDisplay', () => {
     it('should apply default text color class', () => {
       const { container } = renderWithRouter(<EmailDisplay email="test@example.com" />);
       const span = container.querySelector('span');
-      expect(span?.className).toContain('text-gray-900');
+      expect(span?.className).toContain('text-stone-900');
     });
 
     it('should apply custom className when provided', () => {
@@ -81,7 +81,7 @@ describe('EmailDisplay', () => {
       expect(icon.className).toContain('w-4');
       expect(icon.className).toContain('h-4');
       expect(icon.className).toContain('mr-1');
-      expect(icon.className).toContain('text-gray-500');
+      expect(icon.className).toContain('text-stone-500');
     });
 
     it('should handle linkToProfile prop when email exists (no link rendered)', () => {
@@ -109,8 +109,8 @@ describe('EmailDisplay', () => {
     it('should apply link styling classes when rendering "Add Email" link', () => {
       renderWithRouter(<EmailDisplay email={null} />);
       const link = screen.getByRole('link');
-      expect(link.className).toContain('text-blue-600');
-      expect(link.className).toContain('hover:text-blue-800');
+      expect(link.className).toContain('text-brand-600');
+      expect(link.className).toContain('hover:text-brand-800');
       expect(link.className).toContain('underline');
     });
 
@@ -125,7 +125,7 @@ describe('EmailDisplay', () => {
         <EmailDisplay email={null} linkToProfile={false} />
       );
       const span = container.querySelector('span');
-      expect(span?.className).toContain('text-gray-400');
+      expect(span?.className).toContain('text-stone-400');
       expect(span?.className).toContain('italic');
     });
 
@@ -272,7 +272,7 @@ describe('EmailDisplay', () => {
       );
       const span = container.querySelector('span');
       expect(span?.className).toContain('custom-class');
-      expect(span?.className).toContain('text-gray-900');
+      expect(span?.className).toContain('text-stone-900');
       expect(span?.className).toContain('inline-flex');
     });
   });

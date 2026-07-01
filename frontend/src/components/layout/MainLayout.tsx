@@ -18,7 +18,7 @@ export default function MainLayout({ children, title, showProfileBanner = true }
   const user = useAuthStore((state) => state.user);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Profile Completion Banner */}
       {showProfileBanner && <ProfileCompletionBanner />}
       
@@ -26,10 +26,10 @@ export default function MainLayout({ children, title, showProfileBanner = true }
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-3xl font-bold text-stone-900">{title}</h1>
             <div className="flex items-center space-x-4">
               <LanguageSwitcher />
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-stone-500">
                 {t('dashboard.welcome', { name: getUserDisplayName(user) })}
               </span>
               <DashboardButton variant="outline" size="md" />

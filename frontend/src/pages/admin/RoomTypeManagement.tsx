@@ -98,7 +98,7 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-stone-700 mb-1">
           {t('admin.booking.roomTypes.name')} *
         </label>
         <input
@@ -106,27 +106,27 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
           required
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-stone-700 mb-1">
           {t('admin.booking.roomTypes.description')}
         </label>
         <textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={3}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
       {/* Price and Max Guests */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.booking.roomTypes.pricePerNight')} (THB) *
           </label>
           <input
@@ -136,11 +136,11 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
             step="0.01"
             value={formData.pricePerNight}
             onChange={(e) => setFormData({ ...formData, pricePerNight: parseFloat(e.target.value) || 0 })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.booking.roomTypes.maxGuests')} *
           </label>
           <input
@@ -149,7 +149,7 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
             min="1"
             value={formData.maxGuests}
             onChange={(e) => setFormData({ ...formData, maxGuests: parseInt(e.target.value) || 1 })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
@@ -157,13 +157,13 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
       {/* Bed Type and Sort Order */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.booking.roomTypes.bedType')}
           </label>
           <select
             value={formData.bedType}
             onChange={(e) => setFormData({ ...formData, bedType: e.target.value as typeof formData.bedType })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">{t('admin.booking.roomTypes.selectBedType')}</option>
             {BED_TYPE_OPTIONS.map((type) => (
@@ -174,7 +174,7 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.booking.roomTypes.sortOrder')}
           </label>
           <input
@@ -182,14 +182,14 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
             min="0"
             value={formData.sortOrder}
             onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
 
       {/* Amenities */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-stone-700 mb-2">
           {t('admin.booking.roomTypes.amenities')}
         </label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -199,9 +199,9 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
                 type="checkbox"
                 checked={formData.amenities.includes(amenity)}
                 onChange={() => onAmenityToggle(amenity)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-stone-700">
                 {t(`admin.booking.roomTypes.amenitiesList.${amenity}`)}
               </span>
             </label>
@@ -211,7 +211,7 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
 
       {/* Images */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-stone-700 mb-1">
           {t('admin.booking.roomTypes.images')}
         </label>
         <div className="flex space-x-2 mb-2">
@@ -220,12 +220,12 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
             value={imageInput}
             onChange={(e) => setImageInput(e.target.value)}
             placeholder={t('admin.booking.roomTypes.imageUrlPlaceholder')}
-            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <button
             type="button"
             onClick={onAddImage}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
           >
             {t('admin.booking.roomTypes.addImage')}
           </button>
@@ -233,8 +233,8 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
         {formData.images.length > 0 && (
           <div className="space-y-2">
             {formData.images.map((url, index) => (
-              <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
-                <span className="text-sm text-gray-600 truncate flex-1">{url}</span>
+              <div key={index} className="flex items-center space-x-2 bg-stone-50 p-2 rounded">
+                <span className="text-sm text-stone-600 truncate flex-1">{url}</span>
                 <button
                   type="button"
                   onClick={() => onRemoveImage(url)}
@@ -255,9 +255,9 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
           id={activeToggleId}
           checked={formData.isActive}
           onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded"
         />
-        <label htmlFor={activeToggleId} className="text-sm text-gray-700">
+        <label htmlFor={activeToggleId} className="text-sm text-stone-700">
           {t('admin.booking.roomTypes.isActive')}
         </label>
       </div>
@@ -267,14 +267,14 @@ const RoomTypeForm: React.FC<RoomTypeFormProps> = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
         >
           {t('common.cancel')}
         </button>
         <button
           type="submit"
           disabled={submitDisabled}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
         >
           {submitLabel}
         </button>
@@ -470,14 +470,14 @@ const RoomTypeManagement: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-stone-50 p-4">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/4" />
+              <div className="h-6 bg-stone-200 rounded w-1/4" />
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded" />
+                  <div key={i} className="h-16 bg-stone-200 rounded" />
                 ))}
               </div>
             </div>
@@ -488,23 +488,23 @@ const RoomTypeManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-stone-900">
                 {t('admin.booking.roomTypes.title')}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-stone-600 mt-1">
                 {t('admin.booking.roomTypes.subtitle')}
               </p>
             </div>
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleOpenCreate}
-                className="inline-flex items-center font-medium bg-blue-600 text-white px-4 py-2 text-sm rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center font-medium bg-brand-600 text-white px-4 py-2 text-sm rounded-md hover:bg-brand-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 {t('admin.booking.roomTypes.createRoomType')}
               </button>
@@ -531,34 +531,34 @@ const RoomTypeManagement: React.FC = () => {
         {/* Room Types Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-stone-200">
+              <thead className="bg-stone-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.name')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.pricePerNight')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.maxGuests')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.bedType')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.status')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.booking.roomTypes.actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-stone-200">
                 {!roomTypes || roomTypes.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
+                      <div className="text-stone-500">
                         <p className="text-lg font-medium">{t('admin.booking.roomTypes.noRoomTypes')}</p>
                         <p className="text-sm mt-1">{t('admin.booking.roomTypes.noRoomTypesDescription')}</p>
                       </div>
@@ -566,29 +566,29 @@ const RoomTypeManagement: React.FC = () => {
                   </tr>
                 ) : (
                   roomTypes.map((roomType) => (
-                    <tr key={roomType.id} className="hover:bg-gray-50">
+                    <tr key={roomType.id} className="hover:bg-stone-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-stone-900">
                             {roomType.name}
                           </div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
+                          <div className="text-sm text-stone-500 truncate max-w-xs">
                             {roomType.description}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-stone-900">
                           {formatCurrency(roomType.pricePerNight)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-stone-900">
                           {roomType.maxGuests} {t('admin.booking.roomTypes.guests')}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-stone-900">
                           {roomType.bedType ? t(`admin.booking.roomTypes.bedTypes.${roomType.bedType}`) : '-'}
                         </div>
                       </td>
@@ -596,7 +596,7 @@ const RoomTypeManagement: React.FC = () => {
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           roomType.isActive
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                            : 'bg-stone-100 text-stone-800'
                         }`}
                         >
                           {roomType.isActive ? t('common.active') : t('common.inactive')}
@@ -606,7 +606,7 @@ const RoomTypeManagement: React.FC = () => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleOpenEdit(roomType as RoomType)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-brand-600 hover:text-brand-900"
                           >
                             {t('common.edit')}
                           </button>
@@ -639,7 +639,7 @@ const RoomTypeManagement: React.FC = () => {
                     setShowCreateModal(false);
                     resetForm();
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   X
                 </button>
@@ -680,7 +680,7 @@ const RoomTypeManagement: React.FC = () => {
                     setSelectedRoomType(null);
                     resetForm();
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   X
                 </button>
@@ -722,7 +722,7 @@ const RoomTypeManagement: React.FC = () => {
                     setSelectedRoomType(null);
                     setDeleteConfirmText('');
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   X
                 </button>
@@ -740,7 +740,7 @@ const RoomTypeManagement: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('admin.booking.roomTypes.typeToConfirm')} <span className="font-bold text-red-600">{t('admin.booking.roomTypes.deleteKeyword')}</span> {t('admin.booking.roomTypes.toConfirm')}:
                 </label>
                 <input
@@ -748,7 +748,7 @@ const RoomTypeManagement: React.FC = () => {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={t('admin.booking.roomTypes.deletePlaceholder')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
 
@@ -759,7 +759,7 @@ const RoomTypeManagement: React.FC = () => {
                     setSelectedRoomType(null);
                     setDeleteConfirmText('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                 >
                   {t('common.cancel')}
                 </button>

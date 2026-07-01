@@ -70,28 +70,28 @@ describe('DashboardButton', () => {
       renderWithRouter(<DashboardButton />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('border', 'border-gray-300', 'bg-white');
+      expect(button).toHaveClass('border', 'border-stone-300', 'bg-white');
     });
 
     it('should apply primary variant when specified', () => {
       renderWithRouter(<DashboardButton variant="primary" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-blue-600', 'text-white');
+      expect(button).toHaveClass('bg-brand-600', 'text-white');
     });
 
     it('should apply secondary variant when specified', () => {
       renderWithRouter(<DashboardButton variant="secondary" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-gray-600', 'text-white');
+      expect(button).toHaveClass('bg-stone-600', 'text-white');
     });
 
     it('should apply outline variant when specified', () => {
       renderWithRouter(<DashboardButton variant="outline" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('border', 'border-gray-300', 'bg-white');
+      expect(button).toHaveClass('border', 'border-stone-300', 'bg-white');
     });
   });
 
@@ -236,14 +236,14 @@ describe('DashboardButton', () => {
       renderWithRouter(<DashboardButton variant="primary" size="sm" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-blue-600', 'px-3', 'py-1.5');
+      expect(button).toHaveClass('bg-brand-600', 'px-3', 'py-1.5');
     });
 
     it('should apply secondary variant with large size', () => {
       renderWithRouter(<DashboardButton variant="secondary" size="lg" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-gray-600', 'px-6', 'py-3');
+      expect(button).toHaveClass('bg-stone-600', 'px-6', 'py-3');
     });
 
     it('should hide icon with custom className', () => {
@@ -286,21 +286,21 @@ describe('DashboardButton', () => {
       renderWithRouter(<DashboardButton variant="primary" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('hover:bg-blue-700');
+      expect(button).toHaveClass('hover:bg-brand-700');
     });
 
     it('should have hover styles for secondary variant', () => {
       renderWithRouter(<DashboardButton variant="secondary" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('hover:bg-gray-700');
+      expect(button).toHaveClass('hover:bg-stone-700');
     });
 
     it('should have hover styles for outline variant', () => {
       renderWithRouter(<DashboardButton variant="outline" />);
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('hover:bg-gray-50');
+      expect(button).toHaveClass('hover:bg-stone-50');
     });
   });
 

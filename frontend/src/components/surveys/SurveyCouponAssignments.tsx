@@ -83,7 +83,7 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-stone-900 mb-4">
             {t('surveys.admin.couponAssignment.assignCoupon')}
           </h3>
 
@@ -91,13 +91,13 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
             <div className="space-y-4">
               {/* Coupon Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('coupons.coupon')} *
                 </label>
                 <select
                   value={selectedCouponId}
                   onChange={(e) => setSelectedCouponId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   required
                 >
                   <option value="">{t('surveys.admin.couponAssignment.selectCoupon')}</option>
@@ -110,26 +110,26 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
                   ))}
                 </select>
                 {availableCoupons.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-stone-500 mt-1">
                     {t('surveys.admin.couponAssignment.noAvailableCoupons')}
                   </p>
                 )}
               </div>
 
               {/* Award Condition - Always completion */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center">
+              <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-brand-900 mb-2 flex items-center">
                   <FiGift className="mr-2" />
                   {t('surveys.admin.couponAssignment.rewardCondition')}
                 </h4>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-brand-700">
                   {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
                 </p>
               </div>
 
               {/* Max Awards */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.maxAwards')}
                 </label>
                 <input
@@ -137,17 +137,17 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
                   min="1"
                   value={maxAwards ?? ''}
                   onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={t('surveys.admin.couponAssignment.unlimited')}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {t('surveys.admin.couponAssignment.maxAwardsHelp')}
                 </p>
               </div>
 
               {/* Custom Expiry */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.customExpiry')}
                 </label>
                 <input
@@ -155,23 +155,23 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
                   min="1"
                   value={customExpiryDays ?? ''}
                   onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {t('surveys.admin.couponAssignment.customExpiryHelp')}
                 </p>
               </div>
 
               {/* Assigned Reason */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.reason')}
                 </label>
                 <textarea
                   value={assignedReason}
                   onChange={(e) => setAssignedReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   rows={2}
                   placeholder={t('surveys.admin.couponAssignment.reasonPlaceholder')}
                 />
@@ -182,14 +182,14 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 text-stone-700 bg-stone-200 rounded-md hover:bg-stone-300 transition-colors"
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={!selectedCouponId}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {t('surveys.admin.couponAssignment.assign')}
               </button>
@@ -239,10 +239,10 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-stone-900 mb-4">
             {t('surveys.couponAssignment.editAssignment')}
           </h3>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-stone-600 mb-4">
             {t('coupons.coupon')}: <strong>{assignment.coupon_code} - {assignment.coupon_name}</strong>
           </p>
 
@@ -255,28 +255,28 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
                     type="checkbox"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-stone-300 text-brand-600 shadow-sm focus:border-brand-300 focus:ring focus:ring-brand-200 focus:ring-opacity-50"
                   />
-                  <span className="ml-2 text-sm text-gray-700">
+                  <span className="ml-2 text-sm text-stone-700">
                     {t('common.active')}
                   </span>
                 </label>
               </div>
 
               {/* Award Condition - Always completion */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center">
+              <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-brand-900 mb-2 flex items-center">
                   <FiGift className="mr-2" />
                   {t('surveys.admin.couponAssignment.rewardCondition')}
                 </h4>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-brand-700">
                   {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
                 </p>
               </div>
 
               {/* Max Awards */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.maxAwards')}
                 </label>
                 <input
@@ -284,14 +284,14 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
                   min="1"
                   value={maxAwards ?? ''}
                   onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={t('surveys.admin.couponAssignment.unlimited')}
                 />
               </div>
 
               {/* Custom Expiry */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.customExpiry')}
                 </label>
                 <input
@@ -299,20 +299,20 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
                   min="1"
                   value={customExpiryDays ?? ''}
                   onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
                 />
               </div>
 
               {/* Assigned Reason */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('surveys.admin.couponAssignment.reason')}
                 </label>
                 <textarea
                   value={assignedReason}
                   onChange={(e) => setAssignedReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                   rows={2}
                 />
               </div>
@@ -322,13 +322,13 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 text-stone-700 bg-stone-200 rounded-md hover:bg-stone-300 transition-colors"
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
               >
                 {t('common.save')}
               </button>
@@ -447,11 +447,11 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-6 bg-stone-200 rounded w-1/4 mb-4" />
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded w-5/6" />
-            <div className="h-4 bg-gray-200 rounded w-4/6" />
+            <div className="h-4 bg-stone-200 rounded" />
+            <div className="h-4 bg-stone-200 rounded w-5/6" />
+            <div className="h-4 bg-stone-200 rounded w-4/6" />
           </div>
         </div>
       </div>
@@ -460,19 +460,19 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-stone-200">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-stone-900">
               {t('surveys.admin.couponAssignment.title')}
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-stone-500 mt-1">
               {t('surveys.admin.couponAssignment.description')}
             </p>
           </div>
           <button
             onClick={() => setShowAssignModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
             disabled={surveyStatus !== 'active'}
           >
             <FiPlus className="mr-2" />
@@ -484,9 +484,9 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
       <div className="p-6">
         {assignments.length === 0 ? (
           <div className="text-center py-8">
-            <FiGift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">{t('surveys.admin.couponAssignment.noAssignments')}</p>
-            <p className="text-sm text-gray-400 mt-2">
+            <FiGift className="h-12 w-12 text-stone-400 mx-auto mb-4" />
+            <p className="text-stone-500">{t('surveys.admin.couponAssignment.noAssignments')}</p>
+            <p className="text-sm text-stone-400 mt-2">
               {t('surveys.admin.couponAssignment.noAssignmentsHelp')}
             </p>
           </div>
@@ -495,27 +495,27 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
             {assignments.map((assignment) => (
               <div
                 key={assignment.assignment_id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-stone-200 rounded-lg p-4 hover:bg-stone-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-stone-900">
                         {assignment.coupon_code} - {assignment.coupon_name}
                       </h4>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         assignment.is_active
                           ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-stone-100 text-stone-800'
                       }`}
                       >
                         {assignment.is_active ? t('common.active') : t('common.inactive')}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-stone-600">
                       <div className="flex items-center">
-                        <FiGift className="mr-2 text-blue-500" />
+                        <FiGift className="mr-2 text-brand-500" />
                         <span>
                           {assignment.coupon_type === 'percentage' && `${assignment.coupon_value}% off`}
                           {assignment.coupon_type === 'fixed_amount' && `${assignment.coupon_currency} ${assignment.coupon_value} off`}
@@ -541,7 +541,7 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
                     </div>
 
                     {assignment.assigned_reason && (
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-sm text-stone-500 mt-2">
                         {t('surveys.admin.couponAssignment.reason')}: {assignment.assigned_reason}
                       </p>
                     )}
@@ -550,7 +550,7 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
                   <div className="flex space-x-2 ml-4">
                     <button
                       onClick={() => openEditModal(assignment)}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-2 text-stone-400 hover:text-brand-600 transition-colors"
                       title={t('common.edit')}
                     >
                       <FiEdit className="h-4 w-4" />
@@ -560,7 +560,7 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
                         setAssignmentToRemove(assignment.coupon_id);
                         setShowRemoveConfirm(true);
                       }}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-2 text-stone-400 hover:text-red-600 transition-colors"
                       title={t('common.remove')}
                     >
                       <FiTrash2 className="h-4 w-4" />

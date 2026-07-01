@@ -26,8 +26,8 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
   const [selectedGender, setSelectedGender] = useState('');
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
+    : "appearance-none block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
 
   const handleGenderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -52,7 +52,7 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
 
   return (
     <div>
-      <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+      <label htmlFor="gender" className="block text-sm font-medium text-stone-700">
         {!isModal && <FiUser className="inline h-4 w-4 mr-2" />}
         {t('profile.gender')} {showRequiredAsterisk && '*'}
       </label>
@@ -64,11 +64,11 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
             onChange={handleGenderChange}
             className={fieldClasses}
           >
-            <option value="" className="text-gray-500">{t('profile.selectGender')}</option>
-            <option value="male" className="text-gray-900">{t('profile.male')}</option>
-            <option value="female" className="text-gray-900">{t('profile.female')}</option>
-            <option value="other" className="text-gray-900">{t('profile.other')}</option>
-            <option value="prefer_not_to_say" className="text-gray-900">{t('profile.preferNotToSay')}</option>
+            <option value="" className="text-stone-500">{t('profile.selectGender')}</option>
+            <option value="male" className="text-stone-900">{t('profile.male')}</option>
+            <option value="female" className="text-stone-900">{t('profile.female')}</option>
+            <option value="other" className="text-stone-900">{t('profile.other')}</option>
+            <option value="prefer_not_to_say" className="text-stone-900">{t('profile.preferNotToSay')}</option>
           </select>
           
           {selectedGender === 'other' && (
@@ -110,19 +110,19 @@ export function OccupationField({ register, errors, showRequiredAsterisk = false
   const { t } = useTranslation();
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
 
   return (
     <div>
-      <label htmlFor="occupation" className="block text-sm font-medium text-gray-700">
+      <label htmlFor="occupation" className="block text-sm font-medium text-stone-700">
         <FiBriefcase className="inline h-4 w-4 mr-2" />
         {t('profile.occupation')} {showRequiredAsterisk && '*'}
       </label>
       <div className={isModal ? "" : "mt-1 relative"}>
         {!isModal && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FiBriefcase className="h-5 w-5 text-gray-400" />
+            <FiBriefcase className="h-5 w-5 text-stone-400" />
           </div>
         )}
         <select
@@ -130,20 +130,20 @@ export function OccupationField({ register, errors, showRequiredAsterisk = false
           {...register('occupation')}
           className={fieldClasses}
         >
-          <option value="" className="text-gray-500">{t('profile.selectOccupation')}</option>
-          <option value="student" className="text-gray-900">{t('profile.occupations.student')}</option>
-          <option value="business_owner" className="text-gray-900">{t('profile.occupations.business_owner')}</option>
-          <option value="employee" className="text-gray-900">{t('profile.occupations.employee')}</option>
-          <option value="freelancer" className="text-gray-900">{t('profile.occupations.freelancer')}</option>
-          <option value="consultant" className="text-gray-900">{t('profile.occupations.consultant')}</option>
-          <option value="teacher" className="text-gray-900">{t('profile.occupations.teacher')}</option>
-          <option value="healthcare" className="text-gray-900">{t('profile.occupations.healthcare')}</option>
-          <option value="engineer" className="text-gray-900">{t('profile.occupations.engineer')}</option>
-          <option value="artist" className="text-gray-900">{t('profile.occupations.artist')}</option>
-          <option value="sales" className="text-gray-900">{t('profile.occupations.sales')}</option>
-          <option value="manager" className="text-gray-900">{t('profile.occupations.manager')}</option>
-          <option value="retired" className="text-gray-900">{t('profile.occupations.retired')}</option>
-          <option value="other" className="text-gray-900">{t('profile.occupations.other')}</option>
+          <option value="" className="text-stone-500">{t('profile.selectOccupation')}</option>
+          <option value="student" className="text-stone-900">{t('profile.occupations.student')}</option>
+          <option value="business_owner" className="text-stone-900">{t('profile.occupations.business_owner')}</option>
+          <option value="employee" className="text-stone-900">{t('profile.occupations.employee')}</option>
+          <option value="freelancer" className="text-stone-900">{t('profile.occupations.freelancer')}</option>
+          <option value="consultant" className="text-stone-900">{t('profile.occupations.consultant')}</option>
+          <option value="teacher" className="text-stone-900">{t('profile.occupations.teacher')}</option>
+          <option value="healthcare" className="text-stone-900">{t('profile.occupations.healthcare')}</option>
+          <option value="engineer" className="text-stone-900">{t('profile.occupations.engineer')}</option>
+          <option value="artist" className="text-stone-900">{t('profile.occupations.artist')}</option>
+          <option value="sales" className="text-stone-900">{t('profile.occupations.sales')}</option>
+          <option value="manager" className="text-stone-900">{t('profile.occupations.manager')}</option>
+          <option value="retired" className="text-stone-900">{t('profile.occupations.retired')}</option>
+          <option value="other" className="text-stone-900">{t('profile.occupations.other')}</option>
         </select>
       </div>
       {errors.occupation && (
@@ -157,19 +157,19 @@ export function DateOfBirthField({ register, errors, showRequiredAsterisk = fals
   const { t } = useTranslation();
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900"
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
 
   return (
     <div>
-      <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
+      <label htmlFor="dateOfBirth" className="block text-sm font-medium text-stone-700">
         <FiCalendar className="inline h-4 w-4 mr-2" />
         {t('profile.dateOfBirth')} {showRequiredAsterisk && '*'}
       </label>
       <div className={isModal ? "" : "mt-1 relative"}>
         {!isModal && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FiCalendar className="h-5 w-5 text-gray-400" />
+            <FiCalendar className="h-5 w-5 text-stone-400" />
           </div>
         )}
         <input

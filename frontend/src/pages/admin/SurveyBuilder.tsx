@@ -467,11 +467,11 @@ const SurveyBuilder: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">{t('surveys.admin.surveyBuilder.loading')}</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">{t('surveys.admin.surveyBuilder.loading')}</span>
           </div>
         </div>
       </div>
@@ -479,20 +479,20 @@ const SurveyBuilder: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-stone-900">
                 {isEditing ? t('surveys.admin.surveyBuilder.pageTitle.edit') : t('surveys.admin.surveyBuilder.pageTitle.create')}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowPreview(!showPreview)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-3 py-2 border border-stone-300 shadow-sm text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 <FiEye className="mr-2 h-4 w-4" />
                 {showPreview ? t('surveys.admin.surveyBuilder.hidePreview') : t('surveys.admin.surveyBuilder.preview')}
@@ -511,11 +511,11 @@ const SurveyBuilder: React.FC = () => {
           <div className="space-y-6">
             {/* Basic Information */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">{t('surveys.admin.basicInfo.title')}</h2>
+              <h2 className="text-lg font-medium text-stone-900 mb-4">{t('surveys.admin.basicInfo.title')}</h2>
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="title" className="block text-sm font-medium text-stone-700">
                     {t('surveys.admin.basicInfo.surveyTitle')}
                   </label>
                   <input
@@ -523,13 +523,13 @@ const SurveyBuilder: React.FC = () => {
                     id="title"
                     value={survey.title ?? ''}
                     onChange={(e) => handleSurveyChange('title', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('surveys.admin.basicInfo.surveyTitlePlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="description" className="block text-sm font-medium text-stone-700">
                     {t('surveys.admin.basicInfo.description')}
                   </label>
                   <textarea
@@ -537,20 +537,20 @@ const SurveyBuilder: React.FC = () => {
                     rows={3}
                     value={survey.description ?? ''}
                     onChange={(e) => handleSurveyChange('description', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('surveys.admin.basicInfo.descriptionPlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="status" className="block text-sm font-medium text-stone-700">
                     {t('surveys.admin.basicInfo.status')}
                   </label>
                   <select
                     id="status"
                     value={survey.status ?? 'draft'}
                     onChange={(e) => handleSurveyChange('status', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   >
                     <option value="draft">{t('surveys.admin.basicInfo.statusOptions.draft')}</option>
                     <option value="active">{t('surveys.admin.basicInfo.statusOptions.active')}</option>
@@ -561,19 +561,19 @@ const SurveyBuilder: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="access_type" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="access_type" className="block text-sm font-medium text-stone-700">
                     {t('surveys.admin.basicInfo.accessType')}
                   </label>
                   <select
                     id="access_type"
                     value={survey.access_type ?? 'public'}
                     onChange={(e) => handleSurveyChange('access_type', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   >
                     <option value="public">{t('surveys.admin.basicInfo.accessTypeOptions.public')}</option>
                     <option value="invite_only">{t('surveys.admin.basicInfo.accessTypeOptions.inviteOnly')}</option>
                   </select>
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="mt-2 text-sm text-stone-500">
                     {survey.access_type === 'public' 
                       ? t('surveys.admin.basicInfo.accessTypeDescriptions.public')
                       : t('surveys.admin.basicInfo.accessTypeDescriptions.inviteOnly')
@@ -586,9 +586,9 @@ const SurveyBuilder: React.FC = () => {
             {/* Questions */}
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">{t('surveys.admin.questions.title')}</h2>
+                <h2 className="text-lg font-medium text-stone-900">{t('surveys.admin.questions.title')}</h2>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-stone-500">
                     {t('surveys.admin.questions.count', { count: survey.questions?.length ?? 0 })}
                   </span>
                 </div>
@@ -609,61 +609,61 @@ const SurveyBuilder: React.FC = () => {
                 ))}
 
                 {survey.questions?.length === 0 && (
-                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <p className="text-gray-500 mb-4">{t('surveys.admin.questions.noQuestions')}</p>
+                  <div className="text-center py-8 border-2 border-dashed border-stone-300 rounded-lg">
+                    <p className="text-stone-500 mb-4">{t('surveys.admin.questions.noQuestions')}</p>
                   </div>
                 )}
               </div>
 
               {/* Add Question Buttons */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">{t('surveys.admin.questions.addQuestion')}</h3>
+              <div className="mt-6 pt-6 border-t border-stone-200">
+                <h3 className="text-sm font-medium text-stone-700 mb-3">{t('surveys.admin.questions.addQuestion')}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <button
                     onClick={() => addQuestion('single_choice')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.singleChoice')}
                   </button>
                   <button
                     onClick={() => addQuestion('multiple_choice')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.multipleChoice')}
                   </button>
                   <button
                     onClick={() => addQuestion('text')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.text')}
                   </button>
                   <button
                     onClick={() => addQuestion('textarea')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.textarea')}
                   </button>
                   <button
                     onClick={() => addQuestion('rating_5')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.rating5')}
                   </button>
                   <button
                     onClick={() => addQuestion('rating_10')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.rating10')}
                   </button>
                   <button
                     onClick={() => addQuestion('yes_no')}
-                    className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                   >
                     <FiPlus className="mr-2 h-4 w-4" />
                     {t('surveys.admin.questions.questionTypes.yesNo')}
@@ -677,7 +677,7 @@ const SurveyBuilder: React.FC = () => {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => navigate('/admin/surveys')}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  className="px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
                 >
                   {t('surveys.admin.surveyBuilder.cancel')}
                 </button>
@@ -706,7 +706,7 @@ const SurveyBuilder: React.FC = () => {
                   <button
                     onClick={() => saveSurvey('draft')}
                     disabled={saving}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
                   >
                     <FiSave className="mr-2 h-4 w-4" />
                     {t('surveys.admin.saveDraft')}
@@ -715,7 +715,7 @@ const SurveyBuilder: React.FC = () => {
                   <button
                     onClick={() => saveSurvey('active')}
                     disabled={saving}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
                   >
                     {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
                     {isEditing ? t('surveys.admin.updateAndPublish') : t('surveys.admin.createAndPublish')}

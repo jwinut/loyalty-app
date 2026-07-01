@@ -395,7 +395,7 @@ describe('AdminTransactionHistory', () => {
 
       await waitFor(() => {
         const adminEmail = screen.getByText(/Admin: admin@example.com/);
-        expect(adminEmail).toHaveClass('text-blue-600');
+        expect(adminEmail).toHaveClass('text-brand-600');
       });
     });
 
@@ -547,7 +547,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const badges = document.querySelectorAll('.bg-gray-100');
+        const badges = document.querySelectorAll('.bg-stone-100');
         expect(badges.length).toBeGreaterThan(0);
       });
     });
@@ -557,7 +557,7 @@ describe('AdminTransactionHistory', () => {
 
       await waitFor(() => {
         const badge = screen.getByText('earned_stay').closest('div');
-        expect(badge).toHaveClass('bg-gray-100', 'px-2', 'py-1', 'rounded');
+        expect(badge).toHaveClass('bg-stone-100', 'px-2', 'py-1', 'rounded');
       });
     });
   });

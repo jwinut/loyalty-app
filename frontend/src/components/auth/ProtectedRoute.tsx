@@ -41,10 +41,10 @@ export default function ProtectedRoute({
   // Show loading while auth is being verified
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="mt-4 text-gray-600">Verifying authentication...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
+          <p className="mt-4 text-stone-600">Verifying authentication...</p>
         </div>
       </div>
     );
@@ -72,10 +72,10 @@ export default function ProtectedRoute({
     // User doesn't have sufficient role
     if (userRoleLevel < requiredRoleLevel) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-stone-50 flex items-center justify-center">
           <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <h3 className="text-lg font-medium text-stone-900">Access Denied</h3>
+            <p className="mt-2 text-sm text-stone-500">
               You need {requiredRole.replace('_', ' ')} privileges to access this page.
             </p>
             <button

@@ -79,19 +79,19 @@ export default function TransactionList({
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <h3 className="text-lg font-semibold text-stone-900 mb-4">
           {t('loyalty.transactionHistory')}
         </h3>
         <div className="space-y-4">
           {[...Array(5)].map((_, index) => (
             <div key={index} className="animate-pulse">
               <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-lg" />
+                <div className="w-10 h-10 bg-stone-200 rounded-lg" />
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-4 bg-stone-200 rounded w-1/2 mb-2" />
+                  <div className="h-3 bg-stone-200 rounded w-1/3" />
                 </div>
-                <div className="h-4 bg-gray-200 rounded w-16" />
+                <div className="h-4 bg-stone-200 rounded w-16" />
               </div>
             </div>
           ))}
@@ -102,20 +102,20 @@ export default function TransactionList({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 flex flex-col h-full">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex-shrink-0">
+      <h3 className="text-lg font-semibold text-stone-900 mb-4 flex-shrink-0">
         {t('loyalty.transactionHistory')}
       </h3>
 
       {transactions.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-[200px]">
-          <FiClock className="w-12 h-12 mb-3 text-gray-400" />
+        <div className="flex-1 flex flex-col items-center justify-center text-stone-500 min-h-[200px]">
+          <FiClock className="w-12 h-12 mb-3 text-stone-400" />
           <p>{t('loyalty.noTransactions')}</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="space-y-4">
             {transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
+            <div key={transaction.id} className="flex items-center space-x-4 py-3 border-b border-stone-100 last:border-b-0">
               {/* Transaction Icon */}
               <div className={`
                 w-10 h-10 rounded-lg flex items-center justify-center
@@ -128,11 +128,11 @@ export default function TransactionList({
               {/* Transaction Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-gray-900 truncate">
+                  <p className="font-medium text-stone-900 truncate">
                     {getPointsFocusedDescription(transaction)}
                   </p>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-stone-900">
                       {(transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay')) ? '+' : ''}{transaction.points.toLocaleString()} {t('loyalty.points')}
                     </p>
                     {(transaction.type === 'earned_stay' || transaction.type === 'admin_deduction') && transaction.description && (() => {
@@ -146,7 +146,7 @@ export default function TransactionList({
 
                       if (nights !== null && nights !== 0) {
                         return (
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-stone-900">
                             {nights > 0 ? '+' : ''}{nights} {Math.abs(nights) === 1 ? t('loyalty.night') : t('loyalty.nights')}
                           </p>
                         );
@@ -157,12 +157,12 @@ export default function TransactionList({
                 </div>
                 
                 <div className="flex items-center space-x-4 mt-1">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-stone-600">
                     {formatDate(transaction.created_at)}
                   </p>
 
                   {showAdminInfo && transaction.admin_email && (
-                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <div className="flex items-center space-x-1 text-xs text-stone-500">
                       <FiUser className="w-3 h-3" />
                       <span>{transaction.admin_email}</span>
                     </div>
@@ -170,7 +170,7 @@ export default function TransactionList({
                 </div>
 
                 {transaction.admin_reason && !transaction.admin_reason.toLowerCase().includes('thb') && !transaction.admin_reason.toLowerCase().includes('baht') && !transaction.admin_reason.toLowerCase().includes('฿') && (
-                  <p className="text-xs text-gray-500 mt-1 italic">
+                  <p className="text-xs text-stone-500 mt-1 italic">
                     {transaction.admin_reason}
                   </p>
                 )}

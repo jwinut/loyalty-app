@@ -182,15 +182,15 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           {canMove && (
             <button
               role="presentation"
-              className="p-1 text-gray-400 hover:text-gray-600 cursor-move"
+              className="p-1 text-stone-400 hover:text-stone-600 cursor-move"
             >
               <FiMove className="h-4 w-4" />
             </button>
           )}
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-stone-900">
             {t('surveys.admin.questionEditor.questionNumber', { number: question.order })}
           </span>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
             {getQuestionTypeLabel(question.type)}
           </span>
         </div>
@@ -199,7 +199,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           onClick={onRemove}
           disabled={disabled}
           aria-label="trash"
-          className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-1 text-stone-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span className="text-sm font-medium">Trash</span>
         </button>
@@ -208,7 +208,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
       <div className="space-y-4">
         {/* Question Text */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('surveys.admin.questionEditor.questionText')}
           </label>
           <textarea
@@ -217,11 +217,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             disabled={disabled}
             rows={2}
             className={clsx(
-              'block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+              'block w-full rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm',
               !questionText || questionText.trim() === ''
                 ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300',
-              disabled && 'bg-gray-100'
+                : 'border-stone-300',
+              disabled && 'bg-stone-100'
             )}
             placeholder={t('surveys.admin.questionEditor.questionTextPlaceholder')}
           />
@@ -232,7 +232,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
         {/* Question Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('surveys.admin.questionEditor.description')}
           </label>
           <input
@@ -240,7 +240,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             disabled={disabled}
-            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${disabled ? 'bg-gray-100' : ''}`}
+            className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
             placeholder={t('surveys.admin.questionEditor.descriptionPlaceholder')}
           />
         </div>
@@ -248,26 +248,26 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         {/* Options for choice questions */}
         {(question.type === 'single_choice' || question.type === 'multiple_choice') && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-stone-700 mb-2">
               {t('surveys.admin.questionEditor.answerOptions')}
             </label>
             <div className="space-y-2">
               {options?.map((option, index) => (
                 <div key={option.id} className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-500 w-6">{index + 1}.</span>
+                  <span className="text-sm font-medium text-stone-500 w-6">{index + 1}.</span>
                   <input
                     type="text"
                     value={option.text}
                     onChange={(e) => updateOption(option.id, e.target.value)}
                     disabled={disabled}
-                    className={`flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${disabled ? 'bg-gray-100' : ''}`}
+                    className={`flex-1 border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
                     placeholder={t('surveys.admin.questionEditor.optionTextPlaceholder')}
                   />
                   {options && options.length > 2 && (
                     <button
                       onClick={() => removeOption(option.id)}
                       disabled={disabled}
-                      className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1 text-stone-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span aria-hidden="true">×</span>
                       <FiX className="h-4 w-4" />
@@ -278,7 +278,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               <button
                 onClick={addOption}
                 disabled={disabled}
-                className="flex items-center text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center text-sm text-brand-600 hover:text-brand-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiPlus className="mr-1 h-4 w-4" />
                 {t('surveys.admin.questionEditor.addOption')}
@@ -291,7 +291,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         {(question.type === 'rating_5' || question.type === 'rating_10') && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t('surveys.admin.questionEditor.minRating')}
               </label>
               <input
@@ -301,11 +301,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 disabled={disabled}
                 min="1"
                 max={question.type === 'rating_5' ? 5 : 10}
-                className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${disabled ? 'bg-gray-100' : ''}`}
+                className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t('surveys.admin.questionEditor.maxRating')}
               </label>
               <input
@@ -315,7 +315,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 disabled={disabled}
                 min="1"
                 max={question.type === 'rating_5' ? 5 : 10}
-                className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${disabled ? 'bg-gray-100' : ''}`}
+                className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
               />
             </div>
           </div>
@@ -329,23 +329,23 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             checked={isRequired}
             onChange={(e) => handleRequiredToggle(e.target.checked)}
             disabled={disabled}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+            className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded disabled:opacity-50"
           />
-          <label htmlFor={`required-${question.id}`} className="ml-2 block text-sm text-gray-700">
+          <label htmlFor={`required-${question.id}`} className="ml-2 block text-sm text-stone-700">
             {t('surveys.admin.questionEditor.requiredQuestion')}
           </label>
         </div>
 
         {/* Preview */}
-        <div className="mt-4 p-3 bg-gray-50 rounded-md">
-          <p className="text-xs text-gray-500 mb-2 font-medium">{t('surveys.admin.questionEditor.preview')}</p>
+        <div className="mt-4 p-3 bg-stone-50 rounded-md">
+          <p className="text-xs text-stone-500 mb-2 font-medium">{t('surveys.admin.questionEditor.preview')}</p>
           <div className="text-sm">
-            <p className="font-medium text-gray-900 mb-1">
+            <p className="font-medium text-stone-900 mb-1">
               {questionText || t('surveys.admin.questionEditor.previewPlaceholder')}
               {isRequired && <span className="text-red-500 ml-1">*</span>}
             </p>
             {description && (
-              <p className="text-xs text-gray-600 mb-2">{description}</p>
+              <p className="text-xs text-stone-600 mb-2">{description}</p>
             )}
             
             {question.type === 'single_choice' && (
@@ -374,7 +374,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               <input
                 type="text"
                 disabled
-                className="w-full border-gray-300 rounded text-sm"
+                className="w-full border-stone-300 rounded text-sm"
                 placeholder={t('surveys.admin.questionEditor.textInputPlaceholder')}
               />
             )}
@@ -383,7 +383,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               <textarea
                 disabled
                 rows={3}
-                className="w-full border-gray-300 rounded text-sm"
+                className="w-full border-stone-300 rounded text-sm"
                 placeholder={t('surveys.admin.questionEditor.longTextInputPlaceholder')}
               />
             )}
@@ -391,7 +391,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             {(question.type === 'rating_5' || question.type === 'rating_10') && (
               <div className="flex items-center space-x-1">
                 {Array.from({ length: displayMaxRating }, (_, i) => (
-                  <span key={i} className="text-gray-300 text-lg">★</span>
+                  <span key={i} className="text-stone-300 text-lg">★</span>
                 ))}
               </div>
             )}

@@ -72,31 +72,31 @@ export default function ResetPasswordPage() {
 
   if (token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
               Reset your password
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-stone-600">
               Enter your new password below
             </p>
           </div>
           <form className="mt-8 space-y-6" onSubmit={resetForm.handleSubmit(onResetSubmit)}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium text-stone-700">
                   New Password
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiLock className="h-5 w-5 text-gray-400" />
+                    <FiLock className="h-5 w-5 text-stone-400" />
                   </div>
                   <input
                     {...resetForm.register('password')}
                     id="password"
                     type="password"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -108,18 +108,18 @@ export default function ResetPasswordPage() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700">
                   Confirm New Password
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiLock className="h-5 w-5 text-gray-400" />
+                    <FiLock className="h-5 w-5 text-stone-400" />
                   </div>
                   <input
                     {...resetForm.register('confirmPassword')}
                     id="confirmPassword"
                     type="password"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -147,13 +147,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
             Forgot your password?
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-stone-600">
             Or{' '}
             <Link
               to="/login"
@@ -181,19 +181,19 @@ export default function ResetPasswordPage() {
         ) : (
           <form className="mt-8 space-y-6" onSubmit={requestForm.handleSubmit(onRequestSubmit)}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-stone-700">
                 Email address
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
+                  <FiMail className="h-5 w-5 text-stone-400" />
                 </div>
                 <input
                   {...requestForm.register('email')}
                   id="email"
                   type="email"
                   autoComplete="email"
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   placeholder="john@example.com"
                 />
               </div>

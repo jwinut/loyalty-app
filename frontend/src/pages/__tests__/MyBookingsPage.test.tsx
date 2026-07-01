@@ -520,7 +520,7 @@ describe('MyBookingsPage', () => {
 
       const card = screen.getByTestId('booking-card-booking-2');
       const badge = within(card).getByText('Completed');
-      expect(badge).toHaveClass('bg-blue-100', 'text-blue-800');
+      expect(badge).toHaveClass('bg-brand-100', 'text-brand-800');
     });
   });
 
@@ -559,7 +559,7 @@ describe('MyBookingsPage', () => {
       const historyTab = screen.getByTestId('tab-history');
 
       expect(currentTab).toHaveClass('border-primary-500', 'text-primary-600');
-      expect(historyTab).toHaveClass('border-transparent', 'text-gray-500');
+      expect(historyTab).toHaveClass('border-transparent', 'text-stone-500');
     });
 
     it('should display booking counts in tab labels', async () => {

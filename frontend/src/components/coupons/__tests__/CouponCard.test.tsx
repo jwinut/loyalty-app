@@ -127,7 +127,7 @@ describe('CouponCard', () => {
       const { container } = render(<CouponCard coupon={mockCoupon} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('border-gray-200');
+      expect(card).toHaveClass('border-stone-200');
       expect(card).not.toHaveClass('border-red-300', 'bg-red-50');
     });
 
@@ -239,7 +239,7 @@ describe('CouponCard', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
       const expiryElement = screen.getByText('Expires on 31 Dec 2024');
-      expect(expiryElement).toHaveClass('text-gray-500');
+      expect(expiryElement).toHaveClass('text-stone-500');
       expect(expiryElement).not.toHaveClass('text-red-600');
     });
   });
@@ -306,7 +306,7 @@ describe('CouponCard', () => {
       render(<CouponCard coupon={mockCoupon} onUse={onUse} />);
 
       const button = screen.getByText('Use Coupon');
-      expect(button).toHaveClass('bg-blue-600', 'text-white');
+      expect(button).toHaveClass('bg-brand-600', 'text-white');
     });
 
     it('should style view details button with gray background', () => {
@@ -315,7 +315,7 @@ describe('CouponCard', () => {
       render(<CouponCard coupon={mockCoupon} onViewDetails={onViewDetails} />);
 
       const button = screen.getByText('View Details');
-      expect(button).toHaveClass('bg-gray-100', 'text-gray-700');
+      expect(button).toHaveClass('bg-stone-100', 'text-stone-700');
     });
   });
 

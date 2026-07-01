@@ -62,13 +62,13 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
     <div className={`bg-white rounded-lg shadow-lg ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-stone-900">
           {t('coupons.useCoupon')}
         </h3>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
           >
             ×
           </button>
@@ -79,20 +79,20 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
       <div className="p-6 text-center">
         {/* Coupon Basic Info */}
         <div className="mb-6">
-          <h4 className="text-xl font-bold text-gray-900 mb-2">
+          <h4 className="text-xl font-bold text-stone-900 mb-2">
             {coupon.name}
           </h4>
         </div>
 
         {/* QR Code */}
         <div className="flex flex-col items-center mb-6" ref={qrCodeRef}>
-          <div className="bg-white p-6 rounded-lg shadow-inner border-2 border-gray-200 mb-4">
+          <div className="bg-white p-6 rounded-lg shadow-inner border-2 border-stone-200 mb-4">
             {/* QR Code Display */}
             <div className="w-64 h-64 flex items-center justify-center rounded-lg">
               {isGeneratingQR ? (
                 <div className="text-center">
                   <div className="text-4xl mb-3">⏳</div>
-                  <div className="text-sm text-gray-600 font-semibold">
+                  <div className="text-sm text-stone-600 font-semibold">
                     {t('coupons.generatingQR', 'Generating QR Code...')}
                   </div>
                 </div>
@@ -105,7 +105,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
               ) : (
                 <div className="text-center">
                   <div className="text-4xl mb-3">❌</div>
-                  <div className="text-sm text-gray-600 font-semibold">
+                  <div className="text-sm text-stone-600 font-semibold">
                     {t('coupons.qrError', 'Error generating QR code')}
                   </div>
                 </div>
@@ -115,32 +115,32 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
           
           {/* Coupon Code underneath */}
           <div className="text-center">
-            <div className="text-sm text-gray-600 mb-1 font-medium">
+            <div className="text-sm text-stone-600 mb-1 font-medium">
               {t('coupons.couponCode', 'Coupon Code')}
             </div>
-            <div className="text-lg font-mono bg-gray-100 px-4 py-2 rounded-lg border">
+            <div className="text-lg font-mono bg-stone-100 px-4 py-2 rounded-lg border">
               {coupon.code}
             </div>
           </div>
         </div>
 
         {/* Redemption Instructions */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <h5 className="font-medium text-blue-900 mb-3 flex items-center justify-center">
+        <div className="bg-brand-50 rounded-lg p-4 mb-6">
+          <h5 className="font-medium text-brand-900 mb-3 flex items-center justify-center">
             <span className="mr-2">📋</span>
             {t('coupons.howToUse')}
           </h5>
-          <ol className="text-sm text-blue-800 text-left space-y-2">
+          <ol className="text-sm text-brand-800 text-left space-y-2">
             <li className="flex items-start">
-              <span className="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
+              <span className="bg-brand-200 text-brand-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
               {t('coupons.showQRCode')}
             </li>
             <li className="flex items-start">
-              <span className="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
+              <span className="bg-brand-200 text-brand-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
               {t('coupons.letStaffScan')}
             </li>
             <li className="flex items-start">
-              <span className="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
+              <span className="bg-brand-200 text-brand-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
               {t('coupons.enjoyDiscount')}
             </li>
           </ol>
@@ -157,7 +157,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
         <div className="flex justify-center">
           <button
             onClick={copyToClipboard}
-            className="bg-gray-100 text-gray-700 py-3 px-6 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
+            className="bg-stone-100 text-stone-700 py-3 px-6 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors flex items-center justify-center"
           >
             <span className="mr-2">📋</span>
             {t('coupons.copyCode')}

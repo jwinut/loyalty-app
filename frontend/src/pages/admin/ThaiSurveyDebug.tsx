@@ -110,16 +110,16 @@ const ThaiSurveyDebug: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-stone-50 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">
+          <h1 className="text-2xl font-bold text-stone-900 mb-6">
             🧪 Thai Survey Debug Tool
           </h1>
           
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <h2 className="text-lg font-semibold text-blue-900 mb-2">Purpose</h2>
-            <p className="text-blue-800">
+          <div className="mb-6 p-4 bg-brand-50 rounded-lg">
+            <h2 className="text-lg font-semibold text-brand-900 mb-2">Purpose</h2>
+            <p className="text-brand-800">
               This page is designed to debug the 400 error when creating surveys with Thai language content.
               It includes detailed logging and error capture to identify validation issues.
             </p>
@@ -127,21 +127,21 @@ const ThaiSurveyDebug: React.FC = () => {
 
           {/* Survey Data Preview */}
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📋 Survey Data</h2>
+            <h2 className="text-lg font-semibold text-stone-900 mb-4">📋 Survey Data</h2>
             
             <div className="space-y-4">
               {/* Title */}
               <div className="border rounded p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   Title (Thai)
                 </label>
                 <input
                   type="text"
                   value={surveyData.title}
                   onChange={(e) => setSurveyData({...surveyData, title: e.target.value})}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500"
                 />
-                <div className="mt-2 text-xs text-gray-600">
+                <div className="mt-2 text-xs text-stone-600">
                   <div>Length: {surveyData.title.length} chars</div>
                   <div>Bytes: {new TextEncoder().encode(surveyData.title).length}</div>
                   <div>Has Thai: {/[\u0E00-\u0E7F]/.test(surveyData.title) ? 'Yes' : 'No'}</div>
@@ -150,16 +150,16 @@ const ThaiSurveyDebug: React.FC = () => {
 
               {/* Description */}
               <div className="border rounded p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   Description (Thai)
                 </label>
                 <textarea
                   value={surveyData.description}
                   onChange={(e) => setSurveyData({...surveyData, description: e.target.value})}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500"
                   rows={3}
                 />
-                <div className="mt-2 text-xs text-gray-600">
+                <div className="mt-2 text-xs text-stone-600">
                   <div>Length: {surveyData.description?.length ?? 0} chars</div>
                   <div>Bytes: {surveyData.description ? new TextEncoder().encode(surveyData.description).length : 0}</div>
                 </div>
@@ -167,7 +167,7 @@ const ThaiSurveyDebug: React.FC = () => {
 
               {/* Question */}
               <div className="border rounded p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   Question Text (Thai)
                 </label>
                 <input
@@ -180,9 +180,9 @@ const ThaiSurveyDebug: React.FC = () => {
                       setSurveyData(updated);
                     }
                   }}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500"
                 />
-                <div className="mt-2 text-xs text-gray-600">
+                <div className="mt-2 text-xs text-stone-600">
                   <div>Length: {surveyData.questions[0]?.text.length ?? 0} chars</div>
                   <div>Bytes: {surveyData.questions[0]?.text ? new TextEncoder().encode(surveyData.questions[0].text).length : 0}</div>
                 </div>
@@ -190,7 +190,7 @@ const ThaiSurveyDebug: React.FC = () => {
 
               {/* Options */}
               <div className="border rounded p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   Options (Thai)
                 </label>
                 {surveyData.questions[0]?.options?.map((option, index) => (
@@ -206,10 +206,10 @@ const ThaiSurveyDebug: React.FC = () => {
                           setSurveyData(updated);
                         }
                       }}
-                      className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500"
                       placeholder={`Option ${index + 1}`}
                     />
-                    <div className="text-xs text-gray-600 mt-1">
+                    <div className="text-xs text-stone-600 mt-1">
                       Length: {option.text.length} chars, Bytes: {new TextEncoder().encode(option.text).length}
                     </div>
                   </div>
@@ -223,7 +223,7 @@ const ThaiSurveyDebug: React.FC = () => {
             <button
               onClick={handleCreateSurvey}
               disabled={isCreating}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="bg-brand-600 text-white px-6 py-3 rounded-md hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isCreating && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
               {isCreating ? 'Creating Survey...' : '🚀 Create Thai Survey'}

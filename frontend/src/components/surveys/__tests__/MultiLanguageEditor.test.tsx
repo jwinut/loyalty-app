@@ -136,7 +136,7 @@ describe('MultiLanguageEditor', () => {
       );
 
       const englishTab = screen.getByText('English').closest('button');
-      expect(englishTab).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(englishTab).toHaveClass('bg-brand-50', 'text-brand-700');
     });
 
     it('should switch active tab when clicked', async () => {
@@ -152,7 +152,7 @@ describe('MultiLanguageEditor', () => {
       const thaiTab = screen.getByText('ไทย (Thai)').closest('button') as HTMLElement;
       await user.click(thaiTab);
 
-      expect(thaiTab).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(thaiTab).toHaveClass('bg-brand-50', 'text-brand-700');
     });
 
     it('should display content for active tab', async () => {
@@ -429,7 +429,7 @@ describe('MultiLanguageEditor', () => {
       );
 
       const thaiTab = screen.getByText('ไทย (Thai)').closest('button');
-      expect(thaiTab).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(thaiTab).toHaveClass('bg-brand-50', 'text-brand-700');
     });
 
     it('should close dropdown after adding language', async () => {
@@ -541,7 +541,7 @@ describe('MultiLanguageEditor', () => {
       const thaiTab = screen.getByText('ไทย (Thai)').closest('button') as HTMLElement;
       await user.click(thaiTab);
 
-      expect(thaiTab).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(thaiTab).toHaveClass('bg-brand-50', 'text-brand-700');
 
       const removeButton = thaiTab.querySelector('[data-testid="trash-icon"]')?.closest('button') as HTMLElement;
       await user.click(removeButton);
@@ -555,7 +555,7 @@ describe('MultiLanguageEditor', () => {
       );
 
       const englishTab = screen.getByText('English').closest('button');
-      expect(englishTab).toHaveClass('bg-blue-50', 'text-blue-700');
+      expect(englishTab).toHaveClass('bg-brand-50', 'text-brand-700');
     });
   });
 
@@ -675,7 +675,7 @@ describe('MultiLanguageEditor', () => {
         />
       );
 
-      const grayIndicators = container.querySelectorAll('.bg-gray-300');
+      const grayIndicators = container.querySelectorAll('.bg-stone-300');
       expect(grayIndicators.length).toBeGreaterThan(0);
     });
 
@@ -801,7 +801,7 @@ describe('MultiLanguageEditor', () => {
       );
 
       const input = screen.getByDisplayValue('Test');
-      expect(input).toHaveClass('focus:ring-2', 'focus:ring-blue-500');
+      expect(input).toHaveClass('focus:ring-2', 'focus:ring-brand-500');
     });
 
     it('should have proper focus styles on textarea', () => {
@@ -815,7 +815,7 @@ describe('MultiLanguageEditor', () => {
       );
 
       const textarea = screen.getByDisplayValue('Test');
-      expect(textarea).toHaveClass('focus:ring-2', 'focus:ring-blue-500');
+      expect(textarea).toHaveClass('focus:ring-2', 'focus:ring-brand-500');
     });
   });
 });

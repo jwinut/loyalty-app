@@ -33,16 +33,16 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
               // Convert both to strings for comparison to handle type mismatches
               const isChecked = String(answer) === String(option.value);
               return (
-                <label key={option.id} className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+                <label key={option.id} className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
                   <input
                     type="radio"
                     name={`question_${question.id}`}
                     value={String(option.value)}
                     checked={isChecked}
                     onChange={(e) => handleAnswerChange(e.target.value)}
-                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 border-gray-300"
+                    className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
                   />
-                  <span className={`text-gray-700 select-none ${isChecked ? 'font-medium text-blue-700' : ''}`}>{String(option.text)}</span>
+                  <span className={`text-stone-700 select-none ${isChecked ? 'font-medium text-brand-700' : ''}`}>{String(option.text)}</span>
                 </label>
               );
             })}
@@ -53,7 +53,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         return (
           <div className="space-y-3">
             {question.options?.map((option) => (
-              <label key={option.id} className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+              <label key={option.id} className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
                 <input
                   type="checkbox"
                   checked={Array.isArray(answer) && answer.includes(String(option.value))}
@@ -65,9 +65,9 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                       handleAnswerChange(currentAnswers.filter(a => a !== String(option.value)));
                     }
                   }}
-                  className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 border-gray-300 rounded"
+                  className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300 rounded"
                 />
-                <span className={`text-gray-700 select-none ${Array.isArray(answer) && answer.includes(String(option.value)) ? 'font-medium text-blue-700' : ''}`}>{String(option.text)}</span>
+                <span className={`text-stone-700 select-none ${Array.isArray(answer) && answer.includes(String(option.value)) ? 'font-medium text-brand-700' : ''}`}>{String(option.text)}</span>
               </label>
             ))}
           </div>
@@ -79,7 +79,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             type="text"
             value={typeof answer === 'string' || typeof answer === 'number' ? String(answer) : ''}
             onChange={(e) => handleAnswerChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder={t('surveys.enterAnswer', 'Enter your answer...')}
           />
         );
@@ -90,7 +90,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             value={typeof answer === 'string' || typeof answer === 'number' ? String(answer) : ''}
             onChange={(e) => handleAnswerChange(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder={t('surveys.enterAnswer', 'Enter your answer...')}
           />
         );
@@ -98,7 +98,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       case 'rating_5':
         return (
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">1</span>
+            <span className="text-sm text-stone-500">1</span>
             {[1, 2, 3, 4, 5].map((rating) => (
               <button
                 key={rating}
@@ -106,14 +106,14 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 onClick={() => handleAnswerChange(rating)}
                 className={`w-10 h-10 rounded-full border-2 font-medium transition-colors ${
                   Number(answer) === rating
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-stone-700 border-stone-300 hover:border-brand-300'
                 }`}
               >
                 {rating}
               </button>
             ))}
-            <span className="text-sm text-gray-500">5</span>
+            <span className="text-sm text-stone-500">5</span>
           </div>
         );
 
@@ -127,8 +127,8 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 onClick={() => handleAnswerChange(rating)}
                 className={`w-12 h-10 rounded border-2 font-medium transition-colors ${
                   Number(answer) === rating
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-stone-700 border-stone-300 hover:border-brand-300'
                 }`}
               >
                 {rating}
@@ -140,27 +140,27 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       case 'yes_no':
         return (
           <div className="flex space-x-4">
-            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+            <label className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
               <input
                 type="radio"
                 name={`question_${question.id}`}
                 value="yes"
                 checked={String(answer) === 'yes'}
                 onChange={(e) => handleAnswerChange(e.target.value)}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 border-gray-300"
+                className="mr-2 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
               />
-              <span className={`text-gray-700 select-none ${String(answer) === 'yes' ? 'font-medium text-blue-700' : ''}`}>{t('common.yes', 'Yes')}</span>
+              <span className={`text-stone-700 select-none ${String(answer) === 'yes' ? 'font-medium text-brand-700' : ''}`}>{t('common.yes', 'Yes')}</span>
             </label>
-            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+            <label className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
               <input
                 type="radio"
                 name={`question_${question.id}`}
                 value="no"
                 checked={String(answer) === 'no'}
                 onChange={(e) => handleAnswerChange(e.target.value)}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 border-gray-300"
+                className="mr-2 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
               />
-              <span className={`text-gray-700 select-none ${String(answer) === 'no' ? 'font-medium text-blue-700' : ''}`}>{t('common.no', 'No')}</span>
+              <span className={`text-stone-700 select-none ${String(answer) === 'no' ? 'font-medium text-brand-700' : ''}`}>{t('common.no', 'No')}</span>
             </label>
           </div>
         );
@@ -177,12 +177,12 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   return (
     <div className="mb-6">
       <div className="mb-4">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <h3 className="text-lg font-medium text-stone-900 mb-2">
           {question.text}
           {question.required && <span className="text-red-500 ml-1">*</span>}
         </h3>
         {question.description && (
-          <p className="text-sm text-gray-600 mb-3">{question.description}</p>
+          <p className="text-sm text-stone-600 mb-3">{question.description}</p>
         )}
       </div>
 

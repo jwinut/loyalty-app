@@ -302,7 +302,7 @@ describe('ConfirmDialog', () => {
       );
 
       // Find the backdrop (the gray overlay)
-      const backdrop = document.querySelector('.bg-gray-500.bg-opacity-75') as HTMLElement;
+      const backdrop = document.querySelector('.bg-stone-500.bg-opacity-75') as HTMLElement;
       expect(backdrop).toBeInTheDocument();
 
       await user.click(backdrop);
@@ -408,7 +408,7 @@ describe('ConfirmDialog', () => {
       );
 
       const confirmButton = screen.getByText('Confirm');
-      expect(confirmButton).toHaveClass('bg-blue-600', 'hover:bg-blue-700', 'focus:ring-blue-500');
+      expect(confirmButton).toHaveClass('bg-brand-600', 'hover:bg-brand-700', 'focus:ring-brand-500');
     });
 
     it('should apply danger icon background color', () => {
@@ -464,7 +464,7 @@ describe('ConfirmDialog', () => {
         />
       );
 
-      const iconContainer = document.querySelector('.bg-blue-100');
+      const iconContainer = document.querySelector('.bg-brand-100');
       expect(iconContainer).toBeInTheDocument();
     });
   });
@@ -746,7 +746,7 @@ describe('ConfirmDialog', () => {
       );
 
       const confirmButton = screen.getByText('Update Now');
-      expect(confirmButton).toHaveClass('bg-blue-600');
+      expect(confirmButton).toHaveClass('bg-brand-600');
     });
 
     it('should handle all props together', async () => {
@@ -964,7 +964,7 @@ describe('ConfirmDialog', () => {
         />
       );
 
-      const icon = document.querySelector('.text-blue-600');
+      const icon = document.querySelector('.text-brand-600');
       expect(icon).toBeInTheDocument();
     });
   });

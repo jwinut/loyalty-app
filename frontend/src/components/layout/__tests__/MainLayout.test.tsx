@@ -106,7 +106,7 @@ describe('MainLayout', () => {
     it('should have gray background', () => {
       const { container } = renderWithRouter(<MainLayout title="Test">Content</MainLayout>);
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper.className).toContain('bg-gray-50');
+      expect(wrapper.className).toContain('bg-stone-50');
     });
   });
 
@@ -256,7 +256,7 @@ describe('MainLayout', () => {
       renderWithRouter(<MainLayout title="Test">Content</MainLayout>);
       const welcomeText = screen.getByText(/Welcome/);
       expect(welcomeText.className).toContain('text-sm');
-      expect(welcomeText.className).toContain('text-gray-500');
+      expect(welcomeText.className).toContain('text-stone-500');
     });
   });
 

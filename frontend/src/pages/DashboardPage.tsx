@@ -28,10 +28,10 @@ export default function DashboardPage() {
 
   if (loyaltyLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" data-testid="dashboard-loading">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center" data-testid="dashboard-loading">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
-          <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
+          <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
         </div>
       </div>
     );
@@ -49,7 +49,7 @@ export default function DashboardPage() {
                       <FiGift className="w-8 h-8" style={{ color: loyaltyStatus.tier_color }} />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900" data-testid="dashboard-tier">
+                      <h2 className="text-xl font-bold text-stone-900" data-testid="dashboard-tier">
                         {t('loyalty.tier')} {loyaltyStatus.tier_name}
                       </h2>
                     </div>
@@ -60,10 +60,10 @@ export default function DashboardPage() {
                         <div className="text-2xl font-bold" style={{ color: loyaltyStatus.tier_color }}>
                           {loyaltyStatus.total_nights ?? 0}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-stone-600">
                           {(loyaltyStatus.total_nights ?? 0) === 1 ? t('loyalty.night') : t('loyalty.nights')}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-stone-500 mt-1">
                           {t('loyalty.tierEligibility')}
                         </div>
                       </div>
@@ -71,10 +71,10 @@ export default function DashboardPage() {
                         <div className="text-2xl font-bold" style={{ color: loyaltyStatus.tier_color }} data-testid="dashboard-points">
                           {loyaltyStatus.current_points.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-stone-600">
                           {t('loyalty.points')}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-stone-500 mt-1">
                           {t('loyalty.forRewards')}
                         </div>
                       </div>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                 {/* Progress to next tier */}
                 {loyaltyStatus.next_tier_name && loyaltyStatus.progress_percentage !== null && (
                   <div className="mt-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <div className="flex items-center justify-between text-sm text-stone-600 mb-2">
                       <span>
                         {t('loyalty.progressToNextTier', { tier: loyaltyStatus.next_tier_name })}
                       </span>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
                         }
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-stone-200 rounded-full h-2">
                       <div
                         className="h-2 rounded-full transition-all duration-300"
                         style={{
@@ -116,7 +116,7 @@ export default function DashboardPage() {
             <div className="mb-6">
               <div className="flex items-center space-x-2 mb-4">
                 <FiGift className="h-6 w-6 text-primary-600" />
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-stone-900">
                   {t('loyalty.dashboard.title')}
                 </h2>
               </div>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
 
           {/* User Menu Section */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-xl font-semibold text-stone-900 mb-4">
               {t('dashboard.myServices')}
             </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -148,7 +148,7 @@ export default function DashboardPage() {
                         <FiUser className="h-6 w-6 text-primary-600" />
                       </div>
                       <div className="ml-3">
-                        <dt className="text-lg font-semibold text-gray-900">
+                        <dt className="text-lg font-semibold text-stone-900">
                           {t('dashboard.myProfile')}
                         </dt>
                       </div>
@@ -160,10 +160,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div>
-                    <dd className="text-sm font-medium text-gray-500 mb-1">
+                    <dd className="text-sm font-medium text-stone-500 mb-1">
                       {t('dashboard.manageProfile')}
                     </dd>
-                    <dd className="text-sm font-medium text-gray-500">
+                    <dd className="text-sm font-medium text-stone-500">
                       {t('dashboard.manageLoyalty')}
                     </dd>
                   </div>
@@ -184,10 +184,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-lg font-semibold text-gray-900 truncate">
+                        <dt className="text-lg font-semibold text-stone-900 truncate">
                           {t('dashboard.myCoupons')}
                         </dt>
-                        <dd className="mt-1 text-sm font-medium text-gray-500">
+                        <dd className="mt-1 text-sm font-medium text-stone-500">
                           {t('dashboard.manageCoupons')}
                         </dd>
                       </dl>
@@ -210,10 +210,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-lg font-semibold text-gray-900 truncate">
+                        <dt className="text-lg font-semibold text-stone-900 truncate">
                           {t('dashboard.surveys')}
                         </dt>
-                        <dd className="mt-1 text-sm font-medium text-gray-500">
+                        <dd className="mt-1 text-sm font-medium text-stone-500">
                           {t('dashboard.takeSurveys')}
                         </dd>
                       </dl>
@@ -235,10 +235,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-lg font-semibold text-gray-900 truncate">
+                        <dt className="text-lg font-semibold text-stone-900 truncate">
                           {t('booking.bookRoom')}
                         </dt>
-                        <dd className="mt-1 text-sm font-medium text-gray-500">
+                        <dd className="mt-1 text-sm font-medium text-stone-500">
                           {t('booking.bookRoomDescription')}
                         </dd>
                       </dl>
@@ -256,16 +256,16 @@ export default function DashboardPage() {
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="h-6 w-6 bg-blue-500 rounded flex items-center justify-center">
+                      <div className="h-6 w-6 bg-brand-500 rounded flex items-center justify-center">
                         <span className="text-xs text-white font-bold">🏨</span>
                       </div>
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-lg font-semibold text-gray-900 truncate">
+                        <dt className="text-lg font-semibold text-stone-900 truncate">
                           {t('booking.myBookings')}
                         </dt>
-                        <dd className="mt-1 text-sm font-medium text-gray-500">
+                        <dd className="mt-1 text-sm font-medium text-stone-500">
                           {t('booking.viewMyBookings')}
                         </dd>
                       </dl>
@@ -279,8 +279,8 @@ export default function DashboardPage() {
           {/* Admin Menu Section (Admin+ Only) */}
           {isAdmin && (
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <FiUsers className="h-5 w-5 mr-2 text-blue-600" />
+              <h2 className="text-xl font-semibold text-stone-900 mb-4 flex items-center">
+                <FiUsers className="h-5 w-5 mr-2 text-brand-600" />
                 {t('dashboard.adminMenu')}
               </h2>
 
@@ -294,14 +294,14 @@ export default function DashboardPage() {
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <FiAward className="h-6 w-6 text-blue-600" />
+                        <FiAward className="h-6 w-6 text-brand-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('dashboard.loyaltyManagement')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('dashboard.manageLoyaltyAdmin')}
                           </dd>
                         </dl>
@@ -324,10 +324,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('dashboard.couponManagement')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('dashboard.manageCouponsAdmin')}
                           </dd>
                         </dl>
@@ -350,10 +350,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('dashboard.surveyManagement')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('dashboard.manageSurveysAdmin')}
                           </dd>
                         </dl>
@@ -370,14 +370,14 @@ export default function DashboardPage() {
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <FiUsers className="h-6 w-6 text-blue-600" />
+                        <FiUsers className="h-6 w-6 text-brand-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('dashboard.userManagement')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('dashboard.manageUsersAdmin')}
                           </dd>
                         </dl>
@@ -400,10 +400,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.newMemberCoupons.menuTitle')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.newMemberCoupons.menuDescription')}
                           </dd>
                         </dl>
@@ -426,10 +426,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.loyalty.transactionHistory')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.loyalty.viewTransactionHistory')}
                           </dd>
                         </dl>
@@ -446,14 +446,14 @@ export default function DashboardPage() {
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <FiMail className="h-6 w-6 text-blue-600" />
+                        <FiMail className="h-6 w-6 text-brand-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('dashboard.emailService')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('dashboard.emailServiceDesc')}
                           </dd>
                         </dl>
@@ -477,10 +477,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.booking.roomTypes.title')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.booking.roomTypes.subtitle')}
                           </dd>
                         </dl>
@@ -504,10 +504,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.booking.rooms.title')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.booking.rooms.subtitle')}
                           </dd>
                         </dl>
@@ -529,10 +529,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.booking.availability.title')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.booking.availability.subtitle')}
                           </dd>
                         </dl>
@@ -556,10 +556,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-lg font-semibold text-gray-900 truncate">
+                          <dt className="text-lg font-semibold text-stone-900 truncate">
                             {t('admin.booking.bookingManagement.menuTitle')}
                           </dt>
-                          <dd className="mt-1 text-sm font-medium text-gray-500">
+                          <dd className="mt-1 text-sm font-medium text-stone-500">
                             {t('admin.booking.bookingManagement.menuDescription')}
                           </dd>
                         </dl>
@@ -574,10 +574,10 @@ export default function DashboardPage() {
           {/* Welcome Message */}
           <div className="mt-8 bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-stone-900">
                 {t('dashboard.welcomeMessage')}
               </h3>
-              <div className="mt-2 max-w-xl text-sm text-gray-500">
+              <div className="mt-2 max-w-xl text-sm text-stone-500">
                 <p>
                   {t('dashboard.welcomeDescription')}
                 </p>

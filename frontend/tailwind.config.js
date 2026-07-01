@@ -7,34 +7,54 @@ export default {
   theme: {
     extend: {
       colors: {
+        // HF One brand burgundy — see /Users/nut/HF-erp/design/HF-ONE.md.
+        // 50/100/300/500/600/700/800 are exact spec tokens; 200/400/900/950
+        // are interpolated to keep the full Tailwind 11-step scale usable.
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93bbfc',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#FBEAEA',
+          100: '#F5C9C9',
+          200: '#E39898',
+          300: '#C76060',
+          400: '#A83333',
+          500: '#8B0000',
+          600: '#7A0000',
+          700: '#6B1212',
+          800: '#4F0E0E',
+          900: '#3A0A0A',
+          950: '#240606',
         },
+        // Alias of `primary` under the spec's own name, so hardcoded
+        // `blue-*` classes can be retinted to `brand-*` directly.
+        brand: {
+          50: '#FBEAEA',
+          100: '#F5C9C9',
+          200: '#E39898',
+          300: '#C76060',
+          400: '#A83333',
+          500: '#8B0000',
+          600: '#7A0000',
+          700: '#6B1212',
+          800: '#4F0E0E',
+          900: '#3A0A0A',
+          950: '#240606',
+        },
+        // HF One gold — 100/300/500/600/700 are exact spec tokens;
+        // 50/200/400/800/900 are interpolated for scale completeness.
         gold: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
+          50: '#FCF4E3',
+          100: '#F6EACB',
+          200: '#EEDBAA',
+          300: '#E7C97F',
+          400: '#DFB863',
+          500: '#D9A441',
+          600: '#B98730',
+          700: '#93691F',
+          800: '#6E4E17',
+          900: '#4A340F',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Sarabun', '"Noto Sans Thai"', 'system-ui', 'sans-serif'],
       },
     },
   },

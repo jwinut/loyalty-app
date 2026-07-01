@@ -87,7 +87,7 @@ describe('GoogleLoginButton', () => {
       expect(button.className).toContain('focus:outline-none');
       expect(button.className).toContain('focus:ring-2');
       expect(button.className).toContain('focus:ring-offset-2');
-      expect(button.className).toContain('focus:ring-blue-500');
+      expect(button.className).toContain('focus:ring-brand-500');
     });
 
     it('should have transition classes for smooth hover effects', () => {

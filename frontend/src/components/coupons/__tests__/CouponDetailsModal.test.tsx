@@ -410,7 +410,7 @@ describe('CouponDetailsModal', () => {
       render(<CouponDetailsModal coupon={mockCoupon} />);
 
       const expiryDate = screen.getByText(/\d{2}\/\d{2}\/\d{4}/);
-      expect(expiryDate).toHaveClass('text-gray-900');
+      expect(expiryDate).toHaveClass('text-stone-900');
       expect(expiryDate).not.toHaveClass('text-red-600');
     });
   });
@@ -487,7 +487,7 @@ describe('CouponDetailsModal', () => {
     it('should style status section with blue background', () => {
       const { container } = render(<CouponDetailsModal coupon={mockCoupon} />);
 
-      const statusSection = container.querySelector('.bg-blue-50');
+      const statusSection = container.querySelector('.bg-brand-50');
       expect(statusSection).toBeInTheDocument();
     });
   });
@@ -525,7 +525,7 @@ describe('CouponDetailsModal', () => {
       render(<CouponDetailsModal coupon={mockCoupon} onClose={onClose} />);
 
       const closeButton = screen.getByText('Close');
-      expect(closeButton).toHaveClass('bg-gray-600', 'text-white');
+      expect(closeButton).toHaveClass('bg-stone-600', 'text-white');
     });
 
     it('should have both header and footer close buttons when onClose provided', async () => {
@@ -740,7 +740,7 @@ describe('CouponDetailsModal', () => {
     it('should display all sections in correct order', () => {
       const { container } = render(<CouponDetailsModal coupon={mockCoupon} />);
 
-      const sections = container.querySelectorAll('.bg-gray-50, .bg-green-50, .bg-yellow-50, .bg-blue-50');
+      const sections = container.querySelectorAll('.bg-stone-50, .bg-green-50, .bg-yellow-50, .bg-brand-50');
       expect(sections.length).toBeGreaterThan(0);
     });
   });

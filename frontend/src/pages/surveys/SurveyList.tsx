@@ -61,13 +61,13 @@ const SurveyList: React.FC = () => {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-stone-900">
                   {survey.title}
                 </h3>
                 <span className={clsx('inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
                   survey.access_type === 'public'
                     ? 'bg-green-100 text-green-800'
-                    : 'bg-blue-100 text-blue-800'
+                    : 'bg-brand-100 text-brand-800'
                 )}
                 >
                   {survey.access_type === 'public' ? (
@@ -84,14 +84,14 @@ const SurveyList: React.FC = () => {
                 </span>
               </div>
               {survey.description && (
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                <p className="text-stone-600 text-sm mb-4 line-clamp-3">
                   {survey.description}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+          <div className="flex items-center justify-between text-sm text-stone-500 mb-4">
             <span>
               {survey.questions.length} {t('surveys.questions', 'questions')}
             </span>
@@ -105,13 +105,13 @@ const SurveyList: React.FC = () => {
         <div className="flex space-x-3 mt-auto">
           <Link
             to={`/surveys/${survey.id}/take`}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+            className="flex-1 bg-brand-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors flex items-center justify-center"
           >
             {t('surveys.takeSurvey', 'Take Survey')}
           </Link>
           <Link
             to={`/surveys/${survey.id}/details`}
-            className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
+            className="flex-1 bg-stone-100 text-stone-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors flex items-center justify-center"
           >
             {t('surveys.viewDetails', 'View Details')}
           </Link>
@@ -123,13 +123,13 @@ const SurveyList: React.FC = () => {
   const currentSurveys = activeTab === 'public' ? publicSurveys : invitedSurveys;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-stone-900">
                 {t('surveys.title', 'Surveys')}
               </h1>
             </div>
@@ -137,7 +137,7 @@ const SurveyList: React.FC = () => {
               <button
                 onClick={loadSurveys}
                 disabled={loading}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 border border-stone-300 shadow-sm text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50"
               >
                 <FiRefreshCw className={clsx('mr-2 h-4 w-4', loading && 'animate-spin')} />
                 Refresh
@@ -153,9 +153,9 @@ const SurveyList: React.FC = () => {
       <main className="max-w-4xl mx-auto p-4">
         {loading && (
           <div className="mb-6">
-            <div className="flex justify-center items-center h-24 bg-white rounded-md border border-gray-200">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-              <span className="ml-3 text-gray-600">{t('surveys.loading')}</span>
+            <div className="flex justify-center items-center h-24 bg-white rounded-md border border-stone-200">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+              <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
             </div>
           </div>
         )}
@@ -172,14 +172,14 @@ const SurveyList: React.FC = () => {
 
         {/* Survey Type Tabs */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-stone-200">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab('public')}
                 className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
                   activeTab === 'public'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                 )}
               >
                 <div className="flex items-center">
@@ -191,8 +191,8 @@ const SurveyList: React.FC = () => {
                 onClick={() => setActiveTab('invited')}
                 className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
                   activeTab === 'invited'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                 )}
               >
                 <div className="flex items-center">
@@ -205,18 +205,18 @@ const SurveyList: React.FC = () => {
         </div>
 
         {/* Survey Description */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-6 p-4 bg-brand-50 border border-brand-200 rounded-lg">
           <div className="flex items-start">
             {activeTab === 'public' ? (
-              <FiUsers className="flex-shrink-0 h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+              <FiUsers className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" />
             ) : (
-              <FiEye className="flex-shrink-0 h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+              <FiEye className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" />
             )}
             <div>
-              <h3 className="text-sm font-medium text-blue-900 mb-1">
+              <h3 className="text-sm font-medium text-brand-900 mb-1">
                 {activeTab === 'public' ? 'Public Surveys' : 'Invited Surveys'}
               </h3>
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-brand-800">
                 {activeTab === 'public' 
                   ? 'These surveys are available to all users in the app. Complete them anytime to share your feedback.'
                   : 'These surveys are specifically for you. You were personally invited to participate in these surveys.'
@@ -228,10 +228,10 @@ const SurveyList: React.FC = () => {
 
         {currentSurveys.length === 0 && !loading && !errorMessage ? (
           <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-4">
+            <div className="text-stone-500 text-lg mb-4">
               {activeTab === 'public' ? '📋' : '✉️'} {t('surveys.noSurveys', 'No surveys available')}
             </div>
-            <p className="text-gray-400">
+            <p className="text-stone-400">
               {activeTab === 'public' 
                 ? t('surveys.noPublicSurveys', 'No public surveys are currently available. Check back later!')
                 : t('surveys.noInvitedSurveys', 'You haven\'t been invited to any surveys yet.')
@@ -249,7 +249,7 @@ const SurveyList: React.FC = () => {
           <button
             onClick={loadSurveys}
             disabled={loading}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
           >
             {loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh')}
           </button>

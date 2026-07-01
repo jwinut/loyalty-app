@@ -1225,7 +1225,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        const rewardItems = document.querySelectorAll('.hover\\:bg-gray-50');
+        const rewardItems = document.querySelectorAll('.hover\\:bg-stone-50');
         expect(rewardItems.length).toBeGreaterThan(0);
       });
     });

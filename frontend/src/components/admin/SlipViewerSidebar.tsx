@@ -274,7 +274,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
           {badge?.text ?? ''}
         </span>
         {verifiedAt && (
-          <span className="text-xs text-gray-500 mt-1">
+          <span className="text-xs text-stone-500 mt-1">
             {formatDateTimeToEuropean(verifiedAt)}
           </span>
         )}
@@ -301,12 +301,12 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
           {badge?.text ?? ''}
         </span>
         {verifiedAt && (
-          <span className="text-xs text-gray-500 mt-1">
+          <span className="text-xs text-stone-500 mt-1">
             {formatDateTimeToEuropean(verifiedAt)}
           </span>
         )}
         {verifiedByName && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-stone-500">
             {t('admin.booking.bookingManagement.by')}: {verifiedByName}
           </span>
         )}
@@ -333,12 +333,12 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   if (!booking) {
     return (
       <div className="bg-white rounded-lg shadow h-full">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="p-4 border-b border-stone-200">
+          <h3 className="text-lg font-semibold text-stone-900">
             {t('admin.booking.bookingManagement.slipViewer.title')}
           </h3>
         </div>
-        <div className="p-6 flex flex-col items-center justify-center text-gray-500 h-64">
+        <div className="p-6 flex flex-col items-center justify-center text-stone-500 h-64">
           <FiImage className="w-12 h-12 mb-4 opacity-50" />
           <p className="text-center">{t('admin.booking.bookingManagement.slipViewer.selectBooking')}</p>
         </div>
@@ -351,12 +351,12 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   return (
     <div className="bg-white rounded-lg shadow h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="p-4 border-b border-stone-200">
+        <h3 className="text-lg font-semibold text-stone-900">
           {t('admin.booking.bookingManagement.slipViewer.title')}
         </h3>
         {slips.length > 0 && slips[0] && (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-stone-500 mt-1">
             {slips.length > 1
               ? t('admin.booking.bookingManagement.slipViewer.slipCount', { count: slips.length })
               : t('admin.booking.bookingManagement.slipViewer.uploaded') + ': ' + formatDateTimeToEuropean(slips[0].uploadedAt)
@@ -367,15 +367,15 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
       {/* Status Section - Show current slip status */}
       {currentSlip && (
-        <div className="p-4 border-b border-gray-200 grid grid-cols-2 gap-4">
+        <div className="p-4 border-b border-stone-200 grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-gray-500 mb-1">
+            <p className="text-xs text-stone-500 mb-1">
               {t('admin.booking.bookingManagement.slipViewer.slipokStatus')}
             </p>
             <SlipStatusBadge status={currentSlip.slipokStatus} verifiedAt={currentSlip.slipokVerifiedAt} />
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">
+            <p className="text-xs text-stone-500 mb-1">
               {t('admin.booking.bookingManagement.slipViewer.adminStatus')}
             </p>
             <AdminStatusBadge
@@ -388,7 +388,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       )}
 
       {/* Image Section - Gallery View for Multiple Slips */}
-      <div className="p-4 border-b border-gray-200 flex-1 flex flex-col min-h-0">
+      <div className="p-4 border-b border-stone-200 flex-1 flex flex-col min-h-0">
         {slips.length > 0 ? (
           <>
           <div className="relative flex-1 min-h-[300px]">
@@ -461,7 +461,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
               <button
                 onClick={() => setCurrentSlipIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentSlipIndex === 0}
-                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <FiChevronLeft className="w-5 h-5" />
               </button>
@@ -474,7 +474,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                     className={`transition-all duration-200 rounded-full ${
                       currentSlipIndex === index
                         ? 'w-6 h-2 bg-primary-600'
-                        : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+                        : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
                     }`}
                     aria-label={`Go to slip ${index + 1}`}
                   />
@@ -484,19 +484,19 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
               <button
                 onClick={() => setCurrentSlipIndex(prev => Math.min(slips.length - 1, prev + 1))}
                 disabled={currentSlipIndex === slips.length - 1}
-                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <FiChevronRight className="w-5 h-5" />
               </button>
 
-              <span className="text-sm text-gray-500 ml-2">
+              <span className="text-sm text-stone-500 ml-2">
                 {currentSlipIndex + 1} / {slips.length}
               </span>
             </div>
           )}
           </>
         ) : (
-          <div className="h-48 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400">
+          <div className="h-48 bg-stone-100 rounded-lg flex flex-col items-center justify-center text-stone-400">
             <FiImage className="w-12 h-12 mb-2" />
             <p className="text-sm">{t('admin.booking.bookingManagement.slipViewer.noSlip')}</p>
           </div>
@@ -504,7 +504,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="p-4 border-b border-gray-200 space-y-2">
+      <div className="p-4 border-b border-stone-200 space-y-2">
         {currentSlip ? (
           <>
             {/* Multi-slip actions - operate on current slip */}
@@ -556,7 +556,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
             <FiRefreshCw className="w-4 h-4 animate-spin" />
@@ -574,7 +574,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
         />
         <button
           onClick={() => onEdit(booking)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-100 text-brand-700 rounded-md hover:bg-brand-200"
         >
           <FiEdit className="w-4 h-4" />
           {t('admin.booking.bookingManagement.actions.edit')}
@@ -584,13 +584,13 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       {/* Audit Summary */}
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-900">
+          <h4 className="text-sm font-medium text-stone-900">
             {t('admin.booking.bookingManagement.slipViewer.auditSummary')}
           </h4>
           {booking.auditHistory && booking.auditHistory.length > 0 && (
             <button
               onClick={() => setShowAuditModal(true)}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-brand-600 hover:text-brand-800"
             >
               {t('admin.booking.bookingManagement.slipViewer.viewFullHistory')}
             </button>
@@ -599,16 +599,16 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
         {recentAudit.length > 0 ? (
           <div className="space-y-2">
             {recentAudit.map((entry) => (
-              <div key={entry.id} className="text-xs border-l-2 border-gray-200 pl-2">
-                <p className="font-medium text-gray-900">{formatAuditAction(entry.action)}</p>
-                <p className="text-gray-500">
+              <div key={entry.id} className="text-xs border-l-2 border-stone-200 pl-2">
+                <p className="font-medium text-stone-900">{formatAuditAction(entry.action)}</p>
+                <p className="text-stone-500">
                   {entry.adminName} - {formatDateTimeToEuropean(entry.createdAt)}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-stone-500">
             {t('admin.booking.bookingManagement.slipViewer.noAuditHistory')}
           </p>
         )}
@@ -645,14 +645,14 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       {showNotesModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-stone-900 mb-4">
               {t('admin.booking.bookingManagement.modals.needsAction.title')}
             </h3>
             <textarea
               value={notesInput}
               onChange={(e) => setNotesInput(e.target.value)}
               placeholder={t('admin.booking.bookingManagement.modals.needsAction.placeholder')}
-              className="w-full border border-gray-300 rounded-md p-3 h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-stone-300 rounded-md p-3 h-32 resize-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
             <div className="flex justify-end gap-3 mt-4">
               <button
@@ -661,7 +661,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                   setNotesInput('');
                   setActiveSlipId(null);
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
               >
                 {t('common.cancel')}
               </button>
@@ -685,14 +685,14 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       {showAuditModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <div className="p-4 border-b border-stone-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-stone-900 flex items-center gap-2">
                 <FiList className="w-5 h-5" />
                 {t('admin.booking.bookingManagement.modals.auditHistory.title')}
               </h3>
               <button
                 onClick={() => setShowAuditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-stone-400 hover:text-stone-600"
               >
                 <FiX className="w-5 h-5" />
               </button>
@@ -703,18 +703,18 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                   {booking.auditHistory.map((entry) => (
                     <div
                       key={entry.id}
-                      className="border-l-4 border-blue-500 pl-4 py-2"
+                      className="border-l-4 border-brand-500 pl-4 py-2"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-stone-900">
                             {formatAuditAction(entry.action)}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-stone-600">
                             {entry.adminName}
                           </p>
                         </div>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-stone-500 flex items-center gap-1">
                           <FiClock className="w-3 h-3" />
                           {formatDateTimeToEuropean(entry.createdAt)}
                         </span>
@@ -740,7 +740,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                         </div>
                       )}
                       {entry.notes && (
-                        <p className="mt-1 text-sm text-gray-500 italic">
+                        <p className="mt-1 text-sm text-stone-500 italic">
                           &quot;{entry.notes}&quot;
                         </p>
                       )}
@@ -748,7 +748,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-stone-500 text-center py-8">
                   {t('admin.booking.bookingManagement.slipViewer.noAuditHistory')}
                 </p>
               )}

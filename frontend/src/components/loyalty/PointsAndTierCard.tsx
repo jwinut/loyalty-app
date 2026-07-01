@@ -20,10 +20,10 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
             <FiStar className="w-6 h-6" style={{ color: loyaltyStatus.tier_color }} />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-stone-900">
               {t('loyalty.pointsBalance')}
             </h3>
-            <p className="text-sm text-gray-600" data-testid="loyalty-tier">
+            <p className="text-sm text-stone-600" data-testid="loyalty-tier">
               {loyaltyStatus.tier_name} {t('loyalty.member')}
             </p>
           </div>
@@ -36,7 +36,7 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
           >
             {loyaltyStatus.current_points.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-stone-600">
             {t('loyalty.availablePoints')}
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
 
       {/* Tier Benefits Preview */}
       <div className="border-t pt-4">
-        <div className="text-sm font-medium text-gray-700 mb-3">
+        <div className="text-sm font-medium text-stone-700 mb-3">
           {t('loyalty.tierBenefits')}
         </div>
         {typeof loyaltyStatus.tier_benefits === 'object' && loyaltyStatus.tier_benefits !== null && 'perks' in loyaltyStatus.tier_benefits && Array.isArray(loyaltyStatus.tier_benefits.perks) && loyaltyStatus.tier_benefits.perks.length > 0 && (
@@ -54,7 +54,7 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
                 <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
                       style={{ backgroundColor: loyaltyStatus.tier_color }}
                 />
-                <span className="text-sm text-gray-700">{perk}</span>
+                <span className="text-sm text-stone-700">{perk}</span>
               </li>
             ))}
           </ul>

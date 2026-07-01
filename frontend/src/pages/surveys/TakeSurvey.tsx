@@ -157,11 +157,11 @@ const TakeSurvey: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">{t('surveys.loading')}</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
           </div>
         </div>
       </div>
@@ -170,7 +170,7 @@ const TakeSurvey: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <p>{error}</p>
@@ -178,7 +178,7 @@ const TakeSurvey: React.FC = () => {
           <div className="mt-4">
             <button
               onClick={() => navigate('/surveys')}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors"
+              className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors"
             >
               {t('surveys.backToList')}
             </button>
@@ -190,10 +190,10 @@ const TakeSurvey: React.FC = () => {
 
   if (!survey) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-4xl mx-auto p-4">
           <div className="text-center py-12">
-            <p className="text-gray-500">{t('surveys.notFound')}</p>
+            <p className="text-stone-500">{t('surveys.notFound')}</p>
           </div>
         </div>
       </div>
@@ -206,20 +206,20 @@ const TakeSurvey: React.FC = () => {
   const isCompletionPage = currentQuestion >= questionCount;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
+              <h1 className="text-2xl font-bold text-stone-900">{survey.title}</h1>
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSwitcher />
               <DashboardButton variant="outline" size="md" />
               <button
                 onClick={exitSurvey}
-                className="text-gray-600 hover:text-gray-900 font-medium text-sm"
+                className="text-stone-600 hover:text-stone-900 font-medium text-sm"
               >
                 {t('surveys.exit')}
               </button>
@@ -257,14 +257,14 @@ const TakeSurvey: React.FC = () => {
               <button
                 onClick={goToPrevious}
                 disabled={currentQuestion === 0}
-                className="bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 font-medium py-2 px-4 rounded-md transition-colors"
+                className="bg-stone-100 hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed text-stone-700 font-medium py-2 px-4 rounded-md transition-colors"
               >
                 {t('surveys.previous')}
               </button>
 
               <div className="flex items-center space-x-2">
                 {submitResponseMutation.isPending && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-stone-500">
                     {t('surveys.saving')}
                   </span>
                 )}
@@ -272,7 +272,7 @@ const TakeSurvey: React.FC = () => {
                 <button
                   onClick={goToNext}
                   disabled={submitResponseMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md transition-colors"
                 >
                   {isLastQuestion
                     ? t('surveys.complete')
@@ -291,9 +291,9 @@ const TakeSurvey: React.FC = () => {
                     key={index}
                     onClick={() => goToQuestion(index)}
                     className={clsx('w-3 h-3 rounded-full transition-colors', {
-                      'bg-blue-600': index === currentQuestion,
+                      'bg-brand-600': index === currentQuestion,
                       'bg-green-400': index !== currentQuestion && answers[q.id],
-                      'bg-gray-300': index !== currentQuestion && !answers[q.id],
+                      'bg-stone-300': index !== currentQuestion && !answers[q.id],
                     })}
                   />
                 );
@@ -304,10 +304,10 @@ const TakeSurvey: React.FC = () => {
           /* Completion Page */
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-stone-900 mb-4">
               {t('surveys.completed.title')}
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-stone-600 mb-6">
               {t('surveys.completed.message')}
             </p>
             
@@ -320,7 +320,7 @@ const TakeSurvey: React.FC = () => {
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => navigate('/surveys')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                className="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
                 {t('surveys.backToList')}
               </button>

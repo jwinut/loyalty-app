@@ -251,7 +251,7 @@ describe('QuestionRenderer', () => {
 
       const labels = container.querySelectorAll('label');
       labels.forEach(label => {
-        expect(label).toHaveClass('hover:bg-gray-50');
+        expect(label).toHaveClass('hover:bg-stone-50');
       });
     });
 
@@ -265,7 +265,7 @@ describe('QuestionRenderer', () => {
       );
 
       const blueLabel = screen.getByText('Blue');
-      expect(blueLabel).toHaveClass('text-blue-700');
+      expect(blueLabel).toHaveClass('text-brand-700');
     });
   });
 
@@ -380,7 +380,7 @@ describe('QuestionRenderer', () => {
       );
 
       const optionB = screen.getByText('Option B');
-      expect(optionB).toHaveClass('text-blue-700');
+      expect(optionB).toHaveClass('text-brand-700');
     });
   });
 
@@ -559,7 +559,7 @@ describe('QuestionRenderer', () => {
 
       const buttons = screen.getAllByRole('button');
       const rating3Button = buttons.find(btn => btn.textContent === '3');
-      expect(rating3Button).toHaveClass('bg-blue-600', 'text-white');
+      expect(rating3Button).toHaveClass('bg-brand-600', 'text-white');
     });
 
     it('should call onAnswerChange when rating clicked', async () => {
@@ -593,7 +593,7 @@ describe('QuestionRenderer', () => {
 
       const buttons = screen.getAllByRole('button');
       const rating1Button = buttons.find(btn => btn.textContent === '1');
-      expect(rating1Button).toHaveClass('bg-white', 'text-gray-700');
+      expect(rating1Button).toHaveClass('bg-white', 'text-stone-700');
     });
 
     it('should apply hover effect to rating buttons', () => {
@@ -609,7 +609,7 @@ describe('QuestionRenderer', () => {
       const ratingButtons = buttons.filter(btn => ['1', '2', '3', '4', '5'].includes(btn.textContent || ''));
 
       ratingButtons.forEach(button => {
-        expect(button).toHaveClass('hover:border-blue-300');
+        expect(button).toHaveClass('hover:border-brand-300');
       });
     });
   });
@@ -658,7 +658,7 @@ describe('QuestionRenderer', () => {
 
       const buttons = screen.getAllByRole('button');
       const rating7Button = buttons.find(btn => btn.textContent === '7');
-      expect(rating7Button).toHaveClass('bg-blue-600', 'text-white');
+      expect(rating7Button).toHaveClass('bg-brand-600', 'text-white');
     });
 
     it('should call onAnswerChange when rating clicked', async () => {
@@ -794,7 +794,7 @@ describe('QuestionRenderer', () => {
       );
 
       const yesLabel = screen.getByText('Yes');
-      expect(yesLabel).toHaveClass('text-blue-700');
+      expect(yesLabel).toHaveClass('text-brand-700');
     });
   });
 

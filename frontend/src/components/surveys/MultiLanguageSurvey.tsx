@@ -43,7 +43,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
         <div className="relative">
           <button
             onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
           >
             <FiGlobe className="mr-2 h-4 w-4" />
             <span className="mr-2">{currentLang.flag}</span>
@@ -54,7 +54,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
           </button>
 
           {showLanguageSelector && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-md shadow-lg z-10">
               {availableLanguages.map(lang => (
                 <button
                   key={lang.code}
@@ -62,8 +62,8 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
                     onLanguageChange(lang.code);
                     setShowLanguageSelector(false);
                   }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center ${
-                    lang.code === currentLanguage ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-stone-100 flex items-center ${
+                    lang.code === currentLanguage ? 'bg-brand-50 text-brand-700' : 'text-stone-700'
                   }`}
                 >
                   <span className="mr-3">{lang.flag}</span>
@@ -85,19 +85,19 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
         {questions.map((question, index) => (
           <div key={question.id} className="bg-white rounded-lg shadow p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-stone-900">
                 {index + 1}. {getTranslatedText(question.text)}
                 {question.required && <span className="text-red-500 ml-1">*</span>}
               </h3>
               {question.description && (
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-stone-600">
                   {getTranslatedText(question.description)}
                 </p>
               )}
             </div>
 
             {/* Question Type Display */}
-            <div className="text-xs text-gray-500 mb-2">
+            <div className="text-xs text-stone-500 mb-2">
               Question Type: {question.type.replace('_', ' ').toUpperCase()}
             </div>
 
@@ -114,7 +114,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
                       className="mr-3"
                       disabled
                     />
-                    <label htmlFor={`${question.id}_${option.id}`} className="text-sm text-gray-700">
+                    <label htmlFor={`${question.id}_${option.id}`} className="text-sm text-stone-700">
                       {getTranslatedText(option.text)}
                     </label>
                   </div>
@@ -127,7 +127,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
               <input
                 type="text"
                 placeholder={`Your answer in ${currentLang.name}...`}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-stone-300 rounded-md"
                 disabled
               />
             )}
@@ -136,7 +136,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
               <textarea
                 placeholder={`Your answer in ${currentLang.name}...`}
                 rows={4}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-stone-300 rounded-md"
                 disabled
               />
             )}
@@ -147,7 +147,7 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
                 {Array.from({ length: question.type === 'rating_5' ? 5 : 10 }, (_, i) => (
                   <button
                     key={i}
-                    className="w-10 h-10 border border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-100"
+                    className="w-10 h-10 border border-stone-300 rounded-md text-sm text-stone-500 hover:bg-stone-100"
                     disabled
                   >
                     {i + 1}
@@ -174,14 +174,14 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
       </div>
 
       {/* Language Status */}
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+      <div className="mt-8 p-4 bg-brand-50 rounded-lg">
         <div className="flex items-center">
-          <FiGlobe className="h-5 w-5 text-blue-600 mr-2" />
+          <FiGlobe className="h-5 w-5 text-brand-600 mr-2" />
           <div>
-            <p className="text-sm font-medium text-blue-900">
+            <p className="text-sm font-medium text-brand-900">
               Multi-Language Survey Preview
             </p>
-            <p className="text-xs text-blue-700 mt-1">
+            <p className="text-xs text-brand-700 mt-1">
               Currently showing: {currentLang.name}.
               Survey supports {availableLanguages.length} languages.
             </p>

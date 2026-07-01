@@ -216,11 +216,11 @@ const SurveyInvitations: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-800">
           <FiClock className="mr-1 h-3 w-3" /> Pending
                 </span>);
       case 'sent':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
           <FiMail className="mr-1 h-3 w-3" /> Sent
                 </span>);
       case 'viewed':
@@ -242,11 +242,11 @@ const SurveyInvitations: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">Loading invitations...</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">Loading invitations...</span>
           </div>
         </div>
       </div>
@@ -255,7 +255,7 @@ const SurveyInvitations: React.FC = () => {
 
   if (!survey) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <p>Survey not found</p>
@@ -271,7 +271,7 @@ const SurveyInvitations: React.FC = () => {
   // Show message for public surveys (invitations not needed)
   if (survey.access_type === 'public') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         {/* Header */}
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -279,13 +279,13 @@ const SurveyInvitations: React.FC = () => {
               <div className="flex items-center">
                 <Link
                   to="/admin/surveys"
-                  className="mr-4 text-gray-400 hover:text-gray-600"
+                  className="mr-4 text-stone-400 hover:text-stone-600"
                 >
                   <FiArrowLeft className="h-6 w-6" />
                 </Link>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Survey Invitations</h1>
-                  <p className="text-sm text-gray-600 mt-1">{survey.title}</p>
+                  <h1 className="text-3xl font-bold text-stone-900">Survey Invitations</h1>
+                  <p className="text-sm text-stone-600 mt-1">{survey.title}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
@@ -298,15 +298,15 @@ const SurveyInvitations: React.FC = () => {
         {/* Content */}
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-              <FiUsers className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-lg font-medium text-blue-900 mb-2">
+            <div className="bg-brand-50 border border-brand-200 rounded-lg p-8 text-center">
+              <FiUsers className="mx-auto h-12 w-12 text-brand-600 mb-4" />
+              <h3 className="text-lg font-medium text-brand-900 mb-2">
                 {t('surveys.admin.invitations.publicSurveyTitle')}
               </h3>
-              <p className="text-blue-800 mb-4">
+              <p className="text-brand-800 mb-4">
                 {t('surveys.admin.invitations.publicSurveyDescription')}
               </p>
-              <div className="space-y-2 text-sm text-blue-700">
+              <div className="space-y-2 text-sm text-brand-700">
                 <p><strong>{t('surveys.admin.invitations.surveyType')}:</strong> {t('surveys.admin.invitations.publicSurveyType')}</p>
                 <p><strong>Status:</strong> {survey.status}</p>
                 <p><strong>Questions:</strong> {survey.questions.length}</p>
@@ -315,13 +315,13 @@ const SurveyInvitations: React.FC = () => {
               <div className="mt-6 space-x-4">
                 <Link
                   to={`/admin/surveys/${survey.id}/analytics`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700"
                 >
                   View Analytics
                 </Link>
                 <Link
                   to={`/admin/surveys/${survey.id}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50"
+                  className="inline-flex items-center px-4 py-2 border border-brand-300 rounded-md shadow-sm text-sm font-medium text-brand-700 bg-white hover:bg-brand-50"
                 >
                   Edit Survey
                 </Link>
@@ -334,7 +334,7 @@ const SurveyInvitations: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -342,20 +342,20 @@ const SurveyInvitations: React.FC = () => {
             <div className="flex items-center">
               <Link
                 to="/admin/surveys"
-                className="mr-4 text-gray-400 hover:text-gray-600"
+                className="mr-4 text-stone-400 hover:text-stone-600"
               >
                 <FiArrowLeft className="h-6 w-6" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Survey Invitations</h1>
-                <p className="text-sm text-gray-600 mt-1">{survey.title}</p>
+                <h1 className="text-3xl font-bold text-stone-900">Survey Invitations</h1>
+                <p className="text-sm text-stone-600 mt-1">{survey.title}</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleShowUserSelection}
                 disabled={survey.status !== 'active'}
-                className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-brand-300 rounded-md shadow-sm text-sm font-medium text-brand-700 bg-white hover:bg-brand-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiUserPlus className="mr-2 h-4 w-4" />
                 Select Users
@@ -363,7 +363,7 @@ const SurveyInvitations: React.FC = () => {
               <button
                 onClick={() => setShowSendAllConfirm(true)}
                 disabled={sending || survey.status !== 'active'}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiSend className="mr-2 h-4 w-4" />
                 {sending ? 'Sending...' : 'Send to All Eligible'}
@@ -382,11 +382,11 @@ const SurveyInvitations: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <FiUsers className="h-8 w-8 text-gray-400" />
+                  <FiUsers className="h-8 w-8 text-stone-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Invitations</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
+                  <p className="text-sm font-medium text-stone-500">Total Invitations</p>
+                  <p className="text-2xl font-semibold text-stone-900">{stats.total}</p>
                 </div>
               </div>
             </div>
@@ -394,11 +394,11 @@ const SurveyInvitations: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <FiMail className="h-8 w-8 text-blue-500" />
+                  <FiMail className="h-8 w-8 text-brand-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Sent</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.sent}</p>
+                  <p className="text-sm font-medium text-stone-500">Sent</p>
+                  <p className="text-2xl font-semibold text-stone-900">{stats.sent}</p>
                 </div>
               </div>
             </div>
@@ -409,8 +409,8 @@ const SurveyInvitations: React.FC = () => {
                   <FiAlertCircle className="h-8 w-8 text-yellow-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Viewed</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.viewed}</p>
+                  <p className="text-sm font-medium text-stone-500">Viewed</p>
+                  <p className="text-2xl font-semibold text-stone-900">{stats.viewed}</p>
                 </div>
               </div>
             </div>
@@ -421,8 +421,8 @@ const SurveyInvitations: React.FC = () => {
                   <FiClock className="h-8 w-8 text-purple-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Started</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.started}</p>
+                  <p className="text-sm font-medium text-stone-500">Started</p>
+                  <p className="text-2xl font-semibold text-stone-900">{stats.started}</p>
                 </div>
               </div>
             </div>
@@ -433,8 +433,8 @@ const SurveyInvitations: React.FC = () => {
                   <FiCheckCircle className="h-8 w-8 text-green-500" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Completed</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.completed}</p>
+                  <p className="text-sm font-medium text-stone-500">Completed</p>
+                  <p className="text-2xl font-semibold text-stone-900">{stats.completed}</p>
                 </div>
               </div>
             </div>
@@ -443,11 +443,11 @@ const SurveyInvitations: React.FC = () => {
           {/* Filters */}
           <div className="bg-white rounded-lg shadow p-4 mb-6">
             <div className="flex items-center space-x-4">
-              <FiFilter className="h-5 w-5 text-gray-400" />
+              <FiFilter className="h-5 w-5 text-stone-400" />
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                className="block w-40 pl-3 pr-10 py-2 text-base border-stone-300 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm rounded-md"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -462,13 +462,13 @@ const SurveyInvitations: React.FC = () => {
           {/* Invitations List */}
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-stone-900">
                 Invitation Recipients
               </h3>
             </div>
             {invitations.length > 0 ? (
-              <div className="border-t border-gray-200">
-                <ul className="divide-y divide-gray-200">
+              <div className="border-t border-stone-200">
+                <ul className="divide-y divide-stone-200">
                   {invitations
                     .filter(inv => selectedStatus === 'all' || inv.status === selectedStatus)
                     .map((invitation) => (
@@ -476,15 +476,15 @@ const SurveyInvitations: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center min-w-0">
                           <div className="flex-shrink-0">
-                            <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                              <FiUsers className="h-5 w-5 text-gray-600" />
+                            <div className="h-10 w-10 rounded-full bg-stone-300 flex items-center justify-center">
+                              <FiUsers className="h-5 w-5 text-stone-600" />
                             </div>
                           </div>
                           <div className="ml-4 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-stone-900 truncate">
                               User ID: {invitation.user_id}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-stone-500">
                               Invited: {new Date(invitation.created_at).toLocaleDateString()}
                               {invitation.sent_at && ` • Sent: ${new Date(invitation.sent_at).toLocaleDateString()}`}
                             </p>
@@ -495,7 +495,7 @@ const SurveyInvitations: React.FC = () => {
                           {invitation.status === 'pending' && (
                             <button
                               onClick={() => handleResendInvitation(invitation.id)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              className="text-brand-600 hover:text-brand-800 text-sm font-medium"
                             >
                               Send Now
                             </button>
@@ -507,13 +507,13 @@ const SurveyInvitations: React.FC = () => {
                 </ul>
               </div>
             ) : (
-              <div className="border-t border-gray-200 p-6 text-center">
-                <FiUsers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-500">No invitations sent yet</p>
+              <div className="border-t border-stone-200 p-6 text-center">
+                <FiUsers className="mx-auto h-12 w-12 text-stone-400 mb-4" />
+                <p className="text-stone-500">No invitations sent yet</p>
                 {survey.status === 'active' && (
                   <button
                     onClick={() => setShowSendAllConfirm(true)}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
                   >
                     <FiSend className="mr-2 h-4 w-4" />
                     Send First Invitations
@@ -527,13 +527,13 @@ const SurveyInvitations: React.FC = () => {
 
       {/* User Selection Modal */}
       {showUserSelection && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="fixed inset-0 bg-stone-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Select Users to Invite</h3>
+              <h3 className="text-lg font-bold text-stone-900">Select Users to Invite</h3>
               <button
                 onClick={() => setShowUserSelection(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-stone-400 hover:text-stone-600"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -542,54 +542,54 @@ const SurveyInvitations: React.FC = () => {
             {/* Search */}
             <div className="mb-4">
               <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-5 w-5" />
                 <input
                   type="text"
                   placeholder="Search users by email or name..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                 />
               </div>
             </div>
 
             {/* Selected count */}
             {selectedUsers.size > 0 && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-800">
+              <div className="mb-4 p-3 bg-brand-50 border border-brand-200 rounded-md">
+                <p className="text-sm text-brand-800">
                   {selectedUsers.size} user{selectedUsers.size === 1 ? '' : 's'} selected
                 </p>
               </div>
             )}
 
             {/* Users list */}
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
+            <div className="max-h-96 overflow-y-auto border border-stone-200 rounded-md">
               {loadingUsers ? (
                 <div className="flex justify-center items-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                  <span className="ml-3 text-gray-600">Loading users...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+                  <span className="ml-3 text-stone-600">Loading users...</span>
                 </div>
               ) : users.length > 0 ? (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-stone-200">
                   {users.map((user) => (
-                    <div key={user.id} className="flex items-center p-4 hover:bg-gray-50">
+                    <div key={user.id} className="flex items-center p-4 hover:bg-stone-50">
                       <input
                         type="checkbox"
                         checked={selectedUsers.has(user.id)}
                         onChange={() => handleUserSelectionToggle(user.id)}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="h-4 w-4 text-brand-600 border-stone-300 rounded focus:ring-brand-500"
                       />
                       <div className="ml-3 flex-1">
                         <div className="flex items-center">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-stone-900">
                             {user.firstName} {user.lastName}
                           </p>
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-800">
                             {user.role}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500">{user.email}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm text-stone-500">{user.email}</p>
+                        <p className="text-xs text-stone-400">
                           Joined: {new Date(user.createdAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -597,7 +597,7 @@ const SurveyInvitations: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-stone-500">
                   <FiUsers className="mx-auto h-12 w-12 mb-4" />
                   <p>No users found</p>
                   {userSearch && (
@@ -611,14 +611,14 @@ const SurveyInvitations: React.FC = () => {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowUserSelection(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setShowSendSelectedConfirm(true)}
                 disabled={selectedUsers.size === 0 || sendingToUsers}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiSend className="mr-2 h-4 w-4" />
                 {sendingToUsers ? 'Sending...' : `Send Invitations (${selectedUsers.size})`}

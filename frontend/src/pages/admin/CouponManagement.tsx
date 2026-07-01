@@ -278,14 +278,14 @@ const CouponManagement: React.FC = () => {
 
   if (loading && coupons.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-stone-50 p-4">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/4" />
+              <div className="h-6 bg-stone-200 rounded w-1/4" />
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded" />
+                  <div key={i} className="h-16 bg-stone-200 rounded" />
                 ))}
               </div>
             </div>
@@ -296,16 +296,16 @@ const CouponManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-stone-900">
                 {t('admin.coupons.title')}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-stone-600 mt-1">
                 {t('admin.coupons.subtitle')}
               </p>
             </div>
@@ -315,7 +315,7 @@ const CouponManagement: React.FC = () => {
                   setShowCreateModal(true);
                   setCreateModalError(null); // Clear any previous errors
                 }}
-                className="inline-flex items-center font-medium bg-blue-600 text-white px-4 py-2 text-sm rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center font-medium bg-brand-600 text-white px-4 py-2 text-sm rounded-md hover:bg-brand-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 {t('admin.coupons.createCoupon')}
               </button>
@@ -348,34 +348,34 @@ const CouponManagement: React.FC = () => {
         {/* Coupons Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-stone-200">
+              <thead className="bg-stone-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.title_field')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.couponTypeAndValue')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.usage')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.validity')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.status')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                     {t('admin.coupons.actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-stone-200">
                 {coupons.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
+                      <div className="text-stone-500">
                         <p className="text-lg font-medium">{t('admin.coupons.noCoupons')}</p>
                         <p className="text-sm mt-1">{t('admin.coupons.noCouponsDescription')}</p>
                       </div>
@@ -383,19 +383,19 @@ const CouponManagement: React.FC = () => {
                   </tr>
                 ) : (
                   coupons.map((coupon) => (
-                    <tr key={coupon.id} className="hover:bg-gray-50">
+                    <tr key={coupon.id} className="hover:bg-stone-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-stone-900">
                           {coupon.name}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-stone-500">
                           {coupon.code} - {coupon.description}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-stone-900">
                         {coupon.type === 'percentage' 
                           ? `${coupon.value}% off`
                           : coupon.type === 'fixed_amount'
@@ -404,24 +404,24 @@ const CouponManagement: React.FC = () => {
                         }
                       </div>
                       {(coupon.minimumSpend ?? 0) > 0 && (
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-stone-500">
                           {t('admin.coupons.min')}: {formatCurrency(coupon.minimumSpend ?? 0)}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-stone-900">
                         {coupon.usedCount || 0} / {coupon.usageLimit}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-stone-500">
                         {t('admin.coupons.maxPerUser', { count: coupon.usageLimitPerUser })}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-stone-900">
                         {formatDateToDDMMYYYY(coupon.validFrom)}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-stone-500">
                         {t('admin.coupons.to')} {coupon.validUntil ? formatDateToDDMMYYYY(coupon.validUntil) : t('common.noEndDate')}
                       </div>
                     </td>
@@ -447,7 +447,7 @@ const CouponManagement: React.FC = () => {
                             setSelectedCoupon(coupon);
                             setShowAssignModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900 text-left"
+                          className="text-brand-600 hover:text-brand-900 text-left"
                         >
                           {t('admin.coupons.assign')}
                         </button>
@@ -489,23 +489,23 @@ const CouponManagement: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+            <div className="bg-white px-4 py-3 border-t border-stone-200 sm:px-6">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-stone-700">
                   {t('admin.pagination.page')} {page} {t('admin.pagination.of')} {totalPages}
                 </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => loadCoupons(page - 1)}
                     disabled={page <= 1}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded disabled:opacity-50"
+                    className="px-3 py-1 text-sm bg-stone-100 text-stone-700 rounded disabled:opacity-50"
                   >
                     {t('common.previous')}
                   </button>
                   <button
                     onClick={() => loadCoupons(page + 1)}
                     disabled={page >= totalPages}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded disabled:opacity-50"
+                    className="px-3 py-1 text-sm bg-stone-100 text-stone-700 rounded disabled:opacity-50"
                   >
                     {t('common.next')}
                   </button>
@@ -528,7 +528,7 @@ const CouponManagement: React.FC = () => {
                     setShowCreateModal(false);
                     setCreateModalError(null); // Clear error when closing
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   ✕
                 </button>
@@ -556,7 +556,7 @@ const CouponManagement: React.FC = () => {
               <form onSubmit={handleCreateCoupon} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.code')}
                     </label>
                     <input
@@ -565,12 +565,12 @@ const CouponManagement: React.FC = () => {
                       value={newCoupon.code}
                       onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
                       placeholder={t('admin.coupons.codePlaceholder')}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.name')}
                     </label>
                     <input
@@ -579,7 +579,7 @@ const CouponManagement: React.FC = () => {
                       value={newCoupon.name}
                       onChange={(e) => setNewCoupon({...newCoupon, name: e.target.value})}
                       placeholder={t('admin.coupons.namePlaceholder')}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                 </div>
@@ -587,13 +587,13 @@ const CouponManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.type_field')}
                     </label>
                     <select
                       value={newCoupon.type}
                       onChange={(e) => setNewCoupon({...newCoupon, type: e.target.value as CouponType})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       <option value="percentage">{t('coupons.types.percentage')}</option>
                       <option value="fixed_amount">{t('coupons.types.fixed_amount')}</option>
@@ -605,20 +605,20 @@ const CouponManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.coupons.description_field')}
                   </label>
                   <textarea
                     value={newCoupon.description}
                     onChange={(e) => setNewCoupon({...newCoupon, description: e.target.value})}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {newCoupon.type === 'percentage' ? t('admin.coupons.percentage') : t('admin.coupons.amount')}
                     </label>
                     <input
@@ -628,12 +628,12 @@ const CouponManagement: React.FC = () => {
                       required
                       value={newCoupon.value}
                       onChange={(e) => setNewCoupon({...newCoupon, value: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.minimumSpend')}
                     </label>
                     <input
@@ -642,12 +642,12 @@ const CouponManagement: React.FC = () => {
                       min="0"
                       value={newCoupon.minimumSpend}
                       onChange={(e) => setNewCoupon({...newCoupon, minimumSpend: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.maximumDiscount')}
                     </label>
                     <input
@@ -656,14 +656,14 @@ const CouponManagement: React.FC = () => {
                       min="0"
                       value={newCoupon.maximumDiscount}
                       onChange={(e) => setNewCoupon({...newCoupon, maximumDiscount: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.maxTotalUses')}
                     </label>
                     <input
@@ -672,12 +672,12 @@ const CouponManagement: React.FC = () => {
                       required
                       value={newCoupon.usageLimit}
                       onChange={(e) => setNewCoupon({...newCoupon, usageLimit: parseInt(e.target.value) || 1})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.maxUsesPerUser')}
                     </label>
                     <input
@@ -686,14 +686,14 @@ const CouponManagement: React.FC = () => {
                       required
                       value={newCoupon.usageLimitPerUser}
                       onChange={(e) => setNewCoupon({...newCoupon, usageLimitPerUser: parseInt(e.target.value) || 1})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.validFrom')}
                     </label>
                     <input
@@ -701,12 +701,12 @@ const CouponManagement: React.FC = () => {
                       required
                       value={newCoupon.validFrom}
                       onChange={(e) => setNewCoupon({...newCoupon, validFrom: e.target.value})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
                       {t('admin.coupons.validUntil')}
                     </label>
                     <input
@@ -714,24 +714,24 @@ const CouponManagement: React.FC = () => {
                       required
                       value={newCoupon.validUntil}
                       onChange={(e) => setNewCoupon({...newCoupon, validUntil: e.target.value})}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
                     {t('admin.coupons.termsAndConditions')}
                   </label>
                   <textarea
                     value={newCoupon.termsAndConditions}
                     onChange={(e) => setNewCoupon({...newCoupon, termsAndConditions: e.target.value})}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-stone-600">
                   <p>{t('admin.coupons.activeImmediately')}</p>
                 </div>
 
@@ -742,14 +742,14 @@ const CouponManagement: React.FC = () => {
                       setShowCreateModal(false);
                       setCreateModalError(null); // Clear error when canceling
                     }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                   >
                     {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
                   >
                     {loading ? t('admin.coupons.creating') : t('admin.coupons.createCoupon')}
                   </button>
@@ -772,20 +772,20 @@ const CouponManagement: React.FC = () => {
                     setShowAssignModal(false);
                     setUserSearchTerm('');
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-md">
+              <div className="mb-4 p-3 bg-stone-50 rounded-md">
                 <div className="font-medium">{selectedCoupon.name}</div>
-                <div className="text-sm text-gray-600">{selectedCoupon.code} - {selectedCoupon.description}</div>
+                <div className="text-sm text-stone-600">{selectedCoupon.code} - {selectedCoupon.description}</div>
               </div>
 
               {/* Search Field */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('admin.coupons.searchUsers')}
                 </label>
                 <input
@@ -793,7 +793,7 @@ const CouponManagement: React.FC = () => {
                   value={userSearchTerm}
                   onChange={(e) => setUserSearchTerm(e.target.value)}
                   placeholder={t('admin.coupons.searchPlaceholder')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -812,7 +812,7 @@ const CouponManagement: React.FC = () => {
                     );
                   })
                   .map((user) => (
-                  <label key={user.id || user.email} className="flex items-center p-2 hover:bg-gray-50 rounded-md cursor-pointer">
+                  <label key={user.id || user.email} className="flex items-center p-2 hover:bg-stone-50 rounded-md cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedUsers.includes(user.id)}
@@ -823,20 +823,20 @@ const CouponManagement: React.FC = () => {
                           setSelectedUsers(selectedUsers.filter(id => id !== user.id));
                         }
                       }}
-                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded"
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <div className="font-medium text-gray-900">{user.firstName ?? ''} {user.lastName ?? ''}</div>
+                        <div className="font-medium text-stone-900">{user.firstName ?? ''} {user.lastName ?? ''}</div>
                         {user.membershipId && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
                             ID: {user.membershipId}
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600">{user.email ?? 'No email'}</div>
+                      <div className="text-sm text-stone-600">{user.email ?? 'No email'}</div>
                       {!user.membershipId && (
-                        <div className="text-xs text-gray-400">{t('admin.coupons.noMembershipId')}</div>
+                        <div className="text-xs text-stone-400">{t('admin.coupons.noMembershipId')}</div>
                       )}
                     </div>
                   </label>
@@ -853,7 +853,7 @@ const CouponManagement: React.FC = () => {
                     membershipId.includes(searchLower)
                   );
                 }).length === 0 && userSearchTerm && (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-stone-500">
                     <div className="text-sm">{t('admin.coupons.noUsersFound', { searchTerm: userSearchTerm })}</div>
                     <div className="text-xs mt-1">{t('admin.coupons.searchHint')}</div>
                   </div>
@@ -866,14 +866,14 @@ const CouponManagement: React.FC = () => {
                     setShowAssignModal(false);
                     setUserSearchTerm('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleAssignCoupons}
                   disabled={loading || selectedUsers.length === 0}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
                 >
                   {loading ? t('admin.coupons.assigning') : t('admin.coupons.assignToUsers', { count: selectedUsers.length })}
                 </button>
@@ -896,7 +896,7 @@ const CouponManagement: React.FC = () => {
                     setSelectedCoupon(null);
                     setDeleteConfirmText('');
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   ✕
                 </button>
@@ -913,9 +913,9 @@ const CouponManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-700 mb-2">{t('admin.coupons.deleteAffects')}:</p>
-                <ul className="text-sm text-gray-600 space-y-1">
+              <div className="mb-4 p-3 bg-stone-50 rounded-md">
+                <p className="text-sm text-stone-700 mb-2">{t('admin.coupons.deleteAffects')}:</p>
+                <ul className="text-sm text-stone-600 space-y-1">
                   <li>• {t('admin.coupons.existingRedemptions', { count: selectedCoupon.usedCount || 0 })}</li>
                   <li>• {t('admin.coupons.assignedUsers')}</li>
                   <li>• {t('admin.coupons.analyticsHistory')}</li>
@@ -923,7 +923,7 @@ const CouponManagement: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   {t('admin.coupons.typeToConfirm')} <span className="font-bold text-red-600">{t('admin.coupons.deleteKeyword')}</span> {t('admin.coupons.toConfirm')}:
                 </label>
                 <input
@@ -931,7 +931,7 @@ const CouponManagement: React.FC = () => {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={t('admin.coupons.deletePlaceholder')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
 
@@ -942,7 +942,7 @@ const CouponManagement: React.FC = () => {
                     setSelectedCoupon(null);
                     setDeleteConfirmText('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                 >
                   {t('common.cancel')}
                 </button>

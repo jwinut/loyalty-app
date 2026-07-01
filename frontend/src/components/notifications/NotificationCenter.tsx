@@ -139,17 +139,17 @@ export default function NotificationCenter() {
       case 'error':
         return 'text-red-600 bg-red-50 border-red-200';
       case 'profile':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-brand-600 bg-brand-50 border-brand-200';
       case 'survey':
         return 'text-indigo-600 bg-indigo-50 border-indigo-200';
       case 'system':
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-stone-600 bg-stone-50 border-stone-200';
       case 'tier_change':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'points':
         return 'text-green-600 bg-green-50 border-green-200';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-stone-600 bg-stone-50 border-stone-200';
     }
   };
 
@@ -160,7 +160,7 @@ export default function NotificationCenter() {
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md"
+        className="relative p-2 text-stone-500 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md"
         aria-label="Notifications"
       >
         <FiBell className="h-6 w-6" />
@@ -175,9 +175,9 @@ export default function NotificationCenter() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200">
+          <div className="px-4 py-3 border-b border-stone-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-stone-900">
                 {t('notifications.title', 'Notifications')}
               </h3>
               <div className="flex items-center space-x-2">
@@ -191,14 +191,14 @@ export default function NotificationCenter() {
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   <FiX className="h-5 w-5" />
                 </button>
               </div>
             </div>
             {unreadCount > 0 && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-stone-500 mt-1">
                 {t('notifications.unreadCount', '{{count}} unread', { count: unreadCount })}
               </p>
             )}
@@ -207,22 +207,22 @@ export default function NotificationCenter() {
           {/* Notifications List */}
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
-              <div className="px-4 py-8 text-center text-gray-500">
+              <div className="px-4 py-8 text-center text-stone-500">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2" />
                 {t('notifications.loading', 'Loading...')}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <FiBell className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+              <div className="px-4 py-8 text-center text-stone-500">
+                <FiBell className="h-12 w-12 mx-auto mb-2 text-stone-300" />
                 <p>{t('notifications.empty', 'No notifications yet')}</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-stone-100">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`px-4 py-3 hover:bg-gray-50 transition-colors ${
-                      !notification.readAt ? 'bg-blue-50' : ''
+                    className={`px-4 py-3 hover:bg-stone-50 transition-colors ${
+                      !notification.readAt ? 'bg-brand-50' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
@@ -238,18 +238,18 @@ export default function NotificationCenter() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className={`text-sm font-semibold ${
-                              !notification.readAt ? 'text-gray-900' : 'text-gray-700'
+                              !notification.readAt ? 'text-stone-900' : 'text-stone-700'
                             }`}
                             >
                               {notification.title}
                             </p>
                             <p className={`text-sm mt-1 ${
-                              !notification.readAt ? 'text-gray-700' : 'text-gray-500'
+                              !notification.readAt ? 'text-stone-700' : 'text-stone-500'
                             }`}
                             >
                               {notification.message}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-stone-400 mt-1">
                               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                             </p>
                           </div>
@@ -259,7 +259,7 @@ export default function NotificationCenter() {
                             {!notification.readAt && (
                               <button
                                 onClick={() => markAsRead([notification.id])}
-                                className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
+                                className="p-1 text-stone-400 hover:text-primary-600 transition-colors"
                                 title={t('notifications.markRead', 'Mark as read')}
                               >
                                 <FiCheck className="h-4 w-4" />
@@ -267,7 +267,7 @@ export default function NotificationCenter() {
                             )}
                             <button
                               onClick={() => deleteNotification(notification.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              className="p-1 text-stone-400 hover:text-red-600 transition-colors"
                               title={t('notifications.delete', 'Delete')}
                             >
                               <FiTrash2 className="h-4 w-4" />
@@ -315,7 +315,7 @@ export default function NotificationCenter() {
 
           {/* Footer */}
           {totalCount > 10 && (
-            <div className="px-4 py-3 border-t border-gray-200 text-center">
+            <div className="px-4 py-3 border-t border-stone-200 text-center">
               <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                 {t('notifications.viewAll', 'View all notifications')}
               </button>

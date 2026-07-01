@@ -286,21 +286,21 @@ const SurveyTemplates: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{t('surveys.admin.templates.title')}</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <h1 className="text-3xl font-bold text-stone-900">{t('surveys.admin.templates.title')}</h1>
+              <p className="text-sm text-stone-600 mt-1">
                 {t('surveys.admin.templates.subtitle')}
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 to="/admin/surveys"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
               >
                 {t('surveys.admin.templates.backToSurveys')}
               </Link>
@@ -322,8 +322,8 @@ const SurveyTemplates: React.FC = () => {
                   onClick={() => setSelectedCategory(category.key)}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === category.key
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-white text-stone-700 hover:bg-stone-100'
                   }`}
                 >
                   {category.label}
@@ -336,13 +336,13 @@ const SurveyTemplates: React.FC = () => {
           <div className="mb-8">
             <div
               onClick={() => navigate('/admin/surveys/create')}
-              className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 hover:border-blue-400 p-8 text-center cursor-pointer transition-all hover:shadow-md"
+              className="bg-white rounded-lg shadow-sm border-2 border-dashed border-stone-300 hover:border-brand-400 p-8 text-center cursor-pointer transition-all hover:shadow-md"
             >
-              <FiPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <FiPlus className="h-12 w-12 text-stone-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-stone-900 mb-2">
                 {t('surveys.admin.templates.startFromScratch')}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-stone-600">
                 {t('surveys.admin.templates.createCustomSurvey')}
               </p>
             </div>
@@ -357,23 +357,23 @@ const SurveyTemplates: React.FC = () => {
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="text-blue-600">{template.icon}</div>
-                    <span className="text-xs text-gray-500">
+                    <div className="text-brand-600">{template.icon}</div>
+                    <span className="text-xs text-stone-500">
                       {t('surveys.admin.templates.popularityText', { percent: template.popularity })}
                     </span>
                   </div>
                   
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-stone-900 mb-2">
                     {template.name}
                   </h3>
                   
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-stone-600 mb-4">
                     {template.description}
                   </p>
                   
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                  <div className="flex items-center justify-between text-xs text-stone-500 mb-4">
                     <span>{t('surveys.admin.templates.questionsCount', { count: template.questions.length })}</span>
-                    <span className="bg-gray-100 px-2 py-1 rounded">
+                    <span className="bg-stone-100 px-2 py-1 rounded">
                       {template.category}
                     </span>
                   </div>
@@ -381,7 +381,7 @@ const SurveyTemplates: React.FC = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleUseTemplate(template)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
                     >
                       <FiCopy className="mr-2 h-4 w-4" />
                       {t('surveys.admin.templates.useTemplate')}

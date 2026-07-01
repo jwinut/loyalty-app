@@ -169,7 +169,7 @@ describe('EmojiSelector', () => {
 
       const preview = container.querySelector('.w-20.h-20.rounded-full');
       expect(preview).toBeInTheDocument();
-      expect(preview).toHaveClass('bg-gray-100', 'border-2', 'border-gray-200');
+      expect(preview).toHaveClass('bg-stone-100', 'border-2', 'border-stone-200');
     });
   });
 
@@ -254,7 +254,7 @@ describe('EmojiSelector', () => {
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
       await user.click(emojiButton!);
 
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
     });
 
     it('should highlight currentEmoji on initial render', () => {
@@ -262,7 +262,7 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
     });
 
     it('should remove highlight from previously selected emoji', async () => {
@@ -271,17 +271,17 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const firstEmojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(firstEmojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(firstEmojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
 
       // Select a different emoji
       const secondEmojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😊');
       await user.click(secondEmojiButton!);
 
       // First emoji should no longer be highlighted
-      expect(firstEmojiButton).not.toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(firstEmojiButton).not.toHaveClass('border-brand-500', 'bg-brand-100');
 
       // Second emoji should be highlighted
-      expect(secondEmojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(secondEmojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
     });
 
     it('should have default styling for non-selected emojis', () => {
@@ -289,7 +289,7 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const nonSelectedButton = screen.getAllByRole('button').find(btn => btn.textContent === '😊');
-      expect(nonSelectedButton).toHaveClass('border-gray-200');
+      expect(nonSelectedButton).toHaveClass('border-stone-200');
     });
 
     it('should have hover effects on emoji buttons', () => {
@@ -365,7 +365,7 @@ describe('EmojiSelector', () => {
       await user.click(emojiButton!);
 
       const confirmButton = screen.getByText('Confirm Selection');
-      expect(confirmButton).toHaveClass('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+      expect(confirmButton).toHaveClass('bg-brand-600', 'hover:bg-brand-700', 'text-white');
     });
 
     it('should have proper styling for disabled confirm button', () => {
@@ -373,7 +373,7 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector onSelect={mockOnSelect} />);
 
       const confirmButton = screen.getByText('Select an Emoji');
-      expect(confirmButton).toHaveClass('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+      expect(confirmButton).toHaveClass('bg-stone-300', 'text-stone-500', 'cursor-not-allowed');
     });
 
     it('should have proper styling for cancel button', () => {
@@ -382,7 +382,7 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector onSelect={mockOnSelect} onCancel={mockOnCancel} />);
 
       const cancelButton = screen.getByText('Cancel');
-      expect(cancelButton).toHaveClass('text-gray-700', 'bg-gray-100', 'hover:bg-gray-200');
+      expect(cancelButton).toHaveClass('text-stone-700', 'bg-stone-100', 'hover:bg-stone-200');
     });
   });
 
@@ -511,7 +511,7 @@ describe('EmojiSelector', () => {
       await user.click(emojiButton!);
 
       // Should still work normally
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
     });
 
     it('should handle rapid emoji clicks', async () => {
@@ -529,7 +529,7 @@ describe('EmojiSelector', () => {
       await user.click(buttons[2]!);
 
       // Last clicked should be selected
-      expect(buttons[2]!).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(buttons[2]!).toHaveClass('border-brand-500', 'bg-brand-100');
     });
 
     it('should handle undefined currentEmoji', () => {
@@ -544,12 +544,12 @@ describe('EmojiSelector', () => {
       const { rerender } = render(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
 
       rerender(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const updatedButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(updatedButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(updatedButton).toHaveClass('border-brand-500', 'bg-brand-100');
     });
   });
 
@@ -574,7 +574,7 @@ describe('EmojiSelector', () => {
 
       // Should highlight current emoji
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
 
       // Should have cancel button
       expect(screen.getByText('Cancel')).toBeInTheDocument();
@@ -725,7 +725,7 @@ describe('EmojiSelectorInline', () => {
       render(<EmojiSelectorInline currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const emojiButton = screen.getByText('😀').closest('button');
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
     });
 
     it('should not highlight any emoji when currentEmoji is null', () => {
@@ -734,7 +734,7 @@ describe('EmojiSelectorInline', () => {
 
       const allButtons = screen.getAllByRole('button');
       allButtons.forEach(button => {
-        expect(button).not.toHaveClass('border-blue-500', 'bg-blue-100');
+        expect(button).not.toHaveClass('border-brand-500', 'bg-brand-100');
       });
     });
 
@@ -744,7 +744,7 @@ describe('EmojiSelectorInline', () => {
 
       const allButtons = screen.getAllByRole('button');
       allButtons.forEach(button => {
-        expect(button).not.toHaveClass('border-blue-500', 'bg-blue-100');
+        expect(button).not.toHaveClass('border-brand-500', 'bg-brand-100');
       });
     });
 
@@ -753,7 +753,7 @@ describe('EmojiSelectorInline', () => {
       render(<EmojiSelectorInline currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const nonSelectedButton = screen.getByText('😊').closest('button');
-      expect(nonSelectedButton).toHaveClass('border-gray-200');
+      expect(nonSelectedButton).toHaveClass('border-stone-200');
     });
 
     it('should have hover effects on emoji buttons', () => {
@@ -771,15 +771,15 @@ describe('EmojiSelectorInline', () => {
       );
 
       let emojiButton = screen.getByText('😀').closest('button');
-      expect(emojiButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
 
       rerender(<EmojiSelectorInline currentEmoji="😊" onSelect={mockOnSelect} />);
 
       emojiButton = screen.getByText('😀').closest('button');
-      expect(emojiButton).not.toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(emojiButton).not.toHaveClass('border-brand-500', 'bg-brand-100');
 
       const newButton = screen.getByText('😊').closest('button');
-      expect(newButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(newButton).toHaveClass('border-brand-500', 'bg-brand-100');
     });
   });
 
@@ -952,7 +952,7 @@ describe('EmojiSelectorInline', () => {
       expect(container).toBeInTheDocument();
 
       const highlightedButton = screen.getByText('😀').closest('button');
-      expect(highlightedButton).toHaveClass('border-blue-500', 'bg-blue-100');
+      expect(highlightedButton).toHaveClass('border-brand-500', 'bg-brand-100');
 
       const otherButton = screen.getByText('😊').closest('button');
       await user.click(otherButton!);

@@ -87,14 +87,14 @@ const CouponWallet: React.FC = () => {
 
   if (isLoading && coupons.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-stone-50 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/4" />
+              <div className="h-6 bg-stone-200 rounded w-1/4" />
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-32 bg-gray-200 rounded" />
+                  <div key={i} className="h-32 bg-stone-200 rounded" />
                 ))}
               </div>
             </div>
@@ -105,16 +105,16 @@ const CouponWallet: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-stone-900">
                 {t('coupons.myCoupons')}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-stone-600 mt-1">
                 {t('coupons.walletDescription')}
               </p>
             </div>
@@ -122,7 +122,7 @@ const CouponWallet: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 disabled={isLoading}
-                className="inline-flex items-center font-medium border border-gray-300 bg-white text-gray-700 px-4 py-2 text-sm rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center font-medium border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-md hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 {isLoading ? t('common.loading') : t('common.refresh')}
               </button>
@@ -135,15 +135,15 @@ const CouponWallet: React.FC = () => {
       {/* Filter Tabs */}
       <div className="max-w-4xl mx-auto p-4">
         <div className="mb-6">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-stone-200">
             <nav className="-mb-px flex space-x-8">
               {/* Active Tab */}
               <button
                 onClick={() => handleFilterChange('active')}
                 className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'active'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                 )}
               >
                 {t('coupons.activeCoupons')}
@@ -154,8 +154,8 @@ const CouponWallet: React.FC = () => {
                 onClick={() => handleFilterChange('used')}
                 className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'used'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                 )}
               >
                 {t('coupons.usedCoupons', 'Used')}
@@ -166,8 +166,8 @@ const CouponWallet: React.FC = () => {
                 onClick={() => handleFilterChange('expired')}
                 className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
                   activeFilter === 'expired'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                 )}
               >
                 {t('coupons.expiredCoupons', 'Expired')}
@@ -201,7 +201,7 @@ const CouponWallet: React.FC = () => {
             <div className="text-6xl mb-4">
               {activeFilter === 'used' ? '✓' : activeFilter === 'expired' ? '⏰' : '🎫'}
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-stone-900 mb-2">
               {activeFilter === 'used' 
                 ? t('coupons.noUsedCoupons', 'No Used Coupons')
                 : activeFilter === 'expired' 
@@ -209,7 +209,7 @@ const CouponWallet: React.FC = () => {
                   : t('coupons.noCoupons')
               }
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-stone-600 mb-4">
               {activeFilter === 'used' 
                 ? t('coupons.noUsedCouponsDescription', "You haven't used any coupons yet.")
                 : activeFilter === 'expired' 
@@ -219,7 +219,7 @@ const CouponWallet: React.FC = () => {
             </p>
             <button
               onClick={handleRefresh}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors"
             >
               {t('common.refresh')}
             </button>
@@ -260,7 +260,7 @@ const CouponWallet: React.FC = () => {
                   <div className="bg-green-100 p-2 rounded-full mr-3">
                     <span className="text-green-600 text-xl">✅</span>
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-stone-900">
                     {t('coupons.activeCoupons')} ({activeCoupons.length})
                   </h2>
                 </div>
@@ -285,13 +285,13 @@ const CouponWallet: React.FC = () => {
             <div className="flex items-center mb-4">
               <div className={clsx('p-2 rounded-full mr-3',
                 activeFilter === 'used'
-                  ? 'bg-gray-100'
+                  ? 'bg-stone-100'
                   : 'bg-red-100'
               )}
               >
                 <span className={clsx('text-xl',
                   activeFilter === 'used'
-                    ? 'text-gray-600'
+                    ? 'text-stone-600'
                     : 'text-red-600'
                 )}
                 >
@@ -300,7 +300,7 @@ const CouponWallet: React.FC = () => {
               </div>
               <h2 className={clsx('text-xl font-semibold',
                 activeFilter === 'used'
-                  ? 'text-gray-900'
+                  ? 'text-stone-900'
                   : 'text-red-700'
               )}
               >
@@ -329,7 +329,7 @@ const CouponWallet: React.FC = () => {
             <button
               onClick={handleLoadMore}
               disabled={isLoading}
-              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              className="bg-stone-100 text-stone-700 px-6 py-3 rounded-md hover:bg-stone-200 disabled:opacity-50 transition-colors"
             >
               {isLoading ? t('common.loading') : t('common.loadMore')}
             </button>

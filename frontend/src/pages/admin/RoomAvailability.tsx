@@ -348,7 +348,7 @@ const RoomAvailability: React.FC = () => {
     let baseClasses = 'w-8 h-8 text-xs flex items-center justify-center cursor-pointer transition-all border';
 
     if (isSelected) {
-      baseClasses += ' ring-2 ring-blue-500 ring-offset-1';
+      baseClasses += ' ring-2 ring-brand-500 ring-offset-1';
     }
 
     if (isPast) {
@@ -357,7 +357,7 @@ const RoomAvailability: React.FC = () => {
 
     switch (status) {
       case 'booked':
-        return `${baseClasses} bg-blue-500 text-white border-blue-600 cursor-not-allowed`;
+        return `${baseClasses} bg-brand-500 text-white border-brand-600 cursor-not-allowed`;
       case 'blocked':
         return `${baseClasses} bg-red-500 text-white border-red-600`;
       default:
@@ -368,16 +368,16 @@ const RoomAvailability: React.FC = () => {
   const isLoading = blockedLoading || bookingsLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50" onMouseUp={handleMouseUp}>
+    <div className="min-h-screen bg-stone-50" onMouseUp={handleMouseUp}>
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-stone-900">
                 {t('admin.booking.availability.title')}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-stone-600 mt-1">
                 {t('admin.booking.availability.subtitle')}
               </p>
             </div>
@@ -393,7 +393,7 @@ const RoomAvailability: React.FC = () => {
           <div className="flex flex-wrap items-center gap-4">
             {/* Room Type Selector */}
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-stone-700">
                 {t('admin.booking.availability.selectRoomType')}:
               </label>
               <select
@@ -403,7 +403,7 @@ const RoomAvailability: React.FC = () => {
                   setSelectedCells(new Set());
                   setSelectedRoomId(null);
                 }}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="all">{t('admin.booking.availability.allRoomTypes')}</option>
                 {roomTypes?.map((rt: RoomType) => (
@@ -419,7 +419,7 @@ const RoomAvailability: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
                 >
                   {t('common.previous')}
                 </button>
@@ -428,7 +428,7 @@ const RoomAvailability: React.FC = () => {
                 </span>
                 <button
                   onClick={handleNextMonth}
-                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
                 >
                   {t('common.next')}
                 </button>
@@ -438,7 +438,7 @@ const RoomAvailability: React.FC = () => {
             {/* Selection Actions */}
             {selectedCells.size > 0 && selectedRoomId && (
               <div className="flex items-center space-x-2 ml-auto">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-stone-600">
                   {t('admin.booking.availability.selectedDates', { count: selectedCells.size })}
                 </span>
                 <button
@@ -449,7 +449,7 @@ const RoomAvailability: React.FC = () => {
                 </button>
                 <button
                   onClick={handleClearSelection}
-                  className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+                  className="px-3 py-2 bg-stone-100 text-stone-700 text-sm rounded-md hover:bg-stone-200"
                 >
                   {t('admin.booking.availability.clearSelection')}
                 </button>
@@ -464,17 +464,17 @@ const RoomAvailability: React.FC = () => {
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-green-100 border border-green-300 rounded" />
-                <span className="text-sm text-gray-700">{t('admin.booking.availability.available')}</span>
+                <span className="text-sm text-stone-700">{t('admin.booking.availability.available')}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-red-500 border border-red-600 rounded" />
-                <span className="text-sm text-gray-700">{t('admin.booking.availability.blocked')}</span>
+                <span className="text-sm text-stone-700">{t('admin.booking.availability.blocked')}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-blue-500 border border-blue-600 rounded" />
-                <span className="text-sm text-gray-700">{t('admin.booking.availability.booked')}</span>
+                <div className="w-6 h-6 bg-brand-500 border border-brand-600 rounded" />
+                <span className="text-sm text-stone-700">{t('admin.booking.availability.booked')}</span>
               </div>
-              <div className="text-sm text-gray-500 ml-auto">
+              <div className="text-sm text-stone-500 ml-auto">
                 {t('admin.booking.availability.dragHint')}
               </div>
             </div>
@@ -485,10 +485,10 @@ const RoomAvailability: React.FC = () => {
         {isLoading && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/4" />
+              <div className="h-6 bg-stone-200 rounded w-1/4" />
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-200 rounded" />
+                  <div key={i} className="h-12 bg-stone-200 rounded" />
                 ))}
               </div>
             </div>
@@ -500,29 +500,29 @@ const RoomAvailability: React.FC = () => {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-stone-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 min-w-[120px]">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[120px]">
                       {t('admin.booking.availability.room')}
                     </th>
                     {daysInMonth.map((date) => (
                       <th
                         key={date.toISOString()}
-                        className="px-1 py-3 text-center text-xs font-medium text-gray-500"
+                        className="px-1 py-3 text-center text-xs font-medium text-stone-500"
                       >
                         <div>{date.getDate()}</div>
-                        <div className="text-[10px] text-gray-400">
+                        <div className="text-[10px] text-stone-400">
                           {date.toLocaleDateString('en-US', { weekday: 'short' })}
                         </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-stone-200">
                   {rooms.length === 0 ? (
                     <tr>
                       <td colSpan={daysInMonth.length + 1} className="px-6 py-12 text-center">
-                        <div className="text-gray-500">
+                        <div className="text-stone-500">
                           <p className="text-lg font-medium">{t('admin.booking.availability.noRooms')}</p>
                           <p className="text-sm mt-1">{t('admin.booking.availability.noRoomsDescription')}</p>
                         </div>
@@ -530,13 +530,13 @@ const RoomAvailability: React.FC = () => {
                     </tr>
                   ) : (
                     rooms.map((room: Room) => (
-                      <tr key={room.id} className="hover:bg-gray-50">
+                      <tr key={room.id} className="hover:bg-stone-50">
                         <td className="px-4 py-2 whitespace-nowrap sticky left-0 bg-white z-10">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-stone-900">
                             {room.roomNumber}
                           </div>
                           {room.floor && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-stone-500">
                               {t('admin.booking.availability.floor')} {room.floor}
                             </div>
                           )}
@@ -579,7 +579,7 @@ const RoomAvailability: React.FC = () => {
                     setShowBlockModal(false);
                     setBlockReason('');
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   X
                 </button>
@@ -592,7 +592,7 @@ const RoomAvailability: React.FC = () => {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 mb-1">
                   {t('admin.booking.availability.blockReason')} *
                 </label>
                 <input
@@ -601,7 +601,7 @@ const RoomAvailability: React.FC = () => {
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   placeholder={t('admin.booking.availability.blockReasonPlaceholder')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -611,7 +611,7 @@ const RoomAvailability: React.FC = () => {
                     setShowBlockModal(false);
                     setBlockReason('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                 >
                   {t('common.cancel')}
                 </button>
@@ -642,7 +642,7 @@ const RoomAvailability: React.FC = () => {
                     setSelectedCells(new Set());
                     setSelectedRoomId(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   X
                 </button>
@@ -663,7 +663,7 @@ const RoomAvailability: React.FC = () => {
                     setSelectedCells(new Set());
                     setSelectedRoomId(null);
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
                 >
                   {t('common.close')}
                 </button>

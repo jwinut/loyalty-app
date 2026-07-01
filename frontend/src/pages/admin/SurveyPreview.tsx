@@ -48,11 +48,11 @@ const SurveyPreviewPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-            <span className="ml-3 text-gray-600">Loading survey...</span>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+            <span className="ml-3 text-stone-600">Loading survey...</span>
           </div>
         </div>
       </div>
@@ -62,7 +62,7 @@ const SurveyPreviewPage: React.FC = () => {
    
   if (error || !survey) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stone-50">
         <div className="max-w-7xl mx-auto p-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <p>{error ?? 'Survey not found'}</p>
@@ -76,7 +76,7 @@ const SurveyPreviewPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,11 +84,11 @@ const SurveyPreviewPage: React.FC = () => {
             <div className="flex items-center">
               <Link
                 to="/admin/surveys"
-                className="mr-4 text-gray-400 hover:text-gray-600"
+                className="mr-4 text-stone-400 hover:text-stone-600"
               >
                 <FiArrowLeft className="h-6 w-6" />
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Survey Preview</h1>
+              <h1 className="text-3xl font-bold text-stone-900">Survey Preview</h1>
             </div>
             <div className="flex items-center space-x-4">
               <DashboardButton variant="outline" size="md" />

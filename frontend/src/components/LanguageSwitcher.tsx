@@ -37,7 +37,7 @@ export default function LanguageSwitcher() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+        className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-md transition-colors"
         aria-label="Change language"
       >
         <FiGlobe className="h-4 w-4" />
@@ -52,7 +52,7 @@ export default function LanguageSwitcher() {
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language.code)}
-                className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                className="flex items-center justify-between w-full px-4 py-2 text-sm text-stone-700 hover:bg-stone-100 hover:text-stone-900"
                 role="menuitem"
               >
                 <span className="flex items-center space-x-2">

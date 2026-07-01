@@ -145,7 +145,7 @@ export default function NewMemberCouponSettings() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto" />
-            <p className="mt-4 text-gray-600">{t('admin.newMemberCoupons.loading')}</p>
+            <p className="mt-4 text-stone-600">{t('admin.newMemberCoupons.loading')}</p>
           </div>
         </div>
       </MainLayout>
@@ -158,19 +158,19 @@ export default function NewMemberCouponSettings() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FiGift className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-brand-100 rounded-lg">
+              <FiGift className="h-6 w-6 text-brand-600" />
             </div>
             <div>
-              <p className="text-gray-600">{t('admin.newMemberCoupons.description')}</p>
+              <p className="text-stone-600">{t('admin.newMemberCoupons.description')}</p>
             </div>
           </div>
           
           {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
             <div className="flex items-start space-x-3">
-              <FiInfo className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div className="text-sm text-blue-800">
+              <FiInfo className="h-5 w-5 text-brand-600 mt-0.5" />
+              <div className="text-sm text-brand-800">
                 <p className="font-medium mb-1">{t('admin.newMemberCoupons.howItWorks')}</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>{t('admin.newMemberCoupons.howItWorksItems.banner')}</li>
@@ -187,10 +187,10 @@ export default function NewMemberCouponSettings() {
         <div className="bg-white shadow rounded-lg">
           <div className="p-6 space-y-6">
             {/* Enable/Disable Toggle */}
-            <div className="flex items-center justify-between py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between py-4 border-b border-stone-200">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">{t('admin.newMemberCoupons.enableCoupons')}</h3>
-                <p className="text-sm text-gray-500">{t('admin.newMemberCoupons.enableCouponsDescription')}</p>
+                <h3 className="text-lg font-medium text-stone-900">{t('admin.newMemberCoupons.enableCoupons')}</h3>
+                <p className="text-sm text-stone-500">{t('admin.newMemberCoupons.enableCouponsDescription')}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -199,20 +199,20 @@ export default function NewMemberCouponSettings() {
                   onChange={(e) => setIsEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600" />
               </label>
             </div>
 
             {/* Coupon Selection */}
             <div>
-              <label htmlFor="couponSelect" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="couponSelect" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('admin.newMemberCoupons.selectCoupon')} *
               </label>
               <select
                 id="couponSelect"
                 value={selectedCouponId}
                 onChange={(e) => setSelectedCouponId(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 disabled={!isEnabled}
               >
                 <option value="">{t('admin.newMemberCoupons.selectCouponPlaceholder')}</option>
@@ -227,7 +227,7 @@ export default function NewMemberCouponSettings() {
                 <p className="mt-1 text-sm text-red-600">{t('admin.newMemberCoupons.selectCouponRequired')}</p>
               )}
               {availableCoupons.length === 0 && !isLoading && (
-                <p className="mt-1 text-sm text-gray-500">{t('admin.newMemberCoupons.noCouponsAvailable')}</p>
+                <p className="mt-1 text-sm text-stone-500">{t('admin.newMemberCoupons.noCouponsAvailable')}</p>
               )}
 
               {/* Coupon Status Warnings */}
@@ -268,13 +268,13 @@ export default function NewMemberCouponSettings() {
 
             {/* Selected Coupon Details */}
             {selectedCouponId && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">{t('admin.newMemberCoupons.selectedCouponDetails')}</h4>
+              <div className="bg-stone-50 rounded-lg p-4">
+                <h4 className="font-medium text-stone-900 mb-2">{t('admin.newMemberCoupons.selectedCouponDetails')}</h4>
                 {(() => {
                   const selectedCoupon = availableCoupons.find(c => c.id === selectedCouponId);
                   if (!selectedCoupon) {return null;}
                   return (
-                    <div className="space-y-1 text-sm text-gray-600">
+                    <div className="space-y-1 text-sm text-stone-600">
                       <p><span className="font-medium">{t('admin.newMemberCoupons.code')}:</span> {selectedCoupon.code}</p>
                       <p><span className="font-medium">{t('admin.newMemberCoupons.name')}:</span> {selectedCoupon.name}</p>
                       <p><span className="font-medium">{t('admin.newMemberCoupons.type')}:</span> {selectedCoupon.type === 'percentage' ? t('admin.newMemberCoupons.typePercentage') : t('admin.newMemberCoupons.typeFixed')}</p>
@@ -296,7 +296,7 @@ export default function NewMemberCouponSettings() {
                               <span className={
                                 couponStatus.warningLevel === 'danger' ? 'text-red-600 font-medium' :
                                 couponStatus.warningLevel === 'warning' ? 'text-yellow-600 font-medium' :
-                                'text-gray-600'
+                                'text-stone-600'
                               }
                               >
                                 {new Date(couponStatus.validUntil).toLocaleDateString()}
@@ -319,11 +319,11 @@ export default function NewMemberCouponSettings() {
             )}
 
             {/* Points Configuration */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center justify-between py-4 border-b border-gray-200">
+            <div className="border-t border-stone-200 pt-6">
+              <div className="flex items-center justify-between py-4 border-b border-stone-200">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">{t('admin.newMemberCoupons.enablePoints')}</h3>
-                  <p className="text-sm text-gray-500">{t('admin.newMemberCoupons.enablePointsDescription')}</p>
+                  <h3 className="text-lg font-medium text-stone-900">{t('admin.newMemberCoupons.enablePoints')}</h3>
+                  <p className="text-sm text-stone-500">{t('admin.newMemberCoupons.enablePointsDescription')}</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -332,13 +332,13 @@ export default function NewMemberCouponSettings() {
                     onChange={(e) => setPointsEnabled(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                  <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600" />
                 </label>
               </div>
 
               {/* Points Amount Input */}
               <div className="mt-4">
-                <label htmlFor="pointsAmount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="pointsAmount" className="block text-sm font-medium text-stone-700 mb-2">
                   {t('admin.newMemberCoupons.pointsToAward')} *
                 </label>
                 <div className="relative">
@@ -347,14 +347,14 @@ export default function NewMemberCouponSettings() {
                     id="pointsAmount"
                     value={pointsAmount}
                     onChange={(e) => setPointsAmount(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                     placeholder={t('admin.newMemberCoupons.pointsPlaceholder')}
                     min="1"
                     max="10000"
                     disabled={!pointsEnabled}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 text-sm">{t('admin.newMemberCoupons.points')}</span>
+                    <span className="text-stone-500 text-sm">{t('admin.newMemberCoupons.points')}</span>
                   </div>
                 </div>
                 {pointsEnabled && !pointsAmount && (
@@ -372,12 +372,12 @@ export default function NewMemberCouponSettings() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between pt-4 border-t border-stone-200">
               <button
                 type="button"
                 onClick={handleReset}
                 disabled={!hasChanged || isSaving}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiX className="mr-2 h-4 w-4" />
                 {t('admin.newMemberCoupons.reset')}

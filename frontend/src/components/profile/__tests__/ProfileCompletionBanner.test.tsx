@@ -180,7 +180,7 @@ describe('ProfileCompletionBanner', () => {
 
       await waitFor(() => {
         const banner = container.firstChild as HTMLElement;
-        expect(banner).toHaveClass('bg-gradient-to-r', 'from-blue-600', 'to-purple-600');
+        expect(banner).toHaveClass('bg-gradient-to-r', 'from-brand-600', 'to-purple-600');
       });
     });
   });
@@ -593,11 +593,11 @@ describe('ProfileCompletionBanner', () => {
       });
 
       await waitFor(() => {
-        const backdrop = document.querySelector('.bg-gray-500');
+        const backdrop = document.querySelector('.bg-stone-500');
         expect(backdrop).toBeInTheDocument();
       });
 
-      const backdrop = document.querySelector('.bg-gray-500') as HTMLElement;
+      const backdrop = document.querySelector('.bg-stone-500') as HTMLElement;
       fireEvent.click(backdrop);
 
       await waitFor(() => {

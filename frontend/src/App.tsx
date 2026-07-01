@@ -220,10 +220,10 @@ function App() {
   // Show loading while Zustand rehydrates from localStorage
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600" />
+          <p className="mt-4 text-stone-600">Loading...</p>
         </div>
       </div>
     );

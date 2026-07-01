@@ -310,7 +310,7 @@ describe('SurveyPreview', () => {
       const navDots = Array.from(dots).filter(dot =>
         dot.className.includes('w-3') && dot.className.includes('h-3')
       );
-      expect(navDots[0]).toHaveClass('bg-blue-600');
+      expect(navDots[0]).toHaveClass('bg-brand-600');
     });
 
     it('should allow clicking dots to navigate', async () => {
@@ -582,7 +582,7 @@ describe('SurveyPreview', () => {
         <SurveyPreview survey={mockSurvey} onClose={mockOnClose} />
       );
 
-      const header = container.querySelector('.bg-blue-50');
+      const header = container.querySelector('.bg-brand-50');
       expect(header).toBeInTheDocument();
     });
 
@@ -591,7 +591,7 @@ describe('SurveyPreview', () => {
         <SurveyPreview survey={mockSurvey} onClose={mockOnClose} />
       );
 
-      const footer = container.querySelector('.bg-gray-50');
+      const footer = container.querySelector('.bg-stone-50');
       expect(footer).toBeInTheDocument();
     });
 

@@ -229,7 +229,7 @@ describe('CouponAssignmentsModal', () => {
 
       await waitFor(() => {
         const assignedCounts = screen.getAllByText(/^[0-9]+$/).filter(el =>
-          el.closest('td')?.querySelector('.text-blue-600')
+          el.closest('td')?.querySelector('.text-brand-600')
         );
         expect(assignedCounts.length).toBeGreaterThan(0);
       });
@@ -291,7 +291,7 @@ describe('CouponAssignmentsModal', () => {
       await waitFor(() => {
         const usedLabels = screen.getAllByText('Used');
         // Find the one in the summary section (gray-600 class)
-        const usedLabel = usedLabels.find(el => el.className.includes('text-gray-600'));
+        const usedLabel = usedLabels.find(el => el.className.includes('text-stone-600'));
         expect(usedLabel).toBeInTheDocument();
         const usedSection = usedLabel?.parentElement;
         expect(usedSection).toHaveTextContent('5');
@@ -307,7 +307,7 @@ describe('CouponAssignmentsModal', () => {
         // The summary section shows "Available" as a label
         const summaryAvailableLabel = availableLabels.find(el => {
           const parent = el.closest('div');
-          return parent?.className.includes('text-gray-600') && parent?.textContent === 'Available';
+          return parent?.className.includes('text-stone-600') && parent?.textContent === 'Available';
         });
         expect(summaryAvailableLabel).toBeInTheDocument();
       });
@@ -319,7 +319,7 @@ describe('CouponAssignmentsModal', () => {
       );
 
       await waitFor(() => {
-        const summarySection = container.querySelector('.bg-gray-50');
+        const summarySection = container.querySelector('.bg-stone-50');
         expect(summarySection).toBeInTheDocument();
       });
     });
@@ -410,7 +410,7 @@ describe('CouponAssignmentsModal', () => {
 
       await waitFor(() => {
         const allUsedBadge = screen.getByText('All Used');
-        expect(allUsedBadge).toHaveClass('bg-gray-100', 'text-gray-800');
+        expect(allUsedBadge).toHaveClass('bg-stone-100', 'text-stone-800');
       });
     });
 
@@ -455,7 +455,7 @@ describe('CouponAssignmentsModal', () => {
 
       await waitFor(() => {
         const closeButton = screen.getByText('×');
-        expect(closeButton).toHaveClass('text-gray-400', 'hover:text-gray-600');
+        expect(closeButton).toHaveClass('text-stone-400', 'hover:text-stone-600');
       });
     });
   });
@@ -940,7 +940,7 @@ describe('CouponAssignmentsModal', () => {
 
       await waitFor(() => {
         const rows = container.querySelectorAll('tbody tr');
-        expect(rows[0]).toHaveClass('hover:bg-gray-50');
+        expect(rows[0]).toHaveClass('hover:bg-stone-50');
       });
     });
   });

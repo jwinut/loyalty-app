@@ -116,10 +116,10 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         disabled={currentSlide === 0}
         className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10
           items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
-          ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+          ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Previous slide"
       >
-        <FiChevronLeft className="w-6 h-6 text-gray-600" />
+        <FiChevronLeft className="w-6 h-6 text-stone-600" />
       </button>
 
       <button
@@ -127,10 +127,10 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         disabled={currentSlide === totalSlides - 1}
         className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10
           items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
-          ${currentSlide === totalSlides - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+          ${currentSlide === totalSlides - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Next slide"
       >
-        <FiChevronRight className="w-6 h-6 text-gray-600" />
+        <FiChevronRight className="w-6 h-6 text-stone-600" />
       </button>
 
       {/* Pagination Dots */}
@@ -142,7 +142,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
             className={`transition-all duration-300 rounded-full
               ${currentSlide === index
                 ? 'w-8 h-2 bg-primary-600'
-                : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+                : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
               }`}
             aria-label={`Go to slide ${index + 1}`}
           />
@@ -150,7 +150,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
       </div>
 
       {/* Slide Counter - Mobile only */}
-      <div className="md:hidden text-center mt-2 text-sm text-gray-600">
+      <div className="md:hidden text-center mt-2 text-sm text-stone-600">
         {currentSlide + 1} / {totalSlides}
       </div>
     </div>

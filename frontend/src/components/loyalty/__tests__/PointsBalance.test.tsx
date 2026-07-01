@@ -506,7 +506,7 @@ describe('PointsBalance', () => {
       const { container } = render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const list = container.querySelector('ul');
-      expect(list).toHaveClass('text-xs', 'text-gray-600', 'space-y-1');
+      expect(list).toHaveClass('text-xs', 'text-stone-600', 'space-y-1');
     });
   });
 });

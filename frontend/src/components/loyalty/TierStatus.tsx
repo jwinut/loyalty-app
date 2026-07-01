@@ -28,7 +28,7 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-stone-900">
           {t('loyalty.tierStatus')}
         </h3>
         <div className="flex items-center space-x-2">
@@ -54,8 +54,8 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
                 ${isCompleted 
                   ? 'border-transparent' 
                   : isNext 
-                    ? 'border-gray-300 border-dashed' 
-                    : 'border-gray-200'
+                    ? 'border-stone-300 border-dashed' 
+                    : 'border-stone-200'
                 }
               `}
 style={{
@@ -63,7 +63,7 @@ style={{
               }}
               >
                 <FiAward className={`w-5 h-5 ${
-                  isCompleted ? 'text-white' : isNext ? 'text-gray-600' : 'text-gray-400'
+                  isCompleted ? 'text-white' : isNext ? 'text-stone-600' : 'text-stone-400'
                 }`}
                 />
               </div>
@@ -72,13 +72,13 @@ style={{
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className={`font-medium ${
-                    isCurrentTier ? 'text-gray-900' : isCompleted ? 'text-gray-700' : 'text-gray-500'
+                    isCurrentTier ? 'text-stone-900' : isCompleted ? 'text-stone-700' : 'text-stone-500'
                   }`}
                   >
                     {tier.name}
                   </span>
                   <span className={`text-sm ${
-                    isCurrentTier ? 'text-gray-900' : 'text-gray-500'
+                    isCurrentTier ? 'text-stone-900' : 'text-stone-500'
                   }`}
                   >
                     {tier.min_nights === 0 ? t('loyalty.newMember') : `${tier.min_nights.toLocaleString()}+ ${tier.min_nights === 1 ? t('loyalty.night') : t('loyalty.nights')}`}
@@ -88,7 +88,7 @@ style={{
                 {/* Progress Bar for Next Tier */}
                 {isNext && loyaltyStatus.progress_percentage !== null && (
                   <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                    <div className="flex items-center justify-between text-xs text-stone-600 mb-1">
                       <span>
                         {loyaltyStatus.nights_to_next_tier !== null
                           ? `${loyaltyStatus.nights_to_next_tier} ${loyaltyStatus.nights_to_next_tier === 1 ? t('loyalty.nightToGo') : t('loyalty.nightsToGo')}`
@@ -99,7 +99,7 @@ style={{
                         {getProgressPercentage().toFixed(1)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-stone-200 rounded-full h-2">
                       <div 
                         className="h-2 rounded-full transition-all duration-300"
                         style={{ 
@@ -115,14 +115,14 @@ style={{
                 {isCurrentTier && (
                   <div className="mt-1 flex items-center space-x-1">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tier.color }} />
-                    <span className="text-xs text-gray-600">{t('loyalty.currentTier')}</span>
+                    <span className="text-xs text-stone-600">{t('loyalty.currentTier')}</span>
                   </div>
                 )}
               </div>
 
               {/* Next Tier Arrow */}
               {isNext && (
-                <FiChevronUp className="w-4 h-4 text-gray-400" />
+                <FiChevronUp className="w-4 h-4 text-stone-400" />
               )}
             </div>
           );
@@ -131,11 +131,11 @@ style={{
 
       {/* Next Tier Benefits Preview */}
       {!isTopTier && loyaltyStatus.next_tier_name && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <div className="text-sm font-medium text-gray-700 mb-2">
+        <div className="mt-6 p-4 bg-stone-50 rounded-lg">
+          <div className="text-sm font-medium text-stone-700 mb-2">
             {t('loyalty.nextTierBenefits', { tier: loyaltyStatus.next_tier_name })}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-stone-600">
             {loyaltyStatus.nights_to_next_tier !== null
               ? t('loyalty.unlockBenefitsNights', { nights: loyaltyStatus.nights_to_next_tier })
               : t('loyalty.maxTierReached')}
@@ -149,7 +149,7 @@ style={{
           <div className="text-sm font-medium" style={{ color: loyaltyStatus.tier_color }}>
             🎉 {t('loyalty.topTierMessage')}
           </div>
-          <div className="text-xs text-gray-600 mt-1">
+          <div className="text-xs text-stone-600 mt-1">
             {t('loyalty.topTierDescription')}
           </div>
         </div>

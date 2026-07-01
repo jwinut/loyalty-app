@@ -28,9 +28,9 @@ export default function EmojiAvatar({
     return (
       <div
         className={`
-          ${sizeClasses[size]} rounded-full bg-gray-100 border-2 border-gray-200 
+          ${sizeClasses[size]} rounded-full bg-stone-100 border-2 border-stone-200 
           overflow-hidden flex items-center justify-center
-          ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}
+          ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-brand-500' : ''}
           ${className}
         `}
         onClick={onClick}
@@ -48,9 +48,9 @@ export default function EmojiAvatar({
   return (
     <div
       className={`
-        ${sizeClasses[size]} rounded-full bg-gray-100 border-2 border-gray-200 
+        ${sizeClasses[size]} rounded-full bg-stone-100 border-2 border-stone-200 
         flex items-center justify-center
-        ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 hover:scale-105 transition-all' : ''}
+        ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-brand-500 hover:scale-105 transition-all' : ''}
         ${className}
       `}
       onClick={onClick}

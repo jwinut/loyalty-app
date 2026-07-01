@@ -112,12 +112,12 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FiMail className="text-blue-500" />
+            <FiMail className="text-brand-500" />
             {t('profile.verifyEmail', 'Verify Email')}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 hover:bg-stone-100 rounded-full transition-colors"
             aria-label="Close"
           >
             <FiX size={20} />
@@ -126,13 +126,13 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6">
-          <p className="text-gray-600 mb-4">
+          <p className="text-stone-600 mb-4">
             {t('profile.verificationCodeSent', 'A verification code has been sent to:')}
           </p>
-          <p className="font-medium text-gray-900 mb-6 break-all">{newEmail}</p>
+          <p className="font-medium text-stone-900 mb-6 break-all">{newEmail}</p>
 
           <div className="mb-4">
-            <label htmlFor="verification-code" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="verification-code" className="block text-sm font-medium text-stone-700 mb-2">
               {t('profile.enterCode', 'Enter verification code')}
             </label>
             <input
@@ -142,7 +142,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
               onChange={handleCodeChange}
               placeholder="XXXX-XXXX"
               maxLength={9}
-              className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               data-testid="verification-code-input"
               autoComplete="off"
               autoFocus
@@ -158,7 +158,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
           <button
             type="submit"
             disabled={verifyMutation.isPending || code.length < 9}
-            className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-3 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             data-testid="verify-button"
           >
             {verifyMutation.isPending ? t('common.verifying', 'Verifying...') : t('profile.verifyCode', 'Verify Code')}
@@ -175,7 +175,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 type="button"
                 onClick={handleResend}
                 disabled={resendMutation.isPending}
-                className="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-1 mx-auto"
+                className="text-brand-600 hover:text-brand-800 disabled:text-stone-400 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-1 mx-auto"
                 data-testid="resend-code-button"
               >
                 <FiRefreshCw className={resendMutation.isPending ? 'animate-spin' : ''} size={14} />
@@ -184,7 +184,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             )}
           </div>
 
-          <p className="mt-4 text-xs text-gray-500 text-center">
+          <p className="mt-4 text-xs text-stone-500 text-center">
             {t('profile.codeExpiry', 'Code expires in 1 hour. Check your spam folder if you don\'t see it.')}
           </p>
         </form>

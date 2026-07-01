@@ -49,7 +49,7 @@ export default function GoogleLoginButton({ theme = 'light', variant = 'signIn' 
   return (
     <button
       onClick={handleGoogleClick}
-      className="w-full flex justify-center items-center px-3 py-2 rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      className="w-full flex justify-center items-center px-3 py-2 rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
       style={{
         backgroundColor: themeStyles.background,
         border: `1px solid ${themeStyles.border}`,

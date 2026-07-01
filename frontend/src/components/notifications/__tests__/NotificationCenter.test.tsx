@@ -363,7 +363,7 @@ describe('NotificationCenter', () => {
       await user.click(bellButton);
 
       await waitFor(() => {
-        const unreadBgs = container.querySelectorAll('.bg-blue-50');
+        const unreadBgs = container.querySelectorAll('.bg-brand-50');
         expect(unreadBgs.length).toBeGreaterThan(0);
       });
     });

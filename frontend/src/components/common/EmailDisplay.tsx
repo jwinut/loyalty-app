@@ -22,21 +22,21 @@ export default function EmailDisplay({
     return linkToProfile ? (
       <Link 
         to="/profile?tab=settings"
-        className={`text-blue-600 hover:text-blue-800 underline inline-flex items-center ${className}`}
+        className={`text-brand-600 hover:text-brand-800 underline inline-flex items-center ${className}`}
       >
         {showIcon && <FiMail className="w-4 h-4 mr-1" />}
         {t('profile.addEmailAddress')}
       </Link>
     ) : (
-      <span className={`text-gray-400 italic ${className}`}>
+      <span className={`text-stone-400 italic ${className}`}>
         {t('profile.noEmailProvided')}
       </span>
     );
   }
 
   return (
-    <span className={`text-gray-900 inline-flex items-center ${className}`}>
-      {showIcon && <FiMail className="w-4 h-4 mr-1 text-gray-500" />}
+    <span className={`text-stone-900 inline-flex items-center ${className}`}>
+      {showIcon && <FiMail className="w-4 h-4 mr-1 text-stone-500" />}
       {email}
     </span>
   );

@@ -58,14 +58,14 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center">
           <span className="text-xl mr-3">{getCouponTypeIcon(coupon.type)}</span>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-stone-900">
             {t('coupons.couponDetails')}
           </h3>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
           >
             ×
           </button>
@@ -76,11 +76,11 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
       <div className="p-6">
         {/* Coupon Header */}
         <div className="text-center mb-6 pb-4 border-b">
-          <h4 className="text-2xl font-bold text-gray-900 mb-2">
+          <h4 className="text-2xl font-bold text-stone-900 mb-2">
             {coupon.name}
           </h4>
           <div className="flex items-center justify-center space-x-4">
-            <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-mono">
+            <span className="bg-stone-100 text-stone-800 px-3 py-1 rounded-full text-sm font-mono">
               {coupon.code}
             </span>
             {isExpiring && (
@@ -94,10 +94,10 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
         {/* Description */}
         {coupon.description && (
           <div className="mb-6">
-            <h5 className="font-medium text-gray-900 mb-2">
+            <h5 className="font-medium text-stone-900 mb-2">
               📝 {t('coupons.description')}
             </h5>
-            <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+            <p className="text-stone-700 bg-stone-50 p-3 rounded-lg">
               {coupon.description}
             </p>
           </div>
@@ -117,14 +117,14 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
         </div>
 
         {/* Detailed Information */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h5 className="font-medium text-gray-900 mb-3 flex items-center">
+        <div className="bg-stone-50 rounded-lg p-4 mb-6">
+          <h5 className="font-medium text-stone-900 mb-3 flex items-center">
             <span className="mr-2">📋</span>
             {t('coupons.details')}
           </h5>
           <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-gray-200">
-              <span className="text-gray-600">{t('coupons.type')}:</span>
+            <div className="flex justify-between items-center py-2 border-b border-stone-200">
+              <span className="text-stone-600">{t('coupons.type')}:</span>
               <span className="font-medium flex items-center">
                 <span className="mr-1">{getCouponTypeIcon(coupon.type)}</span>
                 {t(`coupons.types.${coupon.type}`)}
@@ -132,18 +132,18 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
             </div>
             
             {coupon.minimumSpend && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-gray-600">{t('coupons.minimumSpend')}:</span>
-                <span className="font-medium text-blue-600">
+              <div className="flex justify-between items-center py-2 border-b border-stone-200">
+                <span className="text-stone-600">{t('coupons.minimumSpend')}:</span>
+                <span className="font-medium text-brand-600">
                   {coupon.currency}{coupon.minimumSpend}
                 </span>
               </div>
             )}
             
             {coupon.maximumDiscount && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-gray-600">{t('coupons.maximumDiscount')}:</span>
-                <span className="font-medium text-blue-600">
+              <div className="flex justify-between items-center py-2 border-b border-stone-200">
+                <span className="text-stone-600">{t('coupons.maximumDiscount')}:</span>
+                <span className="font-medium text-brand-600">
                   {coupon.currency}{coupon.maximumDiscount}
                 </span>
               </div>
@@ -151,8 +151,8 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
             
             {coupon.effectiveExpiry && (
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">{t('coupons.expiresOn')}:</span>
-                <span className={`font-medium ${isExpiring ? 'text-red-600' : 'text-gray-900'}`}>
+                <span className="text-stone-600">{t('coupons.expiresOn')}:</span>
+                <span className={`font-medium ${isExpiring ? 'text-red-600' : 'text-stone-900'}`}>
                   {formatDateToDDMMYYYY(coupon.effectiveExpiry)}
                 </span>
               </div>
@@ -174,13 +174,13 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
         )}
 
         {/* Usage Status */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-brand-50 border border-brand-200 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <span className="text-blue-600 mr-2">🎫</span>
-              <span className="font-medium text-blue-900">{t('coupons.status')}:</span>
+              <span className="text-brand-600 mr-2">🎫</span>
+              <span className="font-medium text-brand-900">{t('coupons.status')}:</span>
             </div>
-            <span className="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-sm font-medium capitalize">
+            <span className="bg-brand-200 text-brand-800 px-3 py-1 rounded-full text-sm font-medium capitalize">
               {t(`coupons.statuses.${coupon.status}`)}
             </span>
           </div>
@@ -191,7 +191,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+              className="bg-stone-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-stone-700 transition-colors"
             >
               {t('common.close')}
             </button>

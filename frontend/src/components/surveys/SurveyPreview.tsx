@@ -50,15 +50,15 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
   return (
     <div className="bg-white shadow rounded-lg">
       {/* Preview Header */}
-      <div className="bg-blue-50 px-6 py-4 border-b rounded-t-lg">
+      <div className="bg-brand-50 px-6 py-4 border-b rounded-t-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Survey Preview</h2>
-            <p className="text-sm text-gray-600">This is how your survey will appear to customers</p>
+            <h2 className="text-lg font-semibold text-stone-900">Survey Preview</h2>
+            <p className="text-sm text-stone-600">This is how your survey will appear to customers</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-stone-400 hover:text-stone-600"
           >
             <FiX className="h-6 w-6" />
           </button>
@@ -71,9 +71,9 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
           <>
             {/* Survey Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{survey.title}</h1>
+              <h1 className="text-2xl font-bold text-stone-900 mb-2">{survey.title}</h1>
               {survey.description && (
-                <p className="text-gray-600">{survey.description}</p>
+                <p className="text-stone-600">{survey.description}</p>
               )}
             </div>
 
@@ -85,7 +85,7 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
             />
 
             {/* Current Question */}
-            <div className="bg-gray-50 rounded-lg p-6 mb-6 min-h-[300px]">
+            <div className="bg-stone-50 rounded-lg p-6 mb-6 min-h-[300px]">
               {survey.questions[currentQuestion] && (
                 <QuestionRenderer
                   question={survey.questions[currentQuestion]}
@@ -101,21 +101,21 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
               <button
                 onClick={goToPrevious}
                 disabled={currentQuestion === 0}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiArrowLeft className="mr-2 h-4 w-4" />
                 Previous
               </button>
 
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-stone-500">
                   Question {currentQuestion + 1} of {survey.questions.length}
                 </span>
               </div>
 
               <button
                 onClick={goToNext}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
               >
                 {isLastQuestion ? 'Complete Survey' : 'Next'}
                 <FiArrowRight className="ml-2 h-4 w-4" />
@@ -130,10 +130,10 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
                   onClick={() => goToQuestion(index)}
                   className={`w-3 h-3 rounded-full transition-colors ${
                     index === currentQuestion
-                      ? 'bg-blue-600'
+                      ? 'bg-brand-600'
                       : answers[survey.questions[index]?.id ?? '']
                       ? 'bg-green-400'
-                      : 'bg-gray-300'
+                      : 'bg-stone-300'
                   }`}
                 />
               ))}
@@ -143,10 +143,10 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
           /* Completion Page */
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-stone-900 mb-4">
               Survey Completed!
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-stone-600 mb-6">
               Thank you for taking the time to complete this survey. Your feedback is valuable to us.
             </p>
             
@@ -156,7 +156,7 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
               </p>
             </div>
 
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
+            <button className="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-md">
               Back to Surveys
             </button>
           </div>
@@ -164,12 +164,12 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
       </div>
 
       {/* Preview Footer */}
-      <div className="bg-gray-50 px-6 py-3 border-t rounded-b-lg">
-        <div className="flex justify-between items-center text-sm text-gray-600">
+      <div className="bg-stone-50 px-6 py-3 border-t rounded-b-lg">
+        <div className="flex justify-between items-center text-sm text-stone-600">
           <span>Preview Mode - No responses will be saved</span>
           <button
             onClick={onClose}
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="text-brand-600 hover:text-brand-800 font-medium"
           >
             Close Preview
           </button>

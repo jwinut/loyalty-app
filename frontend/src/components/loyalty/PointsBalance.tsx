@@ -33,10 +33,10 @@ export default function PointsBalance({
             />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-stone-900">
               {t('loyalty.pointsBalance')}
             </h3>
-            <p className="text-sm text-gray-600" data-testid="loyalty-tier">
+            <p className="text-sm text-stone-600" data-testid="loyalty-tier">
               {loyaltyStatus.tier_name} {t('loyalty.member')}
             </p>
           </div>
@@ -49,7 +49,7 @@ export default function PointsBalance({
           >
             {loyaltyStatus.current_points.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-stone-600">
             {t('loyalty.availablePoints')}
           </div>
         </div>
@@ -59,17 +59,17 @@ export default function PointsBalance({
 
       {/* Tier Benefits Preview */}
       <div className="border-t pt-4">
-        <div className="text-sm font-medium text-gray-700 mb-2">
+        <div className="text-sm font-medium text-stone-700 mb-2">
           {t('loyalty.tierBenefits')}
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-stone-600">
           {typeof loyaltyStatus.tier_benefits === 'object' && loyaltyStatus.tier_benefits !== null && 'description' in loyaltyStatus.tier_benefits && typeof loyaltyStatus.tier_benefits.description === 'string'
             ? loyaltyStatus.tier_benefits.description
             : t('loyalty.noDescription')}
         </div>
         {typeof loyaltyStatus.tier_benefits === 'object' && loyaltyStatus.tier_benefits !== null && 'perks' in loyaltyStatus.tier_benefits && Array.isArray(loyaltyStatus.tier_benefits.perks) && loyaltyStatus.tier_benefits.perks.length > 0 && (
           <div className="mt-2">
-            <ul className="text-xs text-gray-600 space-y-1">
+            <ul className="text-xs text-stone-600 space-y-1">
               {loyaltyStatus.tier_benefits.perks.slice(0, 2).map((perk, index) => (
                 <li key={index} className="flex items-center space-x-1">
                   <span
@@ -81,7 +81,7 @@ export default function PointsBalance({
                 </li>
               ))}
               {loyaltyStatus.tier_benefits.perks.length > 2 && (
-                <li className="text-gray-500">
+                <li className="text-stone-500">
                   +{loyaltyStatus.tier_benefits.perks.length - 2} {t('loyalty.moreBenefits')}
                 </li>
               )}

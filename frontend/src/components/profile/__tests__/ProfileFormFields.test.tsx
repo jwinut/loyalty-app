@@ -305,9 +305,9 @@ describe('GenderField', () => {
       renderGenderField({ isModal: true });
 
       const select = screen.getByRole('combobox', { name: /gender/i });
-      expect(select).toHaveClass('border-gray-300');
-      expect(select).toHaveClass('focus:ring-blue-500');
-      expect(select).toHaveClass('text-gray-900');
+      expect(select).toHaveClass('border-stone-300');
+      expect(select).toHaveClass('focus:ring-brand-500');
+      expect(select).toHaveClass('text-stone-900');
     });
 
     it('should apply non-modal styles when isModal is false', () => {
@@ -498,9 +498,9 @@ describe('OccupationField', () => {
       renderOccupationField({ isModal: true });
 
       const select = screen.getByRole('combobox', { name: /occupation/i });
-      expect(select).toHaveClass('border-gray-300');
-      expect(select).toHaveClass('focus:ring-blue-500');
-      expect(select).toHaveClass('text-gray-900');
+      expect(select).toHaveClass('border-stone-300');
+      expect(select).toHaveClass('focus:ring-brand-500');
+      expect(select).toHaveClass('text-stone-900');
       expect(select).toHaveClass('bg-white');
     });
 
@@ -671,9 +671,9 @@ describe('DateOfBirthField', () => {
       renderDateOfBirthField({ isModal: true });
 
       const input = screen.getByLabelText(/date of birth/i);
-      expect(input).toHaveClass('border-gray-300');
-      expect(input).toHaveClass('focus:ring-blue-500');
-      expect(input).toHaveClass('text-gray-900');
+      expect(input).toHaveClass('border-stone-300');
+      expect(input).toHaveClass('focus:ring-brand-500');
+      expect(input).toHaveClass('text-stone-900');
     });
 
     it('should apply non-modal styles when isModal is false', () => {

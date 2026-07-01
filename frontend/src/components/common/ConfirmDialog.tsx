@@ -49,7 +49,7 @@ export function ConfirmDialog({
   const variantStyles = {
     danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
     warning: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-    info: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+    info: 'bg-brand-600 hover:bg-brand-700 focus:ring-brand-500'
   };
 
   return createPortal(
@@ -61,7 +61,7 @@ export function ConfirmDialog({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        className="fixed inset-0 bg-stone-500 bg-opacity-75 transition-opacity"
         onClick={onCancel}
       />
 
@@ -72,12 +72,12 @@ export function ConfirmDialog({
             <div className="sm:flex sm:items-start">
               <div
                 className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
-                  variant === 'danger' ? 'bg-red-100' : variant === 'warning' ? 'bg-yellow-100' : 'bg-blue-100'
+                  variant === 'danger' ? 'bg-red-100' : variant === 'warning' ? 'bg-yellow-100' : 'bg-brand-100'
                 }`}
               >
                 <svg
                   className={`h-6 w-6 ${
-                    variant === 'danger' ? 'text-red-600' : variant === 'warning' ? 'text-yellow-600' : 'text-blue-600'
+                    variant === 'danger' ? 'text-red-600' : variant === 'warning' ? 'text-yellow-600' : 'text-brand-600'
                   }`}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -93,18 +93,18 @@ export function ConfirmDialog({
                 </svg>
               </div>
               <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                <h3 className="text-base font-semibold leading-6 text-gray-900" id="modal-title">
+                <h3 className="text-base font-semibold leading-6 text-stone-900" id="modal-title">
                   {title}
                 </h3>
                 <div className="mt-2">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-stone-500">
                     {message}
                   </p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <div className="bg-stone-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
             <button
               type="button"
               ref={confirmButtonRef}
@@ -115,7 +115,7 @@ export function ConfirmDialog({
             </button>
             <button
               type="button"
-              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-stone-900 shadow-sm ring-1 ring-inset ring-stone-300 hover:bg-stone-50 sm:mt-0 sm:w-auto"
               onClick={onCancel}
             >
               {cancelText}

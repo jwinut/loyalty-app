@@ -31,7 +31,7 @@ const CouponCard: React.FC<CouponCardProps> = ({
   return (
     <div className={`
       relative bg-white rounded-lg shadow-md overflow-hidden border 
-      ${isExpiring ? 'border-red-300 bg-red-50' : 'border-gray-200'}
+      ${isExpiring ? 'border-red-300 bg-red-50' : 'border-stone-200'}
       ${className}
     `}
     >
@@ -46,16 +46,16 @@ const CouponCard: React.FC<CouponCardProps> = ({
         <div className="flex items-start">
           {/* Coupon Details */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 truncate">
+            <h3 className="text-lg font-semibold text-stone-900 truncate">
               {coupon.name}
             </h3>
             
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-stone-600 mt-1">
               {coupon.code}
             </p>
 
             {coupon.description && (
-              <p className="text-sm text-gray-700 mt-2 line-clamp-2">
+              <p className="text-sm text-stone-700 mt-2 line-clamp-2">
                 {coupon.description}
               </p>
             )}
@@ -64,14 +64,14 @@ const CouponCard: React.FC<CouponCardProps> = ({
             <div className="mt-3 space-y-1">
               <div className="flex items-center justify-end">
                 {expiryText && (
-                  <span className={`text-sm ${isExpiring ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                  <span className={`text-sm ${isExpiring ? 'text-red-600 font-medium' : 'text-stone-500'}`}>
                     {expiryText}
                   </span>
                 )}
               </div>
 
               {minimumSpendText && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-stone-500">
                   {minimumSpendText}
                 </p>
               )}
@@ -84,7 +84,7 @@ const CouponCard: React.FC<CouponCardProps> = ({
           {onUse && (
             <button
               onClick={() => onUse(coupon)}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex-1 bg-brand-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors"
             >
               {t('coupons.useCoupon')}
             </button>
@@ -93,7 +93,7 @@ const CouponCard: React.FC<CouponCardProps> = ({
           {onViewDetails && (
             <button
               onClick={() => onViewDetails(coupon)}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex-1 bg-stone-100 text-stone-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors"
             >
               {t('coupons.viewDetails')}
             </button>
@@ -102,8 +102,8 @@ const CouponCard: React.FC<CouponCardProps> = ({
       </div>
 
       {/* Decorative Perforations */}
-      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-gray-100 rounded-full -ml-2" />
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-gray-100 rounded-full -mr-2" />
+      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-stone-100 rounded-full -ml-2" />
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-stone-100 rounded-full -mr-2" />
     </div>
   );
 };
