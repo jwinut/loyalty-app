@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage';
 import CouponWallet from './pages/coupons/CouponWallet';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import SessionManager from './components/auth/SessionManager';
+import AdminPortalBand from './components/admin/AdminPortalBand';
 import LanguageProvider from './components/LanguageProvider';
 import DevTools from './components/dev/DevTools';
 
@@ -234,7 +235,8 @@ function App() {
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
         <Router>
           <SessionManager />
-          <Toaster 
+          <AdminPortalBand />
+          <Toaster
             position="top-center"
             toastOptions={{
               duration: 4000,
