@@ -41,6 +41,13 @@ interface AuthState {
   isLoading: boolean;
 
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  // Silent admin auto-login via Cloudflare Access. Only called by
+  // ProtectedRoute on /admin* paths — see its doc comment. Returns whether
+  // the exchange succeeded instead of throwing, since a 401/403 here is an
+  // expected outcome (guest/employee/unmapped identity), not an error to
+  // surface to the user. Never touches the email+password `login` or
+  // Google/LINE OAuth paths above/below.
+  cfExchangeLogin: () => Promise<boolean>;
   register: (data: {
     email: string;
     password: string;
@@ -88,6 +95,27 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
           notify.error(error instanceof Error ? error.message : 'Login failed');
           throw error;
+        }
+      },
+
+      cfExchangeLogin: async () => {
+        try {
+          const response = await authService.cfExchange();
+          // Same state shape as login() — from here on, an admin who
+          // arrived via Cloudflare Access is indistinguishable from one
+          // who typed a password.
+          set({
+            user: response.user,
+            accessToken: response.tokens.accessToken,
+            isAuthenticated: true,
+          });
+          return true;
+        } catch (error: unknown) {
+          // Expected for guests/employees/unmapped emails — no toast, no
+          // rethrow. The caller (ProtectedRoute) falls back to the normal
+          // login form exactly as if this method didn't exist.
+          logger.warn('Cloudflare Access exchange did not succeed:', error instanceof Error ? error.message : String(error));
+          return false;
         }
       },
 

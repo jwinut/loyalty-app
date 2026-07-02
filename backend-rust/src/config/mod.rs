@@ -435,6 +435,70 @@ impl Default for SecurityConfig {
     }
 }
 
+/// Cloudflare Access configuration
+///
+/// Backs the `/api/auth/cf-exchange` endpoint (silent admin auto-login via
+/// Cloudflare Access + Google SSO for `loyalty.saichon.com/admin*`). None of
+/// these values are secrets: the AUD tag identifies the Access application
+/// (not a credential — Cloudflare's own docs treat it as public), the issuer
+/// and JWKS URL are just the team's well-known Cloudflare Access endpoints.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CfAccessConfig {
+    /// Master switch for the exchange endpoint. Defaults to `true`; set
+    /// `CF_ACCESS_ENABLED=false` to disable without a code change (e.g. if
+    /// the Cloudflare Access application is ever removed or misconfigured).
+    #[serde(default = "default_cf_access_enabled")]
+    pub enabled: bool,
+
+    /// Expected `aud` claim on the Cloudflare Access JWT — identifies the
+    /// `loyalty.saichon.com/admin*` Access application.
+    #[serde(default = "default_cf_access_aud")]
+    pub aud: String,
+
+    /// Expected `iss` claim — the Cloudflare Access team domain that issues
+    /// tokens for this application.
+    #[serde(default = "default_cf_access_issuer")]
+    pub issuer: String,
+
+    /// JWKS endpoint used to fetch the RS256 verification keys. Overridable
+    /// so integration tests can point at a local mock server instead of the
+    /// real Cloudflare endpoint.
+    #[serde(default = "default_cf_access_jwks_url")]
+    pub jwks_url: String,
+}
+
+fn default_cf_access_enabled() -> bool {
+    true
+}
+
+/// AUD tag for the `loyalty.saichon.com/admin*` Cloudflare Access
+/// application. Not a secret — see `CfAccessConfig` doc comment.
+pub const DEFAULT_CF_ACCESS_AUD: &str =
+    "18effa77177458321432ba1b2c59a247903c9f89bb262aa598c3f75529faa6be";
+
+fn default_cf_access_aud() -> String {
+    DEFAULT_CF_ACCESS_AUD.to_string()
+}
+
+fn default_cf_access_issuer() -> String {
+    "https://laikaexpress.cloudflareaccess.com".to_string()
+}
+
+fn default_cf_access_jwks_url() -> String {
+    "https://laikaexpress.cloudflareaccess.com/cdn-cgi/access/certs".to_string()
+}
+
+impl Default for CfAccessConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_cf_access_enabled(),
+            aud: default_cf_access_aud(),
+            issuer: default_cf_access_issuer(),
+            jwks_url: default_cf_access_jwks_url(),
+        }
+    }
+}
+
 /// Main application settings
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Settings {
@@ -477,6 +541,10 @@ pub struct Settings {
     /// Security configuration
     #[serde(default)]
     pub security: SecurityConfig,
+
+    /// Cloudflare Access configuration (admin auto-login exchange)
+    #[serde(default)]
+    pub cf_access: CfAccessConfig,
 }
 
 impl Settings {
@@ -507,6 +575,10 @@ impl Settings {
             .set_default("security.max_file_size", 5_242_880)?
             .set_default("security.rate_limit_window_ms", 900_000)?
             .set_default("security.rate_limit_max_requests", 10_000)?
+            .set_default("cf_access.enabled", true)?
+            .set_default("cf_access.aud", DEFAULT_CF_ACCESS_AUD)?
+            .set_default("cf_access.issuer", default_cf_access_issuer())?
+            .set_default("cf_access.jwks_url", default_cf_access_jwks_url())?
             // Load from config file if present
             .add_source(File::with_name("config/default").required(false))
             .add_source(File::with_name("config/local").required(false))
@@ -570,6 +642,10 @@ impl Settings {
                 "security.rate_limit_max_requests",
                 env::var("RATE_LIMIT_MAX_REQUESTS").ok(),
             )?
+            .set_override_option("cf_access.enabled", env::var("CF_ACCESS_ENABLED").ok())?
+            .set_override_option("cf_access.aud", env::var("CF_ACCESS_AUD").ok())?
+            .set_override_option("cf_access.issuer", env::var("CF_ACCESS_ISSUER").ok())?
+            .set_override_option("cf_access.jwks_url", env::var("CF_ACCESS_JWKS_URL").ok())?
             .build()?;
 
         let settings: Settings = settings.try_deserialize()?;

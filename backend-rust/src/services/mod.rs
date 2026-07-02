@@ -5,6 +5,7 @@
 //! Domain CRUD lives directly in the `routes/` handlers via `sqlx` rather
 //! than behind a service trait.
 
+pub mod cf_access;
 pub mod email;
 pub mod idempotency;
 pub mod oauth;

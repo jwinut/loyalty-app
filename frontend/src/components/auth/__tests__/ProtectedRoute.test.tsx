@@ -506,4 +506,179 @@ describe('ProtectedRoute', () => {
       consoleWarnSpy.mockRestore();
     });
   });
+
+  describe('Cloudflare Access admin exchange', () => {
+    it('attempts the exchange on an /admin* path when unauthenticated, and renders children on success', async () => {
+      // A mutable "live" state object so the exchange can simulate what
+      // authStore.cfExchangeLogin really does — flip isAuthenticated/user/
+      // accessToken — and the component's own re-render (triggered by its
+      // `finally` state update) picks up the change, just like the real
+      // Zustand store would.
+      const liveState = {
+        isLoading: false,
+        isAuthenticated: false,
+        user: null as { id: string; email: string; role: string } | null,
+        accessToken: null as string | null,
+        checkAuthStatus: mockCheckAuthStatus,
+        cfExchangeLogin: vi.fn(),
+      };
+      liveState.cfExchangeLogin = vi.fn().mockImplementation(async () => {
+        liveState.isAuthenticated = true;
+        liveState.user = { id: '1', email: 'admin@example.com', role: 'admin' };
+        liveState.accessToken = 'cf-exchange-token';
+        return true;
+      });
+
+      (useAuthStore as any).mockImplementation((selector: any) => selector(liveState));
+
+      render(
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <ProtectedRoute requiredRole="admin">
+            <div>Admin Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Admin Content')).toBeInTheDocument();
+      });
+      expect(liveState.cfExchangeLogin).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to the login redirect when the exchange fails on an /admin* path', async () => {
+      const mockCfExchangeLogin = vi.fn().mockResolvedValue(false);
+      (useAuthStore as any).mockImplementation((selector: any) => {
+        const state = {
+          isLoading: false,
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          checkAuthStatus: mockCheckAuthStatus,
+          cfExchangeLogin: mockCfExchangeLogin,
+        };
+        return selector(state);
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <ProtectedRoute requiredRole="admin">
+            <div>Admin Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockCfExchangeLogin).toHaveBeenCalledTimes(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('navigate-mock')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('navigate-mock').textContent).toContain('/login');
+    });
+
+    it('never attempts the exchange on a non-admin path', async () => {
+      const mockCfExchangeLogin = vi.fn().mockResolvedValue(false);
+      (useAuthStore as any).mockImplementation((selector: any) => {
+        const state = {
+          isLoading: false,
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          checkAuthStatus: mockCheckAuthStatus,
+          cfExchangeLogin: mockCfExchangeLogin,
+        };
+        return selector(state);
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/dashboard']}>
+          <ProtectedRoute>
+            <div>Protected Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByTestId('navigate-mock')).toBeInTheDocument();
+      expect(mockCfExchangeLogin).not.toHaveBeenCalled();
+    });
+
+    it('never attempts the exchange on the login page itself', async () => {
+      const mockCfExchangeLogin = vi.fn().mockResolvedValue(false);
+      (useAuthStore as any).mockImplementation((selector: any) => {
+        const state = {
+          isLoading: false,
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          checkAuthStatus: mockCheckAuthStatus,
+          cfExchangeLogin: mockCfExchangeLogin,
+        };
+        return selector(state);
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/login']}>
+          <ProtectedRoute>
+            <div>Protected Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByTestId('navigate-mock')).toBeInTheDocument();
+      expect(mockCfExchangeLogin).not.toHaveBeenCalled();
+    });
+
+    it('does not attempt the exchange when already authenticated on an /admin* path', () => {
+      const mockCfExchangeLogin = vi.fn().mockResolvedValue(true);
+      (useAuthStore as any).mockImplementation((selector: any) => {
+        const state = {
+          isLoading: false,
+          isAuthenticated: true,
+          user: { id: '1', email: 'admin@example.com', role: 'admin' },
+          accessToken: 'token123',
+          checkAuthStatus: mockCheckAuthStatus,
+          cfExchangeLogin: mockCfExchangeLogin,
+        };
+        return selector(state);
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <ProtectedRoute requiredRole="admin">
+            <div>Admin Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Admin Content')).toBeInTheDocument();
+      expect(mockCfExchangeLogin).not.toHaveBeenCalled();
+    });
+
+    it('does not crash when the store has no cfExchangeLogin (older mock shape) and falls back to redirect', async () => {
+      (useAuthStore as any).mockImplementation((selector: any) => {
+        const state = {
+          isLoading: false,
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          checkAuthStatus: mockCheckAuthStatus,
+          // cfExchangeLogin intentionally omitted
+        };
+        return selector(state);
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <ProtectedRoute requiredRole="admin">
+            <div>Admin Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('navigate-mock')).toBeInTheDocument();
+      });
+    });
+  });
 });

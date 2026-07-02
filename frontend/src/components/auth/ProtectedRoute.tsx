@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { logger } from '../../utils/logger';
 
 interface ProtectedRouteProps {
@@ -9,17 +9,57 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export default function ProtectedRoute({ 
-  children, 
+// Cloudflare Access silently authenticates HF Managers for this prefix only
+// (see `authStore.cfExchangeLogin`). Guest/customer routes never match this
+// and so never trigger the exchange attempt below.
+const ADMIN_PATH_PREFIX = '/admin';
+
+export default function ProtectedRoute({
+  children,
   requiredRole,
-  redirectTo = '/login' 
+  redirectTo = '/login'
 }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
   const isLoading = useAuthStore((state) => state.isLoading);
   const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
+  // Read defensively: older test mocks (predating this feature) supply a
+  // partial store shape without `cfExchangeLogin`, so this can come back
+  // `undefined` — handled below by skipping the exchange attempt.
+  const cfExchangeLogin = useAuthStore((state) => state.cfExchangeLogin);
   const location = useLocation();
+
+  const isAdminPath = location.pathname.startsWith(ADMIN_PATH_PREFIX);
+
+  // Cloudflare Access admin auto-login: on an /admin* path with no session
+  // at all, try the silent cf-exchange once before falling back to the
+  // login-form redirect. This is the ONLY place that exchange is triggered
+  // — never on the login page or any customer/guest route. A guest or
+  // employee hitting an /admin* path simply gets a 401/403 from the
+  // exchange and falls straight through to the normal redirect, same as
+  // today.
+  const [cfExchangeAttempted, setCfExchangeAttempted] = useState(false);
+  const cfExchangeInFlight = useRef(false);
+
+  useEffect(() => {
+    if (!isAdminPath || isAuthenticated || cfExchangeAttempted || cfExchangeInFlight.current) {
+      return;
+    }
+
+    if (typeof cfExchangeLogin !== 'function') {
+      setCfExchangeAttempted(true);
+      return;
+    }
+
+    cfExchangeInFlight.current = true;
+    cfExchangeLogin()
+      .catch(() => false)
+      .finally(() => {
+        cfExchangeInFlight.current = false;
+        setCfExchangeAttempted(true);
+      });
+  }, [isAdminPath, isAuthenticated, cfExchangeAttempted, cfExchangeLogin]);
 
   // Verify authentication on mount and when tokens change
   useEffect(() => {
@@ -38,8 +78,12 @@ export default function ProtectedRoute({
     verifyAuth();
   }, [isAuthenticated, user, accessToken, checkAuthStatus]);
 
-  // Show loading while auth is being verified
-  if (isLoading) {
+  // Show loading while auth is being verified, or while an /admin* path is
+  // still waiting on the silent Cloudflare Access exchange — without this,
+  // an unauthenticated admin would flash the login redirect before the
+  // exchange even resolves.
+  const isAwaitingCfExchange = isAdminPath && !isAuthenticated && !cfExchangeAttempted;
+  if (isLoading || isAwaitingCfExchange) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">

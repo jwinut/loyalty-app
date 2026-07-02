@@ -668,6 +668,7 @@ fn create_test_config() -> loyalty_backend::Settings {
         slipok: SlipokConfig::default(),
         promptpay: PromptPayConfig::default(),
         security: SecurityConfig::default(),
+        cf_access: CfAccessConfig::default(),
     }
 }
 

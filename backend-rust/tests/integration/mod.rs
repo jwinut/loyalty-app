@@ -33,6 +33,7 @@
 pub mod admin_test;
 pub mod auth_test;
 pub mod booking_test;
+pub mod cf_access_test;
 pub mod coupon_test;
 pub mod health_test;
 pub mod loyalty_test;

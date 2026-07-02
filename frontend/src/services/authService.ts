@@ -48,6 +48,26 @@ export const authService = {
     return response.data;
   },
 
+  /**
+   * Silently exchange a Cloudflare Access identity (Google SSO behind
+   * `loyalty.saichon.com/admin*`) for a normal session. Only ever called
+   * for `/admin*` routes (see `ProtectedRoute`) — never on the guest
+   * login page or any customer-facing flow, which keep using
+   * `authService.login` / Google-LINE OAuth exactly as before.
+   *
+   * The backend reads the Cloudflare-issued `Cf-Access-Jwt-Assertion`
+   * header (present on this same-origin request because Cloudflare set it
+   * on the page load that got us here) or the `CF_Authorization` cookie
+   * (sent automatically via `withCredentials: true`) — no token is passed
+   * explicitly from the frontend. A non-admin/unmapped identity gets a
+   * 401/403, which callers should treat exactly like "not logged in" and
+   * fall back to the normal form.
+   */
+  async cfExchange(): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/cf-exchange', {});
+    return response.data;
+  },
+
   async register(data: RegisterData): Promise<RegisterResponse> {
     const response = await api.post<RegisterResponse>('/auth/register', data);
     return response.data;

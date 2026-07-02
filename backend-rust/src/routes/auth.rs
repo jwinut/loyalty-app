@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Extension, State},
+    http::HeaderMap,
     middleware,
     routing::{get, post},
     Json, Router,
@@ -20,6 +21,7 @@ use crate::middleware::auth::{
     auth_middleware, build_clear_refresh_cookie, build_refresh_cookie, AuthUser,
     REFRESH_COOKIE_NAME,
 };
+use crate::services::cf_access;
 use crate::services::email::{EmailService, EmailServiceImpl};
 
 /// Application state type alias for auth routes
@@ -685,6 +687,165 @@ async fn login(
     ))
 }
 
+/// Map a Cloudflare Access verification failure onto the app's error type.
+///
+/// `FetchFailed` (JWKS unreachable) is a transient infrastructure problem,
+/// not a caller mistake, so it maps to a 5xx. Every other variant means the
+/// presented token itself is invalid, missing, or untrusted, which is a
+/// client-side 401/403 — deliberately vague ("invalid Cloudflare Access
+/// token") rather than echoing the specific validation failure back to the
+/// caller.
+fn cf_access_error_to_app_error(err: cf_access::CfAccessError) -> AppError {
+    match err {
+        cf_access::CfAccessError::FetchFailed(e) => AppError::Internal(format!(
+            "Cloudflare Access verification temporarily unavailable: {e}"
+        )),
+        other => {
+            tracing::warn!(error = %other, "Cloudflare Access token rejected");
+            AppError::Forbidden("Invalid Cloudflare Access token".to_string())
+        },
+    }
+}
+
+/// POST /api/auth/cf-exchange
+///
+/// STRICTLY ADDITIVE admin auto-login: exchanges a verified Cloudflare
+/// Access identity (Google SSO behind the `loyalty.saichon.com/admin*`
+/// Access application) for this app's normal session — the exact same
+/// access-token + refresh-cookie contract `login` produces. It changes
+/// NOTHING about guest/customer authentication: email+password login
+/// (`login`, above) and the Google/LINE OAuth flows in `routes::oauth` are
+/// completely untouched, and this endpoint only ever succeeds for a user
+/// row whose `role` is `admin` or `super_admin`.
+///
+/// The Cloudflare Access JWT is read from the `Cf-Access-Jwt-Assertion`
+/// header (present on every request that passed the Access policy) or the
+/// `CF_Authorization` cookie (carried over on this same-origin `/api/*`
+/// call even though `/api/*` isn't itself Access-gated). After verifying it
+/// against Cloudflare's JWKS, the verified email is looked up against
+/// `users`; only an active admin/super_admin row is allowed through — any
+/// other outcome (no CF token, invalid CF token, unmapped email, customer
+/// role, inactive account) is a 401/403 and the frontend falls back to the
+/// normal login form.
+async fn cf_exchange(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    jar: CookieJar,
+) -> Result<(CookieJar, Json<AuthResponse>), AppError> {
+    let config = state.config();
+
+    if !config.cf_access.enabled {
+        return Err(AppError::Forbidden(
+            "Cloudflare Access exchange is disabled".to_string(),
+        ));
+    }
+
+    let token = cf_access::extract_cf_access_token(&headers, &jar).ok_or_else(|| {
+        AppError::Unauthorized("No Cloudflare Access token presented".to_string())
+    })?;
+
+    let http_client = reqwest::Client::new();
+    let jwks = cf_access::get_cached_jwks(&http_client, &config.cf_access.jwks_url)
+        .await
+        .map_err(cf_access_error_to_app_error)?;
+
+    let cf_email = cf_access::verify_cf_access_jwt(
+        &token,
+        &jwks,
+        &config.cf_access.issuer,
+        &config.cf_access.aud,
+    )
+    .map_err(cf_access_error_to_app_error)?;
+
+    let db = state.db();
+
+    // Only an active admin/super_admin row may exchange a Cloudflare
+    // identity for a session — a verified Access login with no matching
+    // (or non-admin) local account is a 403, not an account creation
+    // trigger. We never provision users here.
+    let user_row: Option<UserRow> = sqlx::query_as(
+        r#"
+        SELECT id, email, password_hash, role, is_active, email_verified, created_at, updated_at
+        FROM users
+        WHERE lower(email) = lower($1)
+          AND role::text IN ('admin', 'super_admin')
+          AND is_active
+        "#,
+    )
+    .bind(&cf_email)
+    .fetch_optional(db)
+    .await
+    .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+    let user_row = user_row.ok_or_else(|| {
+        tracing::warn!(
+            email = %cf_email,
+            "Cloudflare Access identity verified but no matching active admin account"
+        );
+        AppError::Forbidden(format!(
+            "No active admin account found for {cf_email}. Ask an existing admin to grant access."
+        ))
+    })?;
+
+    // Mint the exact same session `login` does: HS256 access token in the
+    // JSON body, opaque refresh token stored server-side and delivered via
+    // the HttpOnly cookie.
+    let role_str = format!("{:?}", user_row.role.unwrap_or_default()).to_lowercase();
+    let access_token = generate_access_token(
+        &user_row.id,
+        user_row.email.as_deref(),
+        &role_str,
+        &config.auth.jwt_secret,
+        config.auth.access_token_expiry_secs as i64,
+    )?;
+
+    let refresh_token = generate_refresh_token_string();
+    let refresh_expires_at = Utc::now() + Duration::days(7);
+
+    sqlx::query(
+        r#"
+        INSERT INTO refresh_tokens (user_id, token, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+    )
+    .bind(&user_row.id)
+    .bind(&refresh_token)
+    .bind(&refresh_expires_at)
+    .execute(db)
+    .await
+    .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO user_audit_log (user_id, action, details)
+        VALUES ($1, 'cf_access_login', $2)
+        "#,
+    )
+    .bind(&user_row.id)
+    .bind(serde_json::json!({ "email": cf_email }))
+    .execute(db)
+    .await
+    .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+    let user_response = get_user_profile(db, &user_row.id).await?;
+
+    tracing::info!(
+        "Admin logged in via Cloudflare Access: {}",
+        user_response.id
+    );
+
+    let refresh_max_age_secs = (refresh_expires_at - Utc::now()).num_seconds().max(0);
+    let jar = jar.add(build_refresh_cookie(refresh_token, refresh_max_age_secs));
+
+    Ok((
+        jar,
+        Json(AuthResponse {
+            user: user_response,
+            tokens: AuthTokens { access_token },
+        }),
+    ))
+}
+
 /// POST /api/auth/logout
 /// Invalidates the user's refresh token and clears the refresh-token cookie.
 ///
@@ -1085,7 +1246,12 @@ pub fn routes() -> Router<AppState> {
         .route("/refresh", post(refresh))
         .route("/reset-password/request", post(forgot_password))
         .route("/forgot-password", post(forgot_password))
-        .route("/reset-password", post(reset_password));
+        .route("/reset-password", post(reset_password))
+        // Admin-only Cloudflare Access exchange. Public (no auth_middleware)
+        // by necessity — it's what MINTS the session — but it only ever
+        // succeeds for a verified Cloudflare identity mapped to an active
+        // admin/super_admin user row. See `cf_exchange` doc comment.
+        .route("/cf-exchange", post(cf_exchange));
 
     Router::<AppState>::new()
         .merge(protected_routes)
@@ -1107,7 +1273,8 @@ pub fn routes_with_state(state: AppState) -> Router {
         .route("/auth/refresh", post(refresh))
         .route("/auth/reset-password/request", post(forgot_password))
         .route("/auth/forgot-password", post(forgot_password))
-        .route("/auth/reset-password", post(reset_password));
+        .route("/auth/reset-password", post(reset_password))
+        .route("/auth/cf-exchange", post(cf_exchange));
 
     Router::<AppState>::new()
         .merge(protected_routes)
