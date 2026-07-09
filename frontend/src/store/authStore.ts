@@ -48,6 +48,12 @@ interface AuthState {
   // surface to the user. Never touches the email+password `login` or
   // Google/LINE OAuth paths above/below.
   cfExchangeLogin: () => Promise<boolean>;
+  // Silent LIFF auto-login. Only called by the LIFF bootstrap
+  // (`utils/liffAuth.ts`) when the app runs inside the LINE in-app
+  // browser. Returns whether the exchange succeeded instead of throwing —
+  // a failure just means the guest keeps browsing unauthenticated and the
+  // normal login page takes over, exactly as on the web.
+  liffLogin: (idToken: string) => Promise<boolean>;
   register: (data: {
     email: string;
     password: string;
@@ -115,6 +121,27 @@ export const useAuthStore = create<AuthState>()(
           // rethrow. The caller (ProtectedRoute) falls back to the normal
           // login form exactly as if this method didn't exist.
           logger.warn('Cloudflare Access exchange did not succeed:', error instanceof Error ? error.message : String(error));
+          return false;
+        }
+      },
+
+      liffLogin: async (idToken: string) => {
+        try {
+          const response = await authService.liffLogin(idToken);
+          // Same state shape as login() — a member who arrived through the
+          // LINE rich menu is indistinguishable from one who typed a
+          // password.
+          set({
+            user: response.user,
+            accessToken: response.tokens.accessToken,
+            isAuthenticated: true,
+          });
+          return true;
+        } catch (error: unknown) {
+          // No toast, no rethrow — silent enrollment must never greet a
+          // first-time guest with an error banner. The caller falls back
+          // to the normal unauthenticated flow.
+          logger.warn('LIFF login did not succeed:', error instanceof Error ? error.message : String(error));
           return false;
         }
       },

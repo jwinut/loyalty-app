@@ -328,6 +328,12 @@ async fn ensure_template_db() -> Result<(), Box<dyn std::error::Error + Send + S
         include_str!("../../migrations/20260513020000_bookings_no_overlap.sql");
     template_pool.execute(bookings_no_overlap_migration).await?;
 
+    let property_line_channel_migration =
+        include_str!("../../migrations/20260710000000_property_line_channel.sql");
+    template_pool
+        .execute(property_line_channel_migration)
+        .await?;
+
     // Seed tiers
     template_pool
         .execute(
@@ -462,11 +468,26 @@ impl TestApp {
     /// Retries up to 5 times on transient "Tokio runtime shutdown" errors that
     /// can occur when parallel `#[tokio::test]` runtimes race during cleanup.
     pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Self::new_internal(None).await
+    }
+
+    /// Like [`TestApp::new`] but lets the test mutate `Settings` before the
+    /// router is built (e.g. point `pms.base_url` at a wiremock server or
+    /// configure a LINE messaging channel secret).
+    pub async fn new_with_config(
+        mutate: &(dyn Fn(&mut loyalty_backend::Settings) + Sync),
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Self::new_internal(Some(mutate)).await
+    }
+
+    async fn new_internal(
+        mutate: Option<&(dyn Fn(&mut loyalty_backend::Settings) + Sync)>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         const MAX_RETRIES: u32 = 5;
         let mut last_error = None;
 
         for attempt in 0..MAX_RETRIES {
-            match Self::try_new().await {
+            match Self::try_new(mutate).await {
                 Ok(app) => return Ok(app),
                 Err(e) => {
                     let err_str = e.to_string();
@@ -490,7 +511,9 @@ impl TestApp {
     }
 
     /// Inner implementation of TestApp creation.
-    async fn try_new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    async fn try_new(
+        mutate: Option<&(dyn Fn(&mut loyalty_backend::Settings) + Sync)>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let _ = dotenvy::dotenv();
 
         // Ensure template DB is ready
@@ -539,7 +562,10 @@ impl TestApp {
         let redis = init_test_redis().await?;
 
         // Create application state and router
-        let config = create_test_config();
+        let mut config = create_test_config();
+        if let Some(mutate) = mutate {
+            mutate(&mut config);
+        }
         let state = loyalty_backend::AppState::new(pool.clone(), redis.clone(), config);
         let router = loyalty_backend::routes::create_router(state);
 
@@ -669,8 +695,16 @@ fn create_test_config() -> loyalty_backend::Settings {
         promptpay: PromptPayConfig::default(),
         security: SecurityConfig::default(),
         cf_access: CfAccessConfig::default(),
+        line_messaging: LineMessagingConfig::default(),
+        pms: PmsConfig::default(),
+        loyalty_service: LoyaltyServiceConfig {
+            token: Some(TEST_LOYALTY_SERVICE_TOKEN.to_string()),
+        },
     }
 }
+
+/// Service token used by machine-to-machine tests (PMS stay accrual).
+pub const TEST_LOYALTY_SERVICE_TOKEN: &str = "test-loyalty-service-token";
 
 // ============================================================================
 // Legacy Setup Functions (backward-compatible, now with per-test DB isolation)

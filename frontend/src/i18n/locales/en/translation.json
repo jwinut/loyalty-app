@@ -162,7 +162,7 @@
     "manageAccountLinks": "Manage Connected Accounts",
     "role": "Role",
     "customer": "Customer",
-    "staff": "Staff", 
+    "staff": "Staff",
     "admin": "Admin",
     "superAdmin": "Super Admin",
     "loggedInAs": "Logged in as {{email}}",
@@ -186,7 +186,7 @@
     "phonePlaceholder": "+1 (555) 123-4567",
     "accountLinkingDescription2": "Link multiple accounts together to access your data from different login methods.",
     "membershipId": "Membership ID",
-    "copyMembershipId": "Copy membership ID", 
+    "copyMembershipId": "Copy membership ID",
     "membershipIdCopied": "Membership ID copied successfully",
     "membershipIdFormat": "8-digit ID starting with 269",
     "personalInformation": "Personal Information",
@@ -341,6 +341,9 @@
     "backToDashboard": "Back to Dashboard"
   },
   "errors": {
+    "failedToLoadCoupons": "Unable to load your coupons. Please try refreshing the page.",
+    "validationFailed": "This coupon couldn't be validated. Please check the code and try again.",
+    "redemptionFailed": "Unable to redeem this coupon right now. Please contact support if the problem continues.",
     "notFound": "Page Not Found",
     "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
     "unauthorized": "Access Denied",
@@ -355,8 +358,9 @@
     "tryAgain": "Try Again",
     "goHome": "Return to Dashboard",
     "contactSupport": "Contact Support",
-    "emailAlreadyRegistered": "This email is already registered",
-    "emailAlreadyInUse": "This email is already in use by another account"
+    "error": "Error occurred",
+    "failedToLoadAssignments": "Failed to load coupon assignments",
+    "failedToRemoveCoupons": "Failed to remove coupons"
   },
   "languages": {
     "en": "English",
@@ -395,7 +399,7 @@
     "used": "used",
     "expired": "expired",
     "deducted": "deducted",
-    "pointsEarned": "Points Earned",
+    "pointsEarned": "Points Earned Successfully!",
     "pointsDeducted": "Points Deducted",
     "transactionHistory": "Transaction History",
     "noTransactions": "No transactions yet",
@@ -413,7 +417,6 @@
     "amountSpent": "Amount Spent",
     "stayId": "Stay ID (Optional)",
     "earnPoints": "Earn Points",
-    "pointsEarned": "Points Earned Successfully!",
     "dashboard": {
       "title": "Your Loyalty Rewards",
       "welcome": "Manage your rewards and track your progress",
@@ -430,9 +433,9 @@
       "selectUser": "Choose a customer to view their loyalty details",
       "userDetails": "User Details",
       "currentPoints": "Current Points",
-        "currentTier": "Current Tier",
+      "currentTier": "Current Tier",
       "recentTransactions": "Recent Transactions",
-      "noTransactions": "No transactions found",
+      "noTransactions": "No transactions available",
       "noUsers": "No users found",
       "refresh": "Refresh",
       "expirePoints": "Expire Old Points",
@@ -464,8 +467,7 @@
       },
       "transactionHistory": "Transaction History",
       "transactions": "transactions",
-      "viewTransactionHistory": "View transaction history",
-      "noTransactions": "No transactions available"
+      "viewTransactionHistory": "View transaction history"
     },
     "coupons": {
       "title": "Digital Coupon Management",
@@ -908,7 +910,7 @@
     "noCouponsDescription": "You don't have any active coupons right now. Keep earning points to unlock exclusive offers!",
     "noUsedCoupons": "No Used Coupons",
     "noUsedCouponsDescription": "You haven't used any coupons yet.",
-    "noExpiredCoupons": "No Expired Coupons", 
+    "noExpiredCoupons": "No Expired Coupons",
     "noExpiredCouponsDescription": "You don't have any expired coupons.",
     "activeCoupons": "Active Coupons",
     "usedCoupons": "Used Coupons",
@@ -994,37 +996,15 @@
     "settings": "Settings",
     "help": "Help & Support"
   },
-  "errors": {
-    "failedToLoadCoupons": "Unable to load your coupons. Please try refreshing the page.",
-    "validationFailed": "This coupon couldn't be validated. Please check the code and try again.",
-    "redemptionFailed": "Unable to redeem this coupon right now. Please contact support if the problem continues.",
-    "notFound": "Page Not Found",
-    "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
-    "unauthorized": "Access Denied",
-    "unauthorizedDescription": "You don't have permission to access this page. Please sign in with appropriate credentials.",
-    "forbidden": "Access Forbidden",
-    "serverError": "Something Went Wrong",
-    "serverErrorDescription": "We're experiencing technical difficulties. Our team has been notified.",
-    "networkError": "Connection Problem",
-    "networkErrorDescription": "Please check your internet connection and try again.",
-    "unknownError": "Unexpected Error",
-    "unknownErrorDescription": "Something unexpected happened. Please try again or contact support if the problem persists.",
-    "tryAgain": "Try Again",
-    "goHome": "Return to Dashboard",
-    "contactSupport": "Contact Support",
-    "error": "Error occurred",
-    "failedToLoadAssignments": "Failed to load coupon assignments",
-    "failedToRemoveCoupons": "Failed to remove coupons"
-  },
   "surveys": {
     "title": "Customer Surveys",
     "subtitle": "Help us improve by sharing your feedback - you can retake surveys anytime!",
     "untitled": "Untitled Survey",
-    "loading": "Loading available surveys...",
+    "loading": "Loading survey...",
     "noSurveys": "No surveys available",
     "noPublicSurveys": "No surveys are currently available. We'll notify you when new surveys become available!",
     "noInvitedSurveys": "You haven't been invited to participate in any surveys yet. Check back soon!",
-    "takeSurvey": "Start Survey",
+    "takeSurvey": "Take Survey",
     "viewDetails": "View Survey Details",
     "questions": "questions",
     "question": "question",
@@ -1043,13 +1023,10 @@
       "required": "This question is required - please provide an answer",
       "invalid": "Please provide a valid answer for this question"
     },
-    "loading": "Loading survey...",
     "description": "Description",
     "preview": "Preview ({{count}} questions)",
     "created": "Created",
-    "takeSurvey": "Take Survey",
     "backToSurveys": "Back to Surveys",
-    "notFound": "Survey not found",
     "accessType": {
       "public": "Public",
       "invited": "Invited"
@@ -1324,7 +1301,7 @@
         "allTemplates": "All Templates",
         "categories": {
           "feedback": "Feedback",
-          "loyalty": "Loyalty", 
+          "loyalty": "Loyalty",
           "events": "Events",
           "quick": "Quick",
           "custom": "Custom"
@@ -1355,7 +1332,7 @@
                 "text": "How likely are you to recommend us to others?",
                 "options": {
                   "veryLikely": "Very likely",
-                  "likely": "Likely", 
+                  "likely": "Likely",
                   "neutral": "Neutral",
                   "unlikely": "Unlikely",
                   "veryUnlikely": "Very unlikely"
@@ -1406,7 +1383,7 @@
                   "pool": "Swimming pool",
                   "gym": "Gym/Fitness center",
                   "spa": "Spa",
-                  "restaurant": "Restaurant", 
+                  "restaurant": "Restaurant",
                   "bar": "Bar",
                   "business": "Business center",
                   "concierge": "Concierge services"
@@ -1642,7 +1619,13 @@
     "totalForNights": "Total for {{nights}} nights",
     "roomsLeft": "{{count}} room(s) left",
     "pointsYouWillEarn": "You'll earn {{points}} points!",
-    "maxGuests": "Max {{count}} guests"
+    "maxGuests": "Max {{count}} guests",
+    "selectProperty": "Select hotel",
+    "property": "Hotel",
+    "guestName": "Guest name",
+    "guestPhone": "Phone number",
+    "guestPhonePlaceholder": "e.g. 081-234-5678",
+    "guestDetailsRequired": "Please fill in the guest name and phone number"
   },
   "payment": {
     "title": "Payment",
@@ -1706,6 +1689,38 @@
     "showBankDetails": "Show bank transfer details",
     "hideBankDetails": "Hide bank transfer details",
     "yourSlips": "Your uploaded slips",
-    "removeSlip": "Remove slip"
+    "removeSlip": "Remove slip",
+    "balanceDueAtCheckin": "Balance due at check-in",
+    "holdExpiresIn": "Please pay within {{time}} — the room is held for you until then",
+    "holdExpired": "The payment window has expired and the room hold was released. Please start a new booking.",
+    "startOver": "Start a new booking",
+    "propertyAccount": "Payment goes to {{property}}'s account"
+  },
+  "property": {
+    "hf": "The Harbour Front Hotel",
+    "hfville": "HF Ville"
+  },
+  "memberCard": {
+    "title": "Member Card",
+    "dashboardDescription": "Show your QR at the front desk",
+    "membershipId": "Membership ID",
+    "qrAlt": "Membership QR code",
+    "qrError": "Could not generate the QR code",
+    "generating": "Generating QR code...",
+    "noMembershipId": "Your membership ID is not ready yet. Please contact the front desk.",
+    "showAtDesk": "Show this QR code at the front desk when you check in, so your stay counts toward your membership."
+  },
+  "privacy": {
+    "title": "Privacy Notice",
+    "footerLink": "Privacy notice",
+    "whatWeStoreTitle": "What we store",
+    "whatWeStoreBody": "Your name, your LINE identity, your phone number (only if you choose to add it), and your stay history — used to run the loyalty program: nights, tier, points, and coupons.",
+    "whyTitle": "Why we store it",
+    "whyBody": "Membership data is processed to operate your membership (our contract with you). We do not sell your data or share it outside the hotel group.",
+    "messagesTitle": "Messages from us",
+    "messagesBody": "Adding one of our hotels' LINE official accounts as a friend is your opt-in to receive membership messages from that hotel. Blocking the account stops its messages at any time.",
+    "contactTitle": "Contact",
+    "contactBody": "For data questions, export, or deletion requests, contact the hotel support email or the front desk.",
+    "backToApp": "Back to the app"
   }
 }

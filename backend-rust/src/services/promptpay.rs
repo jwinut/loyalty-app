@@ -26,8 +26,10 @@ impl PromptPayService {
         Ok(Self { tax_id: cleaned })
     }
 
-    /// Generate a PromptPay QR code as SVG string with the specified amount
-    pub fn generate_qr_svg(&self, amount: f64) -> Result<String, AppError> {
+    /// Generate the raw EMVCo PromptPay payload string for an amount.
+    /// The booking-channel flow returns this to the frontend, which renders
+    /// the QR client-side.
+    pub fn generate_payload(&self, amount: f64) -> Result<String, AppError> {
         // Validate amount range
         if !(0.01..=999_999.99).contains(&amount) {
             return Err(AppError::Validation(
@@ -38,12 +40,17 @@ impl PromptPayService {
         // Generate EMVCo payload using promptpay-rs
         let mut qr = PromptPayQR::new(&self.tax_id);
         qr.set_amount(amount);
-        let payload = qr
+        Ok(qr
             .create()
             .map_err(|e| {
                 AppError::Internal(format!("Failed to generate PromptPay payload: {}", e))
             })?
-            .to_string();
+            .to_string())
+    }
+
+    /// Generate a PromptPay QR code as SVG string with the specified amount
+    pub fn generate_qr_svg(&self, amount: f64) -> Result<String, AppError> {
+        let payload = self.generate_payload(amount)?;
 
         // Render payload as SVG QR code
         let code = QrCode::new(payload.as_bytes())
@@ -85,6 +92,16 @@ mod tests {
     fn test_new_invalid_tax_id_non_numeric() {
         let service = PromptPayService::new("0105556176ABC".to_string());
         assert!(service.is_err());
+    }
+
+    #[test]
+    fn test_generate_payload_is_raw_emvco_string() {
+        let service = PromptPayService::new("0105556176009".to_string()).unwrap();
+        let payload = service.generate_payload(1500.0).unwrap();
+        // EMVCo payloads begin with the "000201" payload-format indicator
+        // and are plain text, not markup.
+        assert!(payload.starts_with("000201"));
+        assert!(!payload.contains("<svg"));
     }
 
     #[test]

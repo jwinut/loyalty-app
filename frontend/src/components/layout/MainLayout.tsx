@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { getUserDisplayName } from '../../utils/userHelpers';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +46,17 @@ export default function MainLayout({ children, title, showProfileBanner = true }
           {children}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+        <Link
+          to="/privacy"
+          className="text-sm text-stone-400 hover:text-stone-600"
+          data-testid="footer-privacy-link"
+        >
+          {t('privacy.footerLink')}
+        </Link>
+      </footer>
     </div>
   );
 }

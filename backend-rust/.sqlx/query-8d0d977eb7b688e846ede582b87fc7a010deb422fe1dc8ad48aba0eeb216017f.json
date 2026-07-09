@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET status = 'confirmed', updated_at = NOW()\n               WHERE id = $1 AND status = 'pending'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d0d977eb7b688e846ede582b87fc7a010deb422fe1dc8ad48aba0eeb216017f"
+}

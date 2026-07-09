@@ -20,7 +20,10 @@ use validator::Validate;
 use crate::error::{AppError, AppResult};
 use crate::middleware::auth::{auth_middleware, has_role, AuthUser};
 use crate::models::booking::{BookingResponse, BookingStatus, RoomType};
+use crate::services::pms_channel::{PmsChannelClient, PmsCreateBookingRequest, PmsGuest};
+use crate::services::promptpay::PromptPayService;
 use crate::state::AppState;
+use crate::types::Property;
 
 // ==================== REQUEST/RESPONSE TYPES ====================
 
@@ -50,15 +53,6 @@ fn default_page() -> i32 {
 
 fn default_limit() -> i32 {
     20
-}
-
-/// Availability check query parameters
-#[derive(Debug, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct AvailabilityQuery {
-    pub check_in: NaiveDate,
-    pub check_out: NaiveDate,
-    pub room_type: Option<String>,
 }
 
 /// Create booking request
@@ -143,19 +137,6 @@ pub struct BookingListResponse {
     pub page: i32,
     pub limit: i32,
     pub total_pages: i32,
-}
-
-/// Room availability response
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AvailabilityResponse {
-    pub available: bool,
-    pub room_type: Option<String>,
-    pub check_in: NaiveDate,
-    pub check_out: NaiveDate,
-    pub available_rooms: i32,
-    pub price_per_night: Option<Decimal>,
-    pub total_price: Option<Decimal>,
 }
 
 /// Success response for operations
@@ -694,36 +675,9 @@ async fn delete_booking_slip(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// GET /api/bookings/availability - Check room availability
-///
-/// Query parameters:
-/// - checkIn: Check-in date (YYYY-MM-DD)
-/// - checkOut: Check-out date (YYYY-MM-DD)
-/// - roomType: Optional room type filter
-async fn check_availability(
-    State(state): State<AppState>,
-    Query(params): Query<AvailabilityQuery>,
-) -> AppResult<Json<AvailabilityResponse>> {
-    // Validate date range
-    if params.check_out <= params.check_in {
-        return Err(AppError::Validation(
-            "Check-out date must be after check-in date".to_string(),
-        ));
-    }
-
-    // Parse room type if provided
-    let room_type = params
-        .room_type
-        .as_deref()
-        .map(parse_room_type)
-        .transpose()?;
-
-    // Check availability in database
-    let availability =
-        check_room_availability(state.db(), params.check_in, params.check_out, room_type).await?;
-
-    Ok(Json(availability))
-}
+// Legacy local-inventory availability (check_availability /
+// check_room_availability) was removed with ADR-0003: availability truth
+// lives in the PMS; see channel_availability below.
 
 // ==================== DATABASE ROW TYPES ====================
 
@@ -733,8 +687,10 @@ async fn check_availability(
 struct BookingRow {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub room_id: Uuid,
-    pub room_type_id: Uuid,
+    // Nullable since the PMS booking channel (ADR-0003): channel bookings
+    // carry no local room — the PMS assigns physical rooms.
+    pub room_id: Option<Uuid>,
+    pub room_type_id: Option<Uuid>,
     pub check_in_date: NaiveDate,
     pub check_out_date: NaiveDate,
     pub num_guests: i32,
@@ -798,11 +754,10 @@ impl BookingRow {
     }
 }
 
-/// Room type row for availability check
+/// Room type row for legacy booking creation (price lookup)
 #[derive(Debug, FromRow)]
 struct RoomTypeRow {
     pub id: Uuid,
-    pub name: String,
     pub price_per_night: Decimal,
 }
 
@@ -1000,7 +955,7 @@ async fn insert_booking(
     // Find the room type (read-only, safe to do outside the transaction)
     let room_type_row: RoomTypeRow = sqlx::query_as(
         r#"
-        SELECT id, name, price_per_night
+        SELECT id, price_per_night
         FROM room_types
         WHERE LOWER(name) = LOWER($1) AND is_active = true
         "#,
@@ -1027,10 +982,13 @@ async fn insert_booking(
         WHERE r.room_type_id = $1
           AND r.is_active = true
           AND r.id NOT IN (
-            -- Exclude rooms with existing bookings that overlap
+            -- Exclude rooms with existing bookings that overlap.
+            -- room_id IS NOT NULL guards the NOT-IN-with-NULL trap:
+            -- channel bookings (ADR-0003) have no local room.
             SELECT DISTINCT b.room_id
             FROM bookings b
-            WHERE b.status NOT IN ('cancelled', 'no_show')
+            WHERE b.room_id IS NOT NULL
+              AND b.status NOT IN ('cancelled', 'no_show')
               AND b.check_in_date < $3
               AND b.check_out_date > $2
           )
@@ -1129,7 +1087,7 @@ async fn update_booking_in_db(
 
         let room_type_row: RoomTypeRow = sqlx::query_as(
             r#"
-            SELECT id, name, price_per_night
+            SELECT id, price_per_night
             FROM room_types
             WHERE LOWER(name) = LOWER($1) AND is_active = true
             "#,
@@ -1147,9 +1105,12 @@ async fn update_booking_in_db(
             WHERE r.room_type_id = $1
               AND r.is_active = true
               AND r.id NOT IN (
+                -- room_id IS NOT NULL guards the NOT-IN-with-NULL trap:
+                -- channel bookings (ADR-0003) have no local room.
                 SELECT DISTINCT b.room_id
                 FROM bookings b
-                WHERE b.status NOT IN ('cancelled')
+                WHERE b.room_id IS NOT NULL
+                  AND b.status NOT IN ('cancelled')
                   AND b.id != $4
                   AND b.check_in_date < $3
                   AND b.check_out_date > $2
@@ -1253,125 +1214,7 @@ async fn complete_booking_in_db(db: &PgPool, booking_id: Uuid) -> AppResult<Book
     query_booking_by_id(db, booking_id).await
 }
 
-async fn check_room_availability(
-    db: &PgPool,
-    check_in: NaiveDate,
-    check_out: NaiveDate,
-    room_type: Option<RoomType>,
-) -> AppResult<AvailabilityResponse> {
-    let nights = (check_out - check_in).num_days() as i32;
-
-    if let Some(rt) = room_type {
-        let room_type_name = format!("{:?}", rt);
-
-        // Get room type info
-        let room_type_info: Option<RoomTypeRow> = sqlx::query_as(
-            r#"
-            SELECT id, name, price_per_night
-            FROM room_types
-            WHERE LOWER(name) = LOWER($1) AND is_active = true
-            "#,
-        )
-        .bind(&room_type_name)
-        .fetch_optional(db)
-        .await?;
-
-        if let Some(rt_info) = room_type_info {
-            // Count available rooms
-            let available_count: (i64,) = sqlx::query_as(
-                r#"
-                SELECT COUNT(*)
-                FROM rooms r
-                WHERE r.room_type_id = $1
-                  AND r.is_active = true
-                  AND r.id NOT IN (
-                    SELECT DISTINCT b.room_id
-                    FROM bookings b
-                    WHERE b.status NOT IN ('cancelled')
-                      AND b.check_in_date < $3
-                      AND b.check_out_date > $2
-                  )
-                  AND r.id NOT IN (
-                    SELECT DISTINCT rbd.room_id
-                    FROM room_blocked_dates rbd
-                    WHERE rbd.blocked_date >= $2 AND rbd.blocked_date < $3
-                  )
-                "#,
-            )
-            .bind(rt_info.id)
-            .bind(check_in)
-            .bind(check_out)
-            .fetch_one(db)
-            .await?;
-
-            let total_price = rt_info.price_per_night * Decimal::from(nights);
-
-            Ok(AvailabilityResponse {
-                available: available_count.0 > 0,
-                room_type: Some(rt_info.name.to_lowercase()),
-                check_in,
-                check_out,
-                available_rooms: available_count.0 as i32,
-                price_per_night: Some(rt_info.price_per_night),
-                total_price: Some(total_price),
-            })
-        } else {
-            Ok(AvailabilityResponse {
-                available: false,
-                room_type: Some(room_type_name.to_lowercase()),
-                check_in,
-                check_out,
-                available_rooms: 0,
-                price_per_night: None,
-                total_price: None,
-            })
-        }
-    } else {
-        // Check all room types
-        let total_available: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)
-            FROM rooms r
-            WHERE r.is_active = true
-              AND r.id NOT IN (
-                SELECT DISTINCT b.room_id
-                FROM bookings b
-                WHERE b.status NOT IN ('cancelled')
-                  AND b.check_in_date < $2
-                  AND b.check_out_date > $1
-              )
-              AND r.id NOT IN (
-                SELECT DISTINCT rbd.room_id
-                FROM room_blocked_dates rbd
-                WHERE rbd.blocked_date >= $1 AND rbd.blocked_date < $2
-              )
-            "#,
-        )
-        .bind(check_in)
-        .bind(check_out)
-        .fetch_one(db)
-        .await?;
-
-        // Get cheapest room type for price reference
-        let cheapest: Option<(Decimal,)> =
-            sqlx::query_as("SELECT MIN(price_per_night) FROM room_types WHERE is_active = true")
-                .fetch_optional(db)
-                .await?;
-
-        let price_per_night = cheapest.map(|c| c.0);
-        let total_price = price_per_night.map(|p| p * Decimal::from(nights));
-
-        Ok(AvailabilityResponse {
-            available: total_available.0 > 0,
-            room_type: None,
-            check_in,
-            check_out,
-            available_rooms: total_available.0 as i32,
-            price_per_night,
-            total_price,
-        })
-    }
-}
+// check_room_availability was removed with ADR-0003 (see note above).
 
 async fn award_loyalty_points(
     db: &PgPool,
@@ -1560,6 +1403,266 @@ fn parse_room_type(room_type: &str) -> AppResult<RoomType> {
 ///
 /// All routes require authentication.
 /// Admin-only routes are protected with role checks within handlers.
+// ==================== PMS BOOKING CHANNEL (ADR-0003) ====================
+// Locked contract: docs/launch-plan.md. The app holds no inventory —
+// availability comes live from the PMS and confirmed bookings are created
+// there; the local row is a channel record for history/slips/payment.
+
+#[derive(Debug, Deserialize)]
+pub struct ChannelAvailabilityQuery {
+    pub property: Property,
+    pub check_in: NaiveDate,
+    pub check_out: NaiveDate,
+    pub guests: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ChannelRoomTypeResponse {
+    pub room_type_id: String,
+    pub name: String,
+    pub description: Option<String>,
+    /// Reserved for catalog enrichment; the PMS carries no photos yet.
+    pub photo_url: Option<String>,
+    pub nightly_price: f64,
+    pub available_count: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ChannelAvailabilityResponse {
+    pub property: Property,
+    pub check_in: NaiveDate,
+    pub check_out: NaiveDate,
+    pub room_types: Vec<ChannelRoomTypeResponse>,
+}
+
+fn validate_channel_dates(check_in: NaiveDate, check_out: NaiveDate) -> AppResult<()> {
+    if check_out <= check_in {
+        return Err(AppError::Validation(
+            "check_out must be after check_in".to_string(),
+        ));
+    }
+    if check_in < Utc::now().date_naive() {
+        return Err(AppError::Validation(
+            "check_in cannot be in the past".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+/// GET /api/bookings/availability — live availability from the PMS.
+async fn channel_availability(
+    State(state): State<AppState>,
+    Extension(_user): Extension<AuthUser>,
+    Query(query): Query<ChannelAvailabilityQuery>,
+) -> AppResult<Json<ChannelAvailabilityResponse>> {
+    use rust_decimal::prelude::ToPrimitive;
+
+    validate_channel_dates(query.check_in, query.check_out)?;
+    if !(1..=10).contains(&query.guests) {
+        return Err(AppError::Validation(
+            "guests must be between 1 and 10".to_string(),
+        ));
+    }
+
+    let pms = PmsChannelClient::from_settings(state.config())?;
+    let availability = pms
+        .availability(
+            query.property,
+            query.check_in,
+            query.check_out,
+            query.guests,
+        )
+        .await?;
+
+    let room_types = availability
+        .room_types
+        .into_iter()
+        .map(|rt| ChannelRoomTypeResponse {
+            room_type_id: rt.room_type_id,
+            name: rt.name,
+            description: rt.description,
+            photo_url: None,
+            nightly_price: rt.nightly_price.to_f64().unwrap_or(0.0),
+            available_count: rt.available_count,
+        })
+        .collect();
+
+    Ok(Json(ChannelAvailabilityResponse {
+        property: query.property,
+        check_in: query.check_in,
+        check_out: query.check_out,
+        room_types,
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateChannelBookingRequest {
+    pub property: Property,
+    pub room_type_id: String,
+    pub check_in: NaiveDate,
+    pub check_out: NaiveDate,
+    pub guests: i32,
+    pub guest_name: String,
+    pub guest_phone: String,
+    /// "deposit50" | "full" — 50% deposit or pay in full (guest's choice).
+    pub payment_option: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ChannelBookingResponse {
+    pub booking_id: Uuid,
+    pub pms_booking_id: String,
+    pub total_amount: f64,
+    pub amount_due_now: f64,
+    pub balance_due_at_checkin: f64,
+    /// Raw EMVCo PromptPay payload — the frontend renders it as a QR.
+    pub promptpay_qr_payload: String,
+    pub hold_expires_at: DateTime<Utc>,
+}
+
+/// POST /api/bookings/channel — create a held booking in the PMS, generate
+/// the property-specific PromptPay payload, and record the channel row.
+async fn create_channel_booking(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Json(payload): Json<CreateChannelBookingRequest>,
+) -> AppResult<(StatusCode, Json<ChannelBookingResponse>)> {
+    use rust_decimal::prelude::ToPrimitive;
+
+    validate_channel_dates(payload.check_in, payload.check_out)?;
+    if !(1..=10).contains(&payload.guests) {
+        return Err(AppError::Validation(
+            "guests must be between 1 and 10".to_string(),
+        ));
+    }
+    if !matches!(payload.payment_option.as_str(), "deposit50" | "full") {
+        return Err(AppError::Validation(
+            "payment_option must be deposit50 or full".to_string(),
+        ));
+    }
+    let guest_name = payload.guest_name.trim();
+    let guest_phone = payload.guest_phone.trim();
+    if guest_name.is_empty() || guest_phone.is_empty() {
+        return Err(AppError::Validation(
+            "guest_name and guest_phone are required".to_string(),
+        ));
+    }
+
+    let user_uuid = Uuid::parse_str(&user.id)
+        .map_err(|_| AppError::InvalidInput("Invalid user ID format".to_string()))?;
+
+    // PromptPay must be configured for this property BEFORE we create the
+    // PMS hold — fail fast rather than holding a room we can't charge for.
+    let promptpay_id = state
+        .config()
+        .promptpay
+        .id_for_property(payload.property.as_str())
+        .cloned()
+        .ok_or_else(|| {
+            AppError::Configuration(format!(
+                "PromptPay account for {} is not configured",
+                payload.property
+            ))
+        })?;
+    let promptpay = PromptPayService::new(promptpay_id)?;
+
+    // Pass the membership through so the PMS links the guest profile —
+    // the Link is what makes checkout accrual work (docs/launch-plan.md).
+    let membership_id: Option<String> = sqlx::query_scalar!(
+        r#"SELECT membership_id FROM user_profiles WHERE user_id = $1"#,
+        user_uuid
+    )
+    .fetch_optional(state.db())
+    .await?;
+
+    let pms = PmsChannelClient::from_settings(state.config())?;
+    let created = pms
+        .create_booking(&PmsCreateBookingRequest {
+            property: payload.property,
+            room_type_id: payload.room_type_id.clone(),
+            check_in: payload.check_in,
+            check_out: payload.check_out,
+            guests: payload.guests,
+            guest: PmsGuest {
+                name: guest_name.to_string(),
+                phone: guest_phone.to_string(),
+            },
+            membership_id,
+            payment: payload.payment_option.clone(),
+        })
+        .await?;
+
+    let balance_due = created.total - created.amount_due_now;
+    let amount_due_now_f64 = created
+        .amount_due_now
+        .to_f64()
+        .ok_or_else(|| AppError::Internal("PMS returned a non-representable amount".to_string()))?;
+    let qr_payload = promptpay.generate_payload(amount_due_now_f64)?;
+
+    // Record the channel row. If this fails, release the PMS hold so we
+    // never strand inventory behind a booking the guest can't see.
+    let booking_id = Uuid::new_v4();
+    let inserted = sqlx::query!(
+        r#"
+        INSERT INTO bookings (
+            id, user_id, check_in_date, check_out_date, num_guests,
+            total_price, status, property, pms_booking_id, pms_room_type_id,
+            guest_name, guest_phone, payment_option, amount_due_now,
+            balance_due, hold_expires_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        "#,
+        booking_id,
+        user_uuid,
+        payload.check_in,
+        payload.check_out,
+        payload.guests,
+        created.total,
+        payload.property.as_str(),
+        created.pms_booking_id,
+        payload.room_type_id,
+        guest_name,
+        guest_phone,
+        payload.payment_option,
+        created.amount_due_now,
+        balance_due,
+        created.hold_expires_at,
+    )
+    .execute(state.db())
+    .await;
+
+    if let Err(e) = inserted {
+        tracing::error!(error = %e, pms_booking_id = %created.pms_booking_id,
+            "channel record insert failed; releasing PMS hold");
+        if let Err(release_err) = pms.release(&created.pms_booking_id).await {
+            tracing::error!(error = %release_err, pms_booking_id = %created.pms_booking_id,
+                "failed to release PMS hold after insert failure");
+        }
+        return Err(e.into());
+    }
+
+    tracing::info!(
+        booking_id = %booking_id,
+        pms_booking_id = %created.pms_booking_id,
+        property = %payload.property,
+        payment_option = %payload.payment_option,
+        "channel booking held"
+    );
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ChannelBookingResponse {
+            booking_id,
+            pms_booking_id: created.pms_booking_id,
+            total_amount: created.total.to_f64().unwrap_or(0.0),
+            amount_due_now: amount_due_now_f64,
+            balance_due_at_checkin: balance_due.to_f64().unwrap_or(0.0),
+            promptpay_qr_payload: qr_payload,
+            hold_expires_at: created.hold_expires_at,
+        }),
+    ))
+}
+
 pub fn routes() -> Router<AppState> {
     router()
 }
@@ -1581,8 +1684,11 @@ pub fn routes() -> Router<AppState> {
 /// Admin-only operations are protected with role checks within handlers.
 pub fn router() -> Router<AppState> {
     Router::new()
-        // Public availability check (but still requires auth for rate limiting)
-        .route("/availability", get(check_availability))
+        // Live availability from the PMS (ADR-0003). Replaces the old
+        // local-inventory availability check.
+        .route("/availability", get(channel_availability))
+        // Create a held booking in the PMS + local channel record.
+        .route("/channel", post(create_channel_booking))
         // User booking routes
         .route("/", get(list_bookings))
         .route("/", post(create_booking))
@@ -1612,7 +1718,6 @@ pub fn routes_without_auth() -> Router<AppState> {
 #[cfg(test)]
 pub fn router_without_auth() -> Router<AppState> {
     Router::new()
-        .route("/availability", get(check_availability))
         .route("/", get(list_bookings))
         .route("/", post(create_booking))
         .route("/:id", get(get_booking))

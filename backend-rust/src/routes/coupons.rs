@@ -145,6 +145,9 @@ pub struct RedeemCouponRequest {
     pub transaction_reference: Option<String>,
     /// Location of redemption
     pub location: Option<String>,
+    /// Property where the redemption happens ("hf" | "hfville").
+    /// Required when the coupon carries a property restriction.
+    pub property: Option<crate::types::Property>,
     /// Additional metadata
     pub metadata: Option<serde_json::Value>,
 }
@@ -333,7 +336,8 @@ async fn list_coupons(
                 usage_limit_per_user,
                 used_count,
                 status::text as "status",
-                created_at
+                created_at,
+                property
             FROM coupons
             WHERE
                 ($1::text IS NULL OR status::text = $1)
@@ -360,6 +364,7 @@ async fn list_coupons(
                 description: r.description,
                 terms_and_conditions: r.terms_and_conditions,
                 coupon_type: parse_coupon_type(&r.coupon_type),
+                property: r.property,
                 value: r.value,
                 currency: r.currency,
                 minimum_spend: r.minimum_spend,
@@ -415,7 +420,8 @@ async fn list_coupons(
                 usage_limit_per_user,
                 used_count,
                 status::text as "status",
-                created_at
+                created_at,
+                property
             FROM coupons
             WHERE status = 'active'
                 AND ($1::text IS NULL OR type::text = $1)
@@ -442,6 +448,7 @@ async fn list_coupons(
                 description: r.description,
                 terms_and_conditions: r.terms_and_conditions,
                 coupon_type: parse_coupon_type(&r.coupon_type),
+                property: r.property,
                 value: r.value,
                 currency: r.currency,
                 minimum_spend: r.minimum_spend,
@@ -625,7 +632,8 @@ async fn get_coupon(
             usage_limit_per_user,
             used_count,
             status::text as "status",
-            created_at
+            created_at,
+            property
         FROM coupons
         WHERE id = $1
         "#,
@@ -642,6 +650,7 @@ async fn get_coupon(
         description: row.description,
         terms_and_conditions: row.terms_and_conditions,
         coupon_type: parse_coupon_type(&row.coupon_type),
+        property: row.property,
         value: row.value,
         currency: row.currency,
         minimum_spend: row.minimum_spend,
@@ -721,6 +730,13 @@ async fn create_coupon(
         }
     }
 
+    // Optional property restriction must name a real property.
+    if let Some(p) = request.property.as_deref() {
+        p.parse::<crate::types::Property>().map_err(|_| {
+            AppError::Validation("property must be one of: hf, hfville".to_string())
+        })?;
+    }
+
     let user_uuid = Uuid::parse_str(&user.id)
         .map_err(|_| AppError::InvalidInput("Invalid user ID format".to_string()))?;
 
@@ -740,11 +756,11 @@ async fn create_coupon(
             type, value, currency, minimum_spend, maximum_discount,
             valid_from, valid_until, usage_limit, usage_limit_per_user,
             tier_restrictions, customer_segment, status, created_by,
-            created_at, updated_at
+            property, created_at, updated_at
         )
         VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-            $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+            $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW()
         )
         RETURNING
             id,
@@ -763,7 +779,8 @@ async fn create_coupon(
             usage_limit_per_user,
             used_count,
             status,
-            created_at
+            created_at,
+            property
         "#,
     )
     .bind(coupon_id)
@@ -784,6 +801,7 @@ async fn create_coupon(
     .bind(&request.customer_segment)
     .bind(&status)
     .bind(user_uuid)
+    .bind(&request.property)
     .fetch_one(state.db())
     .await
     .map_err(|e: sqlx::Error| {
@@ -812,6 +830,13 @@ async fn update_coupon(
     Path(coupon_id): Path<Uuid>,
     Json(request): Json<UpdateCouponRequest>,
 ) -> AppResult<Json<SuccessResponse<CouponResponse>>> {
+    // Optional property restriction must name a real property.
+    if let Some(p) = request.property.as_deref() {
+        p.parse::<crate::types::Property>().map_err(|_| {
+            AppError::Validation("property must be one of: hf, hfville".to_string())
+        })?;
+    }
+
     // Validate percentage value if updating
     if let Some(value) = request.value {
         if value > Decimal::from(100) {
@@ -852,6 +877,7 @@ async fn update_coupon(
             tier_restrictions = COALESCE($13, tier_restrictions),
             customer_segment = COALESCE($14, customer_segment),
             status = COALESCE($15, status),
+            property = COALESCE($16, property),
             updated_at = NOW()
         WHERE id = $1
         RETURNING
@@ -871,7 +897,8 @@ async fn update_coupon(
             usage_limit_per_user,
             used_count,
             status,
-            created_at
+            created_at,
+            property
         "#,
     )
     .bind(coupon_id)
@@ -889,6 +916,7 @@ async fn update_coupon(
     .bind(&request.tier_restrictions)
     .bind(&request.customer_segment)
     .bind(&request.status)
+    .bind(&request.property)
     .fetch_optional(state.db())
     .await?
     .ok_or_else(|| AppError::NotFound("Coupon".to_string()))?;
@@ -1059,7 +1087,8 @@ async fn redeem_coupon(
             c.value,
             c.minimum_spend,
             c.maximum_discount,
-            c.currency
+            c.currency,
+            c.property
         FROM user_coupons uc
         JOIN coupons c ON uc.coupon_id = c.id
         WHERE uc.qr_code = $1
@@ -1082,6 +1111,20 @@ async fn redeem_coupon(
     if let Some(expires_at) = user_coupon.expires_at {
         if expires_at < Utc::now() {
             return Err(AppError::Validation("Coupon has expired".to_string()));
+        }
+    }
+
+    // Property restriction (ADR-0001): a property-scoped coupon redeems
+    // only at that property; the redeeming staff must say where they are.
+    if let Some(required) = user_coupon.property.as_deref() {
+        let required_property: crate::types::Property = required
+            .parse()
+            .map_err(|_| AppError::Internal(format!("Coupon has invalid property {required}")))?;
+        if request.property != Some(required_property) {
+            return Err(AppError::Validation(format!(
+                "This coupon can only be redeemed at {}",
+                required_property.display_name()
+            )));
         }
     }
 
@@ -1121,6 +1164,7 @@ async fn redeem_coupon(
         "finalAmount": final_amount,
         "transactionReference": request.transaction_reference,
         "location": request.location,
+        "property": request.property,
         "metadata": request.metadata
     });
 

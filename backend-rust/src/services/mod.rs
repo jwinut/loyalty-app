@@ -8,7 +8,9 @@
 pub mod cf_access;
 pub mod email;
 pub mod idempotency;
+pub mod line;
 pub mod oauth;
+pub mod pms_channel;
 pub mod promptpay;
 pub mod slipok;
 pub mod sse;

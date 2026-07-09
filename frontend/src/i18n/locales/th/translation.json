@@ -420,7 +420,7 @@
     "used": "ใช้",
     "expired": "หมดอายุ",
     "deducted": "หัก",
-    "pointsEarned": "ได้รับคะแนน",
+    "pointsEarned": "รับคะแนนสำเร็จ!",
     "pointsDeducted": "หักคะแนน",
     "transactionHistory": "ประวัติการทำรายการ",
     "noTransactions": "ยังไม่มีรายการ",
@@ -438,7 +438,6 @@
     "amountSpent": "ยอดเงินที่ใช้จ่าย",
     "stayId": "รหัสการเข้าพัก (ไม่บังคับ)",
     "earnPoints": "รับคะแนน",
-    "pointsEarned": "รับคะแนนสำเร็จ!",
     "dashboard": {
       "title": "แดชบอร์ดโปรแกรมสะสมคะแนน",
       "welcome": "ยินดีต้อนรับสู่แดชบอร์ดโปรแกรมสะสมคะแนน",
@@ -457,7 +456,7 @@
       "currentPoints": "คะแนนปัจจุบัน",
       "currentTier": "ระดับสมาชิกปัจจุบัน",
       "recentTransactions": "ธุรกรรมล่าสุด",
-      "noTransactions": "ไม่พบธุรกรรม",
+      "noTransactions": "ไม่มีธุรกรรม",
       "noUsers": "ไม่พบผู้ใช้",
       "refresh": "รีเฟรช",
       "expirePoints": "ทำให้คะแนนเก่าหมดอายุ",
@@ -489,8 +488,7 @@
       },
       "transactionHistory": "ประวัติธุรกรรม",
       "transactions": "ธุรกรรม",
-      "viewTransactionHistory": "ดูประวัติธุรกรรม",
-      "noTransactions": "ไม่มีธุรกรรม"
+      "viewTransactionHistory": "ดูประวัติธุรกรรม"
     },
     "coupons": {
       "title": "จัดการคูปอง",
@@ -1066,13 +1064,10 @@
       "required": "คำถามนี้จำเป็นต้องตอบ",
       "invalid": "กรุณาให้คำตอบที่ถูกต้อง"
     },
-    "loading": "กำลังโหลดแบบสำรวจ...",
     "description": "คำอธิบาย",
     "preview": "ตัวอย่าง ({{count}} คำถาม)",
     "created": "สร้างเมื่อ",
-    "takeSurvey": "ทำแบบสำรวจ",
     "backToSurveys": "กลับไปแบบสำรวจ",
-    "notFound": "ไม่พบแบบสำรวจ",
     "accessType": {
       "public": "สาธารณะ",
       "invited": "ได้รับเชิญ"
@@ -1181,31 +1176,31 @@
         }
       },
       "questionEditor": {
-        "questionNumber": "คำถาม {{number}}",
-        "questionText": "ข้อความคำถาม *",
-        "questionTextPlaceholder": "ใส่คำถามของคุณ...",
-        "fieldRequired": "ฟิลด์นี้จำเป็นต้องกรอก",
+        "questionNumber": "คำถามที่ {{number}}",
+        "questionText": "ข้อความคำถาม",
+        "questionTextPlaceholder": "กรอกคำถามของคุณที่นี่...",
         "description": "คำอธิบาย (ไม่บังคับ)",
-        "descriptionPlaceholder": "ข้อมูลเพิ่มเติมหรือคำแนะนำ...",
+        "descriptionPlaceholder": "เพิ่มบริบทหรือคำแนะนำเพิ่มเติมสำหรับคำถามนี้...",
+        "fieldRequired": "ฟิลด์นี้จำเป็นต้องกรอก",
         "answerOptions": "ตัวเลือกคำตอบ",
-        "optionTextPlaceholder": "ข้อความตัวเลือก...",
+        "optionTextPlaceholder": "กรอกข้อความตัวเลือก...",
         "optionValuePlaceholder": "ค่า",
-        "addOption": "เพิ่มตัวเลือก",
-        "newOptionText": "ตัวเลือก {{number}}",
+        "newOptionText": "ตัวเลือกที่ {{number}}",
+        "addOption": "+ เพิ่มตัวเลือก",
         "minRating": "คะแนนต่ำสุด",
         "maxRating": "คะแนนสูงสุด",
-        "requiredQuestion": "คำถามที่ต้องตอบ",
-        "preview": "ตัวอย่าง:",
-        "previewPlaceholder": "ข้อความคำถามจะแสดงที่นี่...",
-        "textInputPlaceholder": "การใส่ข้อความ",
-        "longTextInputPlaceholder": "การใส่ข้อความยาว",
+        "requiredQuestion": "คำถามบังคับ",
+        "preview": "ตัวอย่าง",
+        "previewPlaceholder": "(ข้อความคำถามจะแสดงที่นี่)",
+        "textInputPlaceholder": "พิมพ์คำตอบของคุณที่นี่...",
+        "longTextInputPlaceholder": "พิมพ์คำตอบแบบละเอียดของคุณที่นี่...",
         "questionTypes": {
-          "singleChoice": "ตัวเลือกเดี่ยว",
-          "multipleChoice": "ตัวเลือกหลายตัว",
+          "singleChoice": "เลือกคำตอบเดียว",
+          "multipleChoice": "เลือกได้หลายคำตอบ",
           "text": "ข้อความสั้น",
           "textarea": "ข้อความยาว",
-          "rating5": "คะแนน 5 ดาว",
-          "rating10": "คะแนน 10 ระดับ",
+          "rating5": "ให้คะแนน 5 ดาว",
+          "rating10": "ให้คะแนน 10 ระดับ",
           "yesNo": "ใช่/ไม่ใช่"
         }
       },
@@ -1273,35 +1268,6 @@
         "emptyOptionsCount": "กรุณากรอกข้อความตัวเลือกทั้งหมด (พบตัวเลือกว่าง {{count}} รายการ)",
         "questionTextRequired": "ต้องกรอกข้อความคำถาม",
         "titleAndQuestionRequired": "กรุณาใส่ชื่อและอย่างน้อยหนึ่งคำถาม"
-      },
-      "questionEditor": {
-        "questionNumber": "คำถามที่ {{number}}",
-        "questionText": "ข้อความคำถาม",
-        "questionTextPlaceholder": "กรอกคำถามของคุณที่นี่...",
-        "description": "คำอธิบาย (ไม่บังคับ)",
-        "descriptionPlaceholder": "เพิ่มบริบทหรือคำแนะนำเพิ่มเติมสำหรับคำถามนี้...",
-        "fieldRequired": "ฟิลด์นี้จำเป็นต้องกรอก",
-        "answerOptions": "ตัวเลือกคำตอบ",
-        "optionTextPlaceholder": "กรอกข้อความตัวเลือก...",
-        "optionValuePlaceholder": "ค่า",
-        "newOptionText": "ตัวเลือกที่ {{number}}",
-        "addOption": "+ เพิ่มตัวเลือก",
-        "minRating": "คะแนนต่ำสุด",
-        "maxRating": "คะแนนสูงสุด",
-        "requiredQuestion": "คำถามบังคับ",
-        "preview": "ตัวอย่าง",
-        "previewPlaceholder": "(ข้อความคำถามจะแสดงที่นี่)",
-        "textInputPlaceholder": "พิมพ์คำตอบของคุณที่นี่...",
-        "longTextInputPlaceholder": "พิมพ์คำตอบแบบละเอียดของคุณที่นี่...",
-        "questionTypes": {
-          "singleChoice": "เลือกคำตอบเดียว",
-          "multipleChoice": "เลือกได้หลายคำตอบ",
-          "text": "ข้อความสั้น",
-          "textarea": "ข้อความยาว",
-          "rating5": "ให้คะแนน 5 ดาว",
-          "rating10": "ให้คะแนน 10 ระดับ",
-          "yesNo": "ใช่/ไม่ใช่"
-        }
       },
       "analytics": {
         "title": "การวิเคราะห์แบบสำรวจ",
@@ -1373,7 +1339,7 @@
         "allTemplates": "เทมเพลตทั้งหมด",
         "categories": {
           "feedback": "ความคิดเห็น",
-          "loyalty": "ความจงรักภักดี", 
+          "loyalty": "ความจงรักภักดี",
           "events": "อีเวนท์",
           "quick": "รวดเร็ว",
           "custom": "กำหนดเอง"
@@ -1404,7 +1370,7 @@
                 "text": "คุณมีแนวโน้มที่จะแนะนำเราให้คนอื่นแค่ไหน?",
                 "options": {
                   "veryLikely": "มีแนวโน้มมาก",
-                  "likely": "มีแนวโน้ม", 
+                  "likely": "มีแนวโน้ม",
                   "neutral": "เฉยๆ",
                   "unlikely": "ไม่มีแนวโน้ม",
                   "veryUnlikely": "ไม่มีแนวโน้มเลย"
@@ -1455,7 +1421,7 @@
                   "pool": "สระว่ายน้ำ",
                   "gym": "ยิม/ศูนย์ออกกำลังกาย",
                   "spa": "สปา",
-                  "restaurant": "ร้านอาหาร", 
+                  "restaurant": "ร้านอาหาร",
                   "bar": "บาร์",
                   "business": "ศูนย์ธุรกิจ",
                   "concierge": "บริการคอนเซียร์จ"
@@ -1691,7 +1657,13 @@
     "totalForNights": "รวม {{nights}} คืน",
     "roomsLeft": "เหลือ {{count}} ห้อง",
     "pointsYouWillEarn": "คุณจะได้รับ {{points}} คะแนน!",
-    "maxGuests": "สูงสุด {{count}} ท่าน"
+    "maxGuests": "สูงสุด {{count}} ท่าน",
+    "selectProperty": "เลือกโรงแรม",
+    "property": "โรงแรม",
+    "guestName": "ชื่อผู้เข้าพัก",
+    "guestPhone": "เบอร์โทรศัพท์",
+    "guestPhonePlaceholder": "เช่น 081-234-5678",
+    "guestDetailsRequired": "กรุณากรอกชื่อผู้เข้าพักและเบอร์โทรศัพท์"
   },
   "payment": {
     "title": "การชำระเงิน",
@@ -1755,6 +1727,38 @@
     "showBankDetails": "แสดงข้อมูลการโอน",
     "hideBankDetails": "ซ่อนข้อมูลการโอน",
     "yourSlips": "สลิปที่อัปโหลดแล้ว",
-    "removeSlip": "ลบสลิป"
+    "removeSlip": "ลบสลิป",
+    "balanceDueAtCheckin": "ยอดคงเหลือชำระตอนเช็คอิน",
+    "holdExpiresIn": "กรุณาชำระภายใน {{time}} — เราจองห้องไว้ให้คุณจนถึงเวลานั้น",
+    "holdExpired": "หมดเวลาชำระเงิน ระบบได้ปล่อยห้องที่จองไว้แล้ว กรุณาเริ่มจองใหม่",
+    "startOver": "เริ่มจองใหม่",
+    "propertyAccount": "ยอดชำระเข้าบัญชีของ{{property}}"
+  },
+  "property": {
+    "hf": "โรงแรมเดอะฮาร์เบอร์ฟร้อนท์",
+    "hfville": "เอชเอฟ วิลล์"
+  },
+  "memberCard": {
+    "title": "บัตรสมาชิก",
+    "dashboardDescription": "แสดง QR ที่แผนกต้อนรับ",
+    "membershipId": "รหัสสมาชิก",
+    "qrAlt": "คิวอาร์โค้ดสมาชิก",
+    "qrError": "สร้างคิวอาร์โค้ดไม่สำเร็จ",
+    "generating": "กำลังสร้างคิวอาร์โค้ด...",
+    "noMembershipId": "รหัสสมาชิกของคุณยังไม่พร้อม กรุณาติดต่อแผนกต้อนรับ",
+    "showAtDesk": "แสดงคิวอาร์โค้ดนี้ที่แผนกต้อนรับตอนเช็คอิน เพื่อให้การเข้าพักนับเข้าสมาชิกของคุณ"
+  },
+  "privacy": {
+    "title": "ประกาศความเป็นส่วนตัว",
+    "footerLink": "ประกาศความเป็นส่วนตัว",
+    "whatWeStoreTitle": "ข้อมูลที่เราเก็บ",
+    "whatWeStoreBody": "ชื่อของคุณ ข้อมูลบัญชี LINE เบอร์โทรศัพท์ (เฉพาะเมื่อคุณเลือกกรอก) และประวัติการเข้าพัก — ใช้เพื่อดำเนินโปรแกรมสมาชิก: จำนวนคืน ระดับสมาชิก คะแนน และคูปอง",
+    "whyTitle": "เหตุผลที่เก็บข้อมูล",
+    "whyBody": "ข้อมูลสมาชิกถูกประมวลผลเพื่อให้บริการสมาชิกภาพของคุณ (สัญญาระหว่างเรากับคุณ) เราไม่ขายหรือแบ่งปันข้อมูลของคุณนอกเครือโรงแรม",
+    "messagesTitle": "ข้อความจากเรา",
+    "messagesBody": "การเพิ่มบัญชี LINE Official ของโรงแรมเป็นเพื่อน ถือเป็นการยินยอมรับข้อความเกี่ยวกับสมาชิกจากโรงแรมนั้น การบล็อกบัญชีจะหยุดข้อความได้ทุกเมื่อ",
+    "contactTitle": "ติดต่อ",
+    "contactBody": "สอบถามเรื่องข้อมูล ขอสำเนา หรือขอลบข้อมูล ติดต่ออีเมลฝ่ายบริการของโรงแรมหรือแผนกต้อนรับ",
+    "backToApp": "กลับสู่แอป"
   }
 }

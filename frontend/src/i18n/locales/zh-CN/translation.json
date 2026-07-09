@@ -157,7 +157,7 @@
     "manageAccountLinks": "管理关联账户",
     "role": "角色",
     "customer": "客户",
-    "staff": "员工", 
+    "staff": "员工",
     "admin": "管理员",
     "superAdmin": "超级管理员",
     "loggedInAs": "当前登录：{{email}}",
@@ -332,22 +332,9 @@
     "backToDashboard": "返回仪表板"
   },
   "errors": {
-    "notFound": "页面未找到",
-    "notFoundDescription": "您要访问的页面不存在或已被移动。",
-    "unauthorized": "访问被拒绝",
-    "unauthorizedDescription": "您没有权限访问此页面。请使用适当的凭据登录。",
-    "forbidden": "访问被禁止",
-    "serverError": "出现错误",
-    "serverErrorDescription": "我们遇到了技术问题。我们的团队已收到通知。",
-    "networkError": "连接问题",
-    "networkErrorDescription": "请检查您的网络连接并重试。",
-    "unknownError": "未知错误",
-    "unknownErrorDescription": "发生了意外情况。请重试，如果问题持续存在，请联系技术支持。",
-    "tryAgain": "重试",
-    "goHome": "返回仪表板",
-    "contactSupport": "联系技术支持",
-    "emailAlreadyRegistered": "此邮箱已被注册",
-    "emailAlreadyInUse": "此邮箱已被其他账户使用"
+    "failedToLoadCoupons": "无法加载您的优惠券。请尝试刷新页面。",
+    "validationFailed": "无法验证此优惠券。请检查代码并重试。",
+    "redemptionFailed": "目前无法兑换此优惠券。如果问题持续存在，请联系技术支持。"
   },
   "languages": {
     "en": "English",
@@ -411,9 +398,9 @@
       "selectUser": "选择客户以查看其积分详情",
       "userDetails": "用户详情",
       "currentPoints": "当前积分",
-        "currentTier": "当前等级",
+      "currentTier": "当前等级",
       "recentTransactions": "最近交易",
-      "noTransactions": "未找到交易记录",
+      "noTransactions": "没有交易记录",
       "noUsers": "未找到用户",
       "refresh": "刷新",
       "expirePoints": "使旧积分过期",
@@ -445,8 +432,7 @@
       },
       "transactionHistory": "交易历史",
       "transactions": "笔交易",
-      "viewTransactionHistory": "查看交易历史",
-      "noTransactions": "没有交易记录"
+      "viewTransactionHistory": "查看交易历史"
     },
     "coupons": {
       "title": "数字优惠券管理",
@@ -597,26 +583,6 @@
     "qrError": "生成二维码失败",
     "couponCode": "优惠券代码"
   },
-  "errors": {
-    "failedToLoadCoupons": "无法加载您的优惠券。请尝试刷新页面。",
-    "validationFailed": "无法验证此优惠券。请检查代码并重试。",
-    "redemptionFailed": "目前无法使用此优惠券。如果问题仍然存在，请联系客服。",
-    "notFound": "页面未找到",
-    "notFoundDescription": "您查找的页面不存在或已被移动。",
-    "unauthorized": "访问被拒绝",
-    "unauthorizedDescription": "您无权访问此页面。请使用适当的凭据登录。",
-    "forbidden": "禁止访问",
-    "serverError": "出现问题",
-    "serverErrorDescription": "我们遇到了技术问题。我们的团队已经收到通知。",
-    "networkError": "连接问题",
-    "networkErrorDescription": "请检查您的网络连接并重试。",
-    "unknownError": "意外错误",
-    "unknownErrorDescription": "发生了意外情况。请重试或联系客服如果问题仍然存在。",
-    "tryAgain": "重试",
-    "goHome": "返回仪表板",
-    "contactSupport": "联系客服",
-    "error": "发生错误"
-  },
   "navigation": {
     "dashboard": "仪表板",
     "backToDashboard": "← 返回仪表板",
@@ -630,16 +596,11 @@
     "settings": "设置",
     "help": "帮助与支持"
   },
-  "errors": {
-    "failedToLoadCoupons": "无法加载您的优惠券。请尝试刷新页面。",
-    "validationFailed": "无法验证此优惠券。请检查代码并重试。",
-    "redemptionFailed": "目前无法兑换此优惠券。如果问题持续存在，请联系技术支持。"
-  },
   "surveys": {
     "title": "客户调研",
     "subtitle": "通过分享您的反馈帮助我们改进 - 您可以随时重新参与调研！",
     "untitled": "无标题调研",
-    "loading": "加载可用调研中...",
+    "loading": "加载调研中...",
     "noSurveys": "暂无调研",
     "noPublicSurveys": "目前没有可用的调研。有新调研时我们会通知您！",
     "noInvitedSurveys": "您尚未被邀请参与任何调研。请稍后回来查看！",
@@ -667,13 +628,10 @@
       "required": "此问题为必答题 - 请提供答案",
       "invalid": "请为此问题提供有效答案"
     },
-    "loading": "加载调研中...",
     "description": "描述",
     "preview": "预览 ({{count}} 个问题)",
     "created": "创建于",
-    "takeSurvey": "开始调研",
     "backToSurveys": "返回调研",
-    "notFound": "未找到调研",
     "accessType": {
       "public": "公开",
       "invited": "受邀"
@@ -882,68 +840,6 @@
           "yesNo": "是/否"
         }
       },
-      "analytics": {
-        "title": "调研分析与洞察",
-        "overview": "性能概览",
-        "responses": "总回答数",
-        "completion": "完成率",
-        "averageTime": "平均完成时间",
-        "questionAnalytics": "逐题分析",
-        "responseDistribution": "回答分布",
-        "noResponses": "尚未收集到回答",
-        "insights": "关键洞察",
-        "trends": "回答趋势",
-        "exportData": "导出调研数据"
-      },
-      "invitations": {
-        "title": "调研邀请",
-        "sendInvitations": "发送调研邀请",
-        "inviteUsers": "邀请特定用户",
-        "selectUsers": "选择接收者",
-        "invitationsSent": "成功发送 {{count}} 份邀请",
-        "noInvitations": "此调研尚未发送邀请",
-        "inviteByEmail": "通过邮箱地址邀请",
-        "bulkInvite": "批量邀请",
-        "trackingStatus": "跟踪邀请状态",
-        "publicSurveyTitle": "这是公开调研",
-        "publicSurveyDescription": "公开调研对应用中的所有用户自动可用。无需邀请 - 用户可以直接从他们的\"参与调研\"菜单中找到并参与此调研。",
-        "publicSurveyType": "公开",
-        "surveyType": "调研类型"
-      },
-      "couponAssignment": {
-        "title": "调研奖励",
-        "description": "分配用户完成此调研时自动获得的优惠券",
-        "assignCoupon": "分配优惠券奖励",
-        "editAssignment": "编辑优惠券分配",
-        "selectCoupon": "选择要分配的优惠券",
-        "noAvailableCoupons": "没有可分配的活跃优惠券",
-        "rewardCondition": "奖励条件",
-        "alwaysOnCompletion": "用户完成调研时（100%回答）将自动获得优惠券。",
-        "awardedOnCompletion": "完成后获得",
-        "maxAwards": "最大奖励数量",
-        "unlimited": "无限制",
-        "maxAwardsHelp": "留空表示无限奖励，或设置总奖励上限",
-        "customExpiry": "自定义过期时间（天）",
-        "useCouponExpiry": "使用优惠券的过期日期",
-        "customExpiryHelp": "从奖励日期开始用自定义时长覆盖优惠券的过期时间",
-        "reason": "分配原因",
-        "reasonPlaceholder": "为什么要将此优惠券分配给此调研？",
-        "assign": "分配优惠券",
-        "update": "更新分配",
-        "remove": "移除分配",
-        "awarded": "已奖励",
-        "completed": "已完成",
-        "noAssignments": "未分配优惠券奖励",
-        "noAssignmentsHelp": "分配优惠券以自动奖励完成此调研的用户",
-        "confirmRemove": "您确定要移除此优惠券分配吗？用户将不再因完成调研而获得此奖励。",
-        "loadError": "加载优惠券分配失败",
-        "assignSuccess": "优惠券已成功分配给调研",
-        "assignError": "分配优惠券给调研失败",
-        "updateSuccess": "优惠券分配更新成功",
-        "updateError": "更新优惠券分配失败",
-        "removeSuccess": "优惠券分配移除成功",
-        "removeError": "移除优惠券分配失败"
-      },
       "templates": {
         "title": "调研模板",
         "subtitle": "从预制模板开始或创建自己的模板",
@@ -951,7 +847,7 @@
         "allTemplates": "所有模板",
         "categories": {
           "feedback": "反馈",
-          "loyalty": "忠诚度", 
+          "loyalty": "忠诚度",
           "events": "活动",
           "quick": "快速",
           "custom": "自定义"
@@ -981,7 +877,7 @@
                 "text": "您向他人推荐我们的可能性有多大？",
                 "options": {
                   "veryLikely": "很可能",
-                  "likely": "可能", 
+                  "likely": "可能",
                   "neutral": "中性",
                   "unlikely": "不太可能",
                   "veryUnlikely": "完全不可能"
@@ -1032,7 +928,7 @@
                   "pool": "游泳池",
                   "gym": "健身房/健身中心",
                   "spa": "水疗中心",
-                  "restaurant": "餐厅", 
+                  "restaurant": "餐厅",
                   "bar": "酒吧",
                   "business": "商务中心",
                   "concierge": "礼宾服务"
@@ -1144,5 +1040,47 @@
       "fetchDetailsFailed": "获取用户详情失败"
     },
     "confirmDelete": "您确定要删除 {{name}} 吗？此操作无法撤销。"
+  },
+  "property": {
+    "hf": "海滨酒店 (The Harbour Front)",
+    "hfville": "HF Ville"
+  },
+  "memberCard": {
+    "title": "会员卡",
+    "dashboardDescription": "在前台出示您的二维码",
+    "membershipId": "会员编号",
+    "qrAlt": "会员二维码",
+    "qrError": "二维码生成失败",
+    "generating": "正在生成二维码...",
+    "noMembershipId": "您的会员编号尚未生成，请联系前台。",
+    "showAtDesk": "入住时请在前台出示此二维码，让您的入住计入会员记录。"
+  },
+  "privacy": {
+    "title": "隐私声明",
+    "footerLink": "隐私声明",
+    "whatWeStoreTitle": "我们存储的信息",
+    "whatWeStoreBody": "您的姓名、LINE 账号信息、电话号码（仅当您选择填写时）以及入住记录——用于运营会员计划：住宿晚数、会员等级、积分和优惠券。",
+    "whyTitle": "存储原因",
+    "whyBody": "会员数据用于履行您的会员服务（我们与您之间的合约）。我们不会出售您的数据，也不会在酒店集团之外共享。",
+    "messagesTitle": "来自我们的消息",
+    "messagesBody": "添加我们酒店的 LINE 官方账号为好友，即表示您同意接收该酒店的会员消息。随时屏蔽该账号即可停止接收消息。",
+    "contactTitle": "联系方式",
+    "contactBody": "如需咨询数据、导出或删除，请联系酒店支持邮箱或前台。",
+    "backToApp": "返回应用"
+  },
+  "booking": {
+    "selectProperty": "选择酒店",
+    "property": "酒店",
+    "guestName": "入住人姓名",
+    "guestPhone": "电话号码",
+    "guestPhonePlaceholder": "例如 081-234-5678",
+    "guestDetailsRequired": "请填写入住人姓名和电话号码"
+  },
+  "payment": {
+    "balanceDueAtCheckin": "入住时应付余额",
+    "holdExpiresIn": "请在 {{time}} 内付款——房间将为您保留至该时间",
+    "holdExpired": "付款时间已过，房间保留已释放。请重新预订。",
+    "startOver": "重新预订",
+    "propertyAccount": "款项将支付到{{property}}的账户"
   }
 }

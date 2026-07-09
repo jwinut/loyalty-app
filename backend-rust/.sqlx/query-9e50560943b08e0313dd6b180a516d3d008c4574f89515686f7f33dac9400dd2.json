@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT property FROM line_friendships WHERE line_user_id = $1 AND is_friend",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "property",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9e50560943b08e0313dd6b180a516d3d008c4574f89515686f7f33dac9400dd2"
+}

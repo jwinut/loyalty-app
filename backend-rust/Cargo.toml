@@ -79,6 +79,9 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 
 # PromptPay QR code generation (Thai EMVCo payment standard)
 promptpay-rs = "0.5"
+
+# HMAC for LINE webhook signature verification
+hmac = "0.12"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 
 # Lazy initialization

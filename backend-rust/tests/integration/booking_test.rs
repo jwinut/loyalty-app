@@ -759,52 +759,58 @@ async fn test_complete_booking_cannot_complete_cancelled() {
 }
 
 // ============================================================================
-// test_check_availability - GET /api/bookings/availability
+// Channel availability - GET /api/bookings/availability (ADR-0003)
+// Availability truth lives in the PMS; the endpoint proxies it live.
 // ============================================================================
 
 #[tokio::test]
-async fn test_check_availability_returns_availability() {
-    let app = TestApp::new().await.expect("Failed to create test app");
+async fn test_channel_availability_proxies_pms() {
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    let user = TestUser::new("availability-check@test.com");
-    user.insert(app.db())
-        .await
-        .expect("Failed to insert test user");
-
-    // Seed room_types and rooms so the availability query has data
-    let room_type_id = Uuid::new_v4();
-    sqlx::query(
-        r#"
-        INSERT INTO room_types (id, name, price_per_night, max_guests, is_active)
-        VALUES ($1, 'Standard Room', 1500.00, 2, true)
-        "#,
-    )
-    .bind(room_type_id)
-    .execute(app.db())
-    .await
-    .expect("Failed to insert room type");
-
-    sqlx::query(
-        r#"
-        INSERT INTO rooms (id, room_type_id, room_number, floor, is_active)
-        VALUES ($1, $2, '201', 2, true)
-        "#,
-    )
-    .bind(Uuid::new_v4())
-    .bind(room_type_id)
-    .execute(app.db())
-    .await
-    .expect("Failed to insert room");
-
-    let client = app.authenticated_client(&user.id, &user.email);
+    let mock_pms = MockServer::start().await;
 
     let today = Utc::now().date_naive();
     let check_in = today + Duration::days(30);
     let check_out = today + Duration::days(33);
 
+    Mock::given(method("GET"))
+        .and(path("/api/channel/availability"))
+        .and(query_param("property", "hf"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "property": "hf",
+            "check_in": check_in.format("%Y-%m-%d").to_string(),
+            "check_out": check_out.format("%Y-%m-%d").to_string(),
+            "room_types": [{
+                "room_type_id": "std-hf",
+                "name": "Standard",
+                "description": "Standard room",
+                "nightly_price": 1500.0,
+                "available_count": 3
+            }]
+        })))
+        .mount(&mock_pms)
+        .await;
+
+    let pms_uri = mock_pms.uri();
+    let mutate = move |cfg: &mut loyalty_backend::Settings| {
+        cfg.pms.base_url = Some(pms_uri.clone());
+        cfg.pms.channel_token = Some("test-channel-token".to_string());
+    };
+    let app = TestApp::new_with_config(&mutate)
+        .await
+        .expect("Failed to create test app");
+
+    let user = TestUser::new("channel-availability@test.com");
+    user.insert(app.db())
+        .await
+        .expect("Failed to insert test user");
+
+    let client = app.authenticated_client(&user.id, &user.email);
+
     let response = client
         .get(&format!(
-            "/api/bookings/availability?checkIn={}&checkOut={}",
+            "/api/bookings/availability?property=hf&check_in={}&check_out={}&guests=2",
             check_in.format("%Y-%m-%d"),
             check_out.format("%Y-%m-%d")
         ))
@@ -813,89 +819,16 @@ async fn test_check_availability_returns_availability() {
     response.assert_status(200);
 
     let json: Value = response.json().expect("Response should be valid JSON");
-    assert!(
-        json.get("available").is_some(),
-        "Response should have 'available' field"
-    );
-    assert!(
-        json.get("availableRooms").is_some() || json.get("available_rooms").is_some(),
-        "Response should have available rooms count"
-    );
+    assert_eq!(json["property"], "hf");
+    assert_eq!(json["room_types"][0]["room_type_id"], "std-hf");
+    assert_eq!(json["room_types"][0]["available_count"], 3);
+    assert_eq!(json["room_types"][0]["nightly_price"], 1500.0);
 
     app.cleanup().await.ok();
 }
 
 #[tokio::test]
-async fn test_check_availability_with_room_type() {
-    let app = TestApp::new().await.expect("Failed to create test app");
-
-    let user = TestUser::new("availability-roomtype@test.com");
-    user.insert(app.db())
-        .await
-        .expect("Failed to insert test user");
-
-    // Seed a Deluxe room type and room so the availability query has data
-    let room_type_id = Uuid::new_v4();
-    sqlx::query(
-        r#"
-        INSERT INTO room_types (id, name, price_per_night, max_guests, is_active)
-        VALUES ($1, 'Deluxe', 2500.00, 2, true)
-        "#,
-    )
-    .bind(room_type_id)
-    .execute(app.db())
-    .await
-    .expect("Failed to insert room type");
-
-    sqlx::query(
-        r#"
-        INSERT INTO rooms (id, room_type_id, room_number, floor, is_active)
-        VALUES ($1, $2, '301', 3, true)
-        "#,
-    )
-    .bind(Uuid::new_v4())
-    .bind(room_type_id)
-    .execute(app.db())
-    .await
-    .expect("Failed to insert room");
-
-    let client = app.authenticated_client(&user.id, &user.email);
-
-    let today = Utc::now().date_naive();
-    let check_in = today + Duration::days(30);
-    let check_out = today + Duration::days(33);
-
-    let response = client
-        .get(&format!(
-            "/api/bookings/availability?checkIn={}&checkOut={}&roomType=deluxe",
-            check_in.format("%Y-%m-%d"),
-            check_out.format("%Y-%m-%d")
-        ))
-        .await;
-
-    response.assert_status(200);
-
-    let json: Value = response.json().expect("Response should be valid JSON");
-    assert!(
-        json.get("available").is_some(),
-        "Response should have 'available' field"
-    );
-
-    if let Some(room_type) = json.get("roomType").or(json.get("room_type")) {
-        assert!(
-            room_type
-                .as_str()
-                .map(|s| s.to_lowercase().contains("deluxe"))
-                .unwrap_or(false),
-            "Room type should be deluxe"
-        );
-    }
-
-    app.cleanup().await.ok();
-}
-
-#[tokio::test]
-async fn test_check_availability_invalid_dates() {
+async fn test_channel_availability_invalid_dates() {
     let app = TestApp::new().await.expect("Failed to create test app");
 
     let user = TestUser::new("availability-invalid@test.com");
@@ -906,13 +839,13 @@ async fn test_check_availability_invalid_dates() {
     let client = app.authenticated_client(&user.id, &user.email);
 
     let today = Utc::now().date_naive();
-    // Check-out before check-in (invalid)
+    // Check-out before check-in (invalid) — rejected before any PMS call.
     let check_in = today + Duration::days(33);
     let check_out = today + Duration::days(30);
 
     let response = client
         .get(&format!(
-            "/api/bookings/availability?checkIn={}&checkOut={}",
+            "/api/bookings/availability?property=hf&check_in={}&check_out={}&guests=2",
             check_in.format("%Y-%m-%d"),
             check_out.format("%Y-%m-%d")
         ))
@@ -921,6 +854,40 @@ async fn test_check_availability_invalid_dates() {
     assert!(
         response.status == 400 || response.status == 422,
         "Expected 400 or 422 for invalid dates, got {}",
+        response.status
+    );
+
+    app.cleanup().await.ok();
+}
+
+#[tokio::test]
+async fn test_channel_availability_unconfigured_pms_is_server_error() {
+    // Default test config has no PMS wiring: valid queries must surface a
+    // server-side configuration error, not silently succeed.
+    let app = TestApp::new().await.expect("Failed to create test app");
+
+    let user = TestUser::new("availability-nopms@test.com");
+    user.insert(app.db())
+        .await
+        .expect("Failed to insert test user");
+
+    let client = app.authenticated_client(&user.id, &user.email);
+
+    let today = Utc::now().date_naive();
+    let check_in = today + Duration::days(30);
+    let check_out = today + Duration::days(33);
+
+    let response = client
+        .get(&format!(
+            "/api/bookings/availability?property=hfville&check_in={}&check_out={}&guests=2",
+            check_in.format("%Y-%m-%d"),
+            check_out.format("%Y-%m-%d")
+        ))
+        .await;
+
+    assert!(
+        response.status >= 500,
+        "Expected 5xx when PMS is unconfigured, got {}",
         response.status
     );
 

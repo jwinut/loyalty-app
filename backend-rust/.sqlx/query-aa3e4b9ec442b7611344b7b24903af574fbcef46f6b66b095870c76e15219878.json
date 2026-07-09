@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT t.name AS \"name?\"\n        FROM user_loyalty ul\n        LEFT JOIN tiers t ON ul.tier_id = t.id\n        WHERE ul.user_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name?",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "aa3e4b9ec442b7611344b7b24903af574fbcef46f6b66b095870c76e15219878"
+}

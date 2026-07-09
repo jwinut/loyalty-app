@@ -1,22 +1,29 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { FiCalendar, FiUsers, FiCheck, FiStar, FiWifi, FiTv, FiCoffee, FiUpload, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiCheck, FiUpload, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiMapPin } from 'react-icons/fi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import QRCode from 'qrcode';
 import clsx from 'clsx';
 import MainLayout from '../components/layout/MainLayout';
 import { bookingService } from '../services/bookingService';
-import { paymentService } from '../services/paymentService';
+import {
+  channelBookingService,
+  type Property,
+  type PaymentOption,
+  type ChannelBookingResponse,
+} from '../services/channelBookingService';
+import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 import toast from 'react-hot-toast';
-import companyQRCode from '../assets/company-promptpay-qr.png';
-import kbankLogo from '../assets/kbank-logo.png';
 
-// Amenity icons mapping
-const amenityIcons: Record<string, React.ReactNode> = {
-  wifi: <FiWifi className="w-4 h-4" />,
-  tv: <FiTv className="w-4 h-4" />,
-  minibar: <FiCoffee className="w-4 h-4" />,
-};
+// The booking flow is a CHANNEL into the PMS (ADR-0003): availability is
+// queried live and a confirmed booking is created in the PMS. Payment is a
+// PromptPay transfer into the booked property's own receiving account —
+// the QR payload arrives with the booking response; nothing is hardcoded
+// here.
+
+const PROPERTIES: Property[] = ['hf', 'hfville'];
 
 interface BookingStep {
   number: number;
@@ -24,31 +31,38 @@ interface BookingStep {
   completed: boolean;
 }
 
-type PaymentType = 'deposit' | 'full';
 type SlipStatus = 'pending' | 'uploaded' | 'verified' | 'failed';
 
-interface CreatedBooking {
-  id: string;
-  totalPrice: number;
+function formatCountdown(msLeft: number): string {
+  const totalSeconds = Math.max(0, Math.floor(msLeft / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export default function BookingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
 
   // Form state
+  const [property, setProperty] = useState<Property | null>(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
-  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
   const [numGuests, setNumGuests] = useState(1);
-  const [notes, setNotes] = useState('');
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState(
+    [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+  );
+  const [guestPhone, setGuestPhone] = useState(user?.phone ?? '');
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>('deposit50');
   const [currentStep, setCurrentStep] = useState(1);
 
   // Payment state
-  const [createdBooking, setCreatedBooking] = useState<CreatedBooking | null>(null);
-  const [paymentType, setPaymentType] = useState<PaymentType>('deposit');
-  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<ChannelBookingResponse | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [holdMsLeft, setHoldMsLeft] = useState<number | null>(null);
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
   const [slipStatus, setSlipStatus] = useState<SlipStatus>('pending');
@@ -60,33 +74,48 @@ export default function BookingPage() {
   const today = new Date().toISOString().split('T')[0];
   const minCheckOut = checkIn ? new Date(new Date(checkIn).getTime() + 86400000).toISOString().split('T')[0] : today;
 
-  // Calculate nights
   const nights = checkIn && checkOut
     ? Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
-  // Queries
-  const { data: roomTypesWithAvailability, isLoading: isLoadingRoomTypes } = useQuery({
-    queryKey: ['bookings', 'availability', checkIn, checkOut],
-    queryFn: () => bookingService.checkAvailability(new Date(checkIn), new Date(checkOut)),
-    enabled: !!checkIn && !!checkOut && nights > 0,
+  // Live availability from the PMS via the channel endpoint
+  const { data: availability, isLoading: isLoadingRoomTypes } = useQuery({
+    queryKey: ['bookings', 'channel-availability', property, checkIn, checkOut, numGuests],
+    queryFn: () => {
+      if (!property) {
+        throw new Error('property is required when availability query is enabled');
+      }
+      return channelBookingService.getAvailability(property, checkIn, checkOut, numGuests);
+    },
+    enabled: !!property && !!checkIn && !!checkOut && nights > 0,
   });
 
-  const selectedRoomType = roomTypesWithAvailability?.find(rt => rt.id === selectedRoomTypeId);
-  const totalPrice = selectedRoomType ? selectedRoomType.pricePerNight * nights : 0;
-  const pointsEarned = Math.floor(totalPrice * 10);
+  const roomTypes = availability?.room_types;
+  const selectedRoomType = roomTypes?.find(rt => rt.room_type_id === selectedRoomTypeId);
+  const totalPrice = selectedRoomType ? selectedRoomType.nightly_price * nights : 0;
+  const depositAmount = Math.round(totalPrice * 0.5);
+  const amountDueNow = paymentOption === 'deposit50' ? depositAmount : totalPrice;
 
-  // Mutations
   const createBookingMutation = useMutation({
-    mutationFn: (data: { roomTypeId: string; checkIn: Date; checkOut: Date; numGuests: number; notes?: string }) =>
-      bookingService.createBooking(data),
+    mutationFn: () => {
+      if (!property || !selectedRoomTypeId) {
+        throw new Error('property and room type are required');
+      }
+      return channelBookingService.createBooking({
+        property,
+        room_type_id: selectedRoomTypeId,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests: numGuests,
+        guest_name: guestName.trim(),
+        guest_phone: guestPhone.trim(),
+        payment_option: paymentOption,
+      });
+    },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ['bookings'] });
       toast.success(t('booking.bookingSuccess'));
-      setCreatedBooking({
-        id: data.id,
-        totalPrice: Number(data.totalPrice),
-      });
+      setCreatedBooking(data);
       setCurrentStep(4);
     },
     onError: (error: Error) => {
@@ -94,46 +123,50 @@ export default function BookingPage() {
     },
   });
 
-  // Calculate payment amounts
-  const depositAmount = createdBooking ? Math.round(createdBooking.totalPrice * 0.5) : 0;
-  const fullAmount = createdBooking ? createdBooking.totalPrice : 0;
-  const amountToPay = paymentType === 'deposit' ? depositAmount : fullAmount;
-
-  // Fetch dynamic PromptPay QR (SVG) for the chosen amount once the user has
-  // confirmed their payment type. Falls back to the bundled image if the
-  // backend can't produce a QR (e.g. PromptPay Tax ID not configured).
-  const {
-    data: promptPayQr,
-    isLoading: isLoadingQr,
-    isError: isQrError,
-  } = useQuery({
-    queryKey: ['payments', 'promptpay-qr', createdBooking?.id, amountToPay],
-    queryFn: () => {
-      if (!createdBooking?.id) {
-        throw new Error('createdBooking.id is required when QR query is enabled');
-      }
-      return paymentService.getPromptPayQr(amountToPay, createdBooking.id);
-    },
-    enabled: Boolean(isPaymentConfirmed && createdBooking?.id && amountToPay > 0),
-    staleTime: 60_000,
-    retry: 1,
-  });
-
-  // Encode the SVG payload as a data URL so the existing <img>/download
-  // markup can render and offer it as a downloadable file without any
-  // additional asset round-trip.
-  const promptPayQrSrc = useMemo(() => {
-    if (promptPayQr?.svg) {
-      return `data:image/svg+xml;utf8,${encodeURIComponent(promptPayQr.svg)}`;
+  // Render the per-property PromptPay QR from the payload in the booking
+  // response (same QRCode.toDataURL pattern as the coupon QR modal).
+  useEffect(() => {
+    if (!createdBooking?.promptpay_qr_payload) {
+      setQrDataUrl('');
+      return;
     }
-    return null;
-  }, [promptPayQr]);
+    let cancelled = false;
+    QRCode.toDataURL(createdBooking.promptpay_qr_payload, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    })
+      .then((url) => {
+        if (!cancelled) {
+          setQrDataUrl(url);
+        }
+      })
+      .catch((error: unknown) => {
+        logger.error(
+          'Failed to render PromptPay QR:',
+          error instanceof Error ? error.message : String(error),
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [createdBooking]);
 
-  // Fall back to the bundled company QR image when the dynamic generator is
-  // unavailable. This keeps the page functional during local dev where the
-  // PromptPay Tax ID env var may not be set.
-  const fallbackQrUrl = import.meta.env.VITE_PROMPTPAY_QR_IMAGE_URL ?? companyQRCode;
-  const displayedQrUrl = promptPayQrSrc ?? fallbackQrUrl;
+  // Hold-expiry countdown. The PMS releases the room if the deposit is not
+  // verified before hold_expires_at; keep the guest aware of the clock.
+  useEffect(() => {
+    if (!createdBooking?.hold_expires_at) {
+      setHoldMsLeft(null);
+      return;
+    }
+    const expiresAt = new Date(createdBooking.hold_expires_at).getTime();
+    const tick = () => setHoldMsLeft(expiresAt - Date.now());
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [createdBooking]);
+
+  const holdExpired = holdMsLeft !== null && holdMsLeft <= 0 && slipStatus === 'pending' && !slipPreview;
 
   // File handling functions
   const handleFileSelect = useCallback((file: File) => {
@@ -195,10 +228,8 @@ export default function BookingPage() {
       // Two-step flow (mirrors MyBookingsPage):
       //   1. POST /api/slips/upload      -> stores the file, returns the URL
       //   2. POST /api/bookings/:id/slips -> attaches the URL to the booking
-      // The backend `/api/slips/upload` route lives in
-      // `backend-rust/src/routes/slips.rs` and enforces auth + 10MB + JPG/PNG.
       const { url } = await bookingService.uploadSlip(slipFile);
-      await bookingService.addSlip(createdBooking.id, url);
+      await bookingService.addSlip(createdBooking.booking_id, url);
 
       setSlipStatus('uploaded');
       await queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -216,32 +247,37 @@ export default function BookingPage() {
   }, [navigate]);
 
   const handleDateSubmit = () => {
-    if (checkIn && checkOut && nights > 0) {
+    if (property && checkIn && checkOut && nights > 0) {
       setCurrentStep(2);
     }
   };
 
   const handleRoomTypeSelect = (roomTypeId: string) => {
-    const roomType = roomTypesWithAvailability?.find(rt => rt.id === roomTypeId);
-    if (roomType && roomType.availableRooms > 0) {
+    const roomType = roomTypes?.find(rt => rt.room_type_id === roomTypeId);
+    if (roomType && roomType.available_count > 0) {
       setSelectedRoomTypeId(roomTypeId);
-      setNumGuests(Math.min(numGuests, roomType.maxGuests));
       setCurrentStep(3);
     }
   };
 
   const handleBookingSubmit = () => {
-    if (!selectedRoomTypeId || !checkIn || !checkOut) {
+    if (!selectedRoomTypeId || !checkIn || !checkOut || !property) {
       return;
     }
+    if (!guestName.trim() || !guestPhone.trim()) {
+      toast.error(t('booking.guestDetailsRequired'));
+      return;
+    }
+    createBookingMutation.mutate();
+  };
 
-    createBookingMutation.mutate({
-      roomTypeId: selectedRoomTypeId,
-      checkIn: new Date(checkIn),
-      checkOut: new Date(checkOut),
-      numGuests,
-      notes: notes || undefined,
-    });
+  const restartBooking = () => {
+    setCreatedBooking(null);
+    setSelectedRoomTypeId(null);
+    setSlipFile(null);
+    setSlipPreview(null);
+    setSlipStatus('pending');
+    setCurrentStep(1);
   };
 
   const steps: BookingStep[] = [
@@ -278,7 +314,7 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {/* Step 1: Select Dates */}
+      {/* Step 1: Property, dates, guests */}
       {currentStep === 1 && (
         <div className="bg-white rounded-lg shadow p-6 max-w-md mx-auto">
           <h2 className="text-xl font-semibold mb-6 flex items-center">
@@ -287,6 +323,34 @@ export default function BookingPage() {
           </h2>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                {t('booking.selectProperty')}
+              </label>
+              <div className="grid grid-cols-1 gap-3">
+                {PROPERTIES.map((p) => (
+                  <label
+                    key={p}
+                    className={clsx('flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors',
+                      property === p ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="property"
+                      value={p}
+                      checked={property === p}
+                      onChange={() => setProperty(p)}
+                      className="text-primary-600 focus:ring-primary-500"
+                      data-testid={`property-${p}`}
+                    />
+                    <FiMapPin className="ml-3 mr-2 text-primary-600 flex-shrink-0" />
+                    <span className="font-medium">{t(`property.${p}`)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t('booking.checkIn')}
@@ -321,6 +385,24 @@ export default function BookingPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t('booking.numberOfGuests')}
+              </label>
+              <select
+                value={numGuests}
+                onChange={(e) => setNumGuests(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                data-testid="num-guests"
+              >
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n} {n === 1 ? t('booking.guest') : t('booking.guests')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {nights > 0 && (
               <p className="text-sm text-stone-600">
                 {t('booking.nightsSelected', { count: nights })}
@@ -329,7 +411,7 @@ export default function BookingPage() {
 
             <button
               onClick={handleDateSubmit}
-              disabled={!checkIn || !checkOut || nights <= 0}
+              disabled={!property || !checkIn || !checkOut || nights <= 0}
               className="w-full py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed"
               data-testid="continue-to-rooms"
             >
@@ -355,6 +437,7 @@ export default function BookingPage() {
           </div>
 
           <p className="text-stone-600 mb-4">
+            {property && <span className="font-medium">{t(`property.${property}`)} · </span>}
             {t('booking.stayDates', {
               checkIn: new Date(checkIn).toLocaleDateString(),
               checkOut: new Date(checkOut).toLocaleDateString(),
@@ -366,25 +449,25 @@ export default function BookingPage() {
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
             </div>
-          ) : roomTypesWithAvailability?.length === 0 ? (
+          ) : roomTypes?.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
               <p className="text-yellow-800">{t('booking.noRoomsAvailable')}</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {roomTypesWithAvailability?.map((roomType) => (
+              {roomTypes?.map((roomType) => (
                 <div
-                  key={roomType.id}
+                  key={roomType.room_type_id}
                   className={clsx('bg-white rounded-lg shadow overflow-hidden',
-                    roomType.availableRooms === 0 ? 'opacity-50' : 'hover:shadow-lg cursor-pointer'
+                    roomType.available_count === 0 ? 'opacity-50' : 'hover:shadow-lg cursor-pointer'
                   )}
-                  onClick={() => roomType.availableRooms > 0 && handleRoomTypeSelect(roomType.id)}
-                  data-testid={`room-type-${roomType.id}`}
+                  onClick={() => roomType.available_count > 0 && handleRoomTypeSelect(roomType.room_type_id)}
+                  data-testid={`room-type-${roomType.room_type_id}`}
                 >
                   {/* Room Image */}
-                  {roomType.images && roomType.images.length > 0 ? (
+                  {roomType.photo_url ? (
                     <img
-                      src={roomType.images[0]}
+                      src={roomType.photo_url}
                       alt={roomType.name}
                       className="w-full h-48 object-cover"
                     />
@@ -400,44 +483,18 @@ export default function BookingPage() {
                       <p className="text-stone-600 text-sm mt-1 line-clamp-2">{roomType.description}</p>
                     )}
 
-                    {/* Amenities */}
-                    {roomType.amenities && roomType.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {roomType.amenities.slice(0, 4).map((amenity) => (
-                          <span
-                            key={amenity}
-                            className="inline-flex items-center px-2 py-1 bg-stone-100 rounded text-xs text-stone-600"
-                          >
-                            {amenityIcons[amenity] ?? null}
-                            <span className="ml-1">{amenity}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Room Info */}
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center text-sm text-stone-500">
-                        <FiUsers className="mr-1" />
-                        {t('booking.maxGuests', { count: roomType.maxGuests })}
-                      </div>
-                      {roomType.bedType && (
-                        <span className="text-sm text-stone-500 capitalize">{roomType.bedType}</span>
-                      )}
-                    </div>
-
                     {/* Price and Availability */}
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-2xl font-bold text-primary-600">
-                            ฿{roomType.pricePerNight.toLocaleString()}
+                            ฿{roomType.nightly_price.toLocaleString()}
                           </span>
                           <span className="text-stone-500 text-sm">/{t('booking.night')}</span>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-semibold">
-                            ฿{(roomType.pricePerNight * nights).toLocaleString()}
+                            ฿{(roomType.nightly_price * nights).toLocaleString()}
                           </div>
                           <div className="text-sm text-stone-500">
                             {t('booking.totalForNights', { nights })}
@@ -446,12 +503,12 @@ export default function BookingPage() {
                       </div>
 
                       <div className={clsx('mt-2 text-sm',
-                        roomType.availableRooms === 0 ? 'text-red-600' : 'text-green-600'
+                        roomType.available_count === 0 ? 'text-red-600' : 'text-green-600'
                       )}
                       >
-                        {roomType.availableRooms === 0
+                        {roomType.available_count === 0
                           ? t('booking.soldOut')
-                          : t('booking.roomsLeft', { count: roomType.availableRooms })}
+                          : t('booking.roomsLeft', { count: roomType.available_count })}
                       </div>
                     </div>
                   </div>
@@ -482,6 +539,10 @@ export default function BookingPage() {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
+                  <span className="text-stone-500">{t('booking.property')}:</span>
+                  <span className="ml-2 font-medium">{property ? t(`property.${property}`) : ''}</span>
+                </div>
+                <div>
                   <span className="text-stone-500">{t('booking.roomType')}:</span>
                   <span className="ml-2 font-medium">{selectedRoomType.name}</span>
                 </div>
@@ -497,45 +558,102 @@ export default function BookingPage() {
                   <span className="text-stone-500">{t('booking.nights')}:</span>
                   <span className="ml-2 font-medium">{nights}</span>
                 </div>
+                <div>
+                  <span className="text-stone-500">{t('booking.numberOfGuests')}:</span>
+                  <span className="ml-2 font-medium">{numGuests}</span>
+                </div>
               </div>
             </div>
 
             {/* Guest Details */}
             <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-4">{t('booking.guestDetails')}</h3>
+              <h3 className="font-semibold text-lg mb-4 flex items-center">
+                <FiUsers className="mr-2" />
+                {t('booking.guestDetails')}
+              </h3>
 
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('booking.numberOfGuests')}
+                    {t('booking.guestName')}
                   </label>
-                  <select
-                    value={numGuests}
-                    onChange={(e) => setNumGuests(parseInt(e.target.value))}
+                  <input
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
                     className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    data-testid="num-guests"
-                  >
-                    {Array.from({ length: selectedRoomType.maxGuests }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? t('booking.guest') : t('booking.guests')}
-                      </option>
-                    ))}
-                  </select>
+                    data-testid="guest-name"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('booking.specialRequests')}
+                    {t('booking.guestPhone')}
                   </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    placeholder={t('booking.specialRequestsPlaceholder')}
+                  <input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder={t('booking.guestPhonePlaceholder')}
                     className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    data-testid="special-requests"
+                    data-testid="guest-phone"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Payment option (50% deposit or full) */}
+            <div className="border-b pb-6">
+              <h3 className="font-semibold text-lg mb-4">{t('payment.selectPaymentType')}</h3>
+
+              <div className="space-y-3">
+                <label
+                  className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
+                    paymentOption === 'deposit50' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="paymentOption"
+                    value="deposit50"
+                    checked={paymentOption === 'deposit50'}
+                    onChange={() => setPaymentOption('deposit50')}
+                    className="mt-1 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{t('payment.deposit')}</span>
+                      <span className="text-lg font-bold text-primary-600">
+                        ฿{depositAmount.toLocaleString('th-TH')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-stone-500 mt-1">{t('payment.depositDescription')}</p>
+                  </div>
+                </label>
+
+                <label
+                  className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
+                    paymentOption === 'full' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="paymentOption"
+                    value="full"
+                    checked={paymentOption === 'full'}
+                    onChange={() => setPaymentOption('full')}
+                    className="mt-1 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{t('payment.payInFull')}</span>
+                      <span className="text-lg font-bold text-primary-600">
+                        ฿{totalPrice.toLocaleString('th-TH')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-stone-500 mt-1">{t('payment.payInFullDescription')}</p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -546,7 +664,7 @@ export default function BookingPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>
-                    ฿{selectedRoomType.pricePerNight.toLocaleString()} x {nights} {nights === 1 ? t('booking.night') : t('booking.nights')}
+                    ฿{selectedRoomType.nightly_price.toLocaleString()} x {nights} {nights === 1 ? t('booking.night') : t('booking.nights')}
                   </span>
                   <span>฿{totalPrice.toLocaleString()}</span>
                 </div>
@@ -554,26 +672,17 @@ export default function BookingPage() {
                   <span>{t('booking.total')}</span>
                   <span className="text-primary-600">฿{totalPrice.toLocaleString()}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Points Earned */}
-            <div className="bg-yellow-50 rounded-lg p-4 flex items-center">
-              <FiStar className="w-8 h-8 text-yellow-500 mr-4" />
-              <div>
-                <p className="font-semibold text-yellow-800">
-                  {t('booking.pointsYouWillEarn', { points: pointsEarned.toLocaleString() })}
-                </p>
-                <p className="text-sm text-yellow-700">
-                  {t('booking.pointsDescription')}
-                </p>
+                <div className="flex justify-between text-sm text-stone-600">
+                  <span>{t('payment.amountToPay')}</span>
+                  <span>฿{amountDueNow.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
             {/* Submit Button */}
             <button
               onClick={handleBookingSubmit}
-              disabled={createBookingMutation.isPending}
+              disabled={createBookingMutation.isPending || !guestName.trim() || !guestPhone.trim()}
               className="w-full py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
               data-testid="confirm-booking"
             >
@@ -598,175 +707,77 @@ export default function BookingPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6 space-y-6">
-            {/* Payment Type Selection */}
-            <div className={isPaymentConfirmed ? '' : 'border-b pb-6'}>
-              <h3 className="font-semibold text-lg mb-4">{t('payment.selectPaymentType')}</h3>
-
-              {!isPaymentConfirmed ? (
-                <>
-                  <div className="space-y-3">
-                    <label
-                      className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                        paymentType === 'deposit' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentType"
-                        value="deposit"
-                        checked={paymentType === 'deposit'}
-                        onChange={() => setPaymentType('deposit')}
-                        className="mt-1 text-primary-600 focus:ring-primary-500"
-                      />
-                      <div className="ml-3 flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{t('payment.deposit')}</span>
-                          <span className="text-lg font-bold text-primary-600">
-                            ฿{depositAmount.toLocaleString('th-TH')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-stone-500 mt-1">{t('payment.depositDescription')}</p>
-                      </div>
-                    </label>
-
-                    <label
-                      className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                        paymentType === 'full' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentType"
-                        value="full"
-                        checked={paymentType === 'full'}
-                        onChange={() => setPaymentType('full')}
-                        className="mt-1 text-primary-600 focus:ring-primary-500"
-                      />
-                      <div className="ml-3 flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{t('payment.payInFull')}</span>
-                          <span className="text-lg font-bold text-primary-600">
-                            ฿{fullAmount.toLocaleString('th-TH')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-stone-500 mt-1">{t('payment.payInFullDescription')}</p>
-                      </div>
-                    </label>
-                  </div>
-
-                  <button
-                    onClick={() => setIsPaymentConfirmed(true)}
-                    className="w-full mt-4 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                  >
-                    {t('payment.confirmPaymentType')}
-                  </button>
-                </>
-              ) : (
-                <div className="p-4 bg-primary-50 border-2 border-primary-200 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">
-                        {paymentType === 'deposit' ? t('payment.deposit') : t('payment.payInFull')}
-                      </p>
-                      <p className="text-sm text-stone-500">{t('payment.amountToPay')}</p>
-                    </div>
-                    <p className="text-2xl font-bold text-primary-600">
-                      ฿{(paymentType === 'deposit' ? depositAmount : fullAmount).toLocaleString('th-TH')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsPaymentConfirmed(false)}
-                    className="mt-3 text-sm text-primary-600 hover:underline"
-                  >
-                    {t('payment.changePaymentType')}
-                  </button>
+            {/* Amount summary */}
+            <div className="p-4 bg-primary-50 border-2 border-primary-200 rounded-lg space-y-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">
+                    {paymentOption === 'deposit50' ? t('payment.deposit') : t('payment.payInFull')}
+                  </p>
+                  <p className="text-sm text-stone-500">{t('payment.amountToPay')}</p>
+                </div>
+                <p className="text-2xl font-bold text-primary-600" data-testid="amount-due-now">
+                  ฿{createdBooking.amount_due_now.toLocaleString('th-TH')}
+                </p>
+              </div>
+              {createdBooking.balance_due_at_checkin > 0 && (
+                <div className="flex justify-between items-center text-sm border-t border-primary-200 pt-2">
+                  <span className="text-stone-600">{t('payment.balanceDueAtCheckin')}</span>
+                  <span className="font-semibold" data-testid="balance-due">
+                    ฿{createdBooking.balance_due_at_checkin.toLocaleString('th-TH')}
+                  </span>
                 </div>
               )}
             </div>
 
-            {isPaymentConfirmed && (
+            {/* Hold expiry countdown */}
+            {holdMsLeft !== null && !holdExpired && slipStatus === 'pending' && (
+              <div className="flex items-center justify-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3" data-testid="hold-countdown">
+                <FiClock className="w-4 h-4" />
+                <span>{t('payment.holdExpiresIn', { time: formatCountdown(holdMsLeft) })}</span>
+              </div>
+            )}
+
+            {holdExpired ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-4" data-testid="hold-expired">
+                <FiAlertCircle className="w-8 h-8 text-red-500 mx-auto" />
+                <p className="font-medium text-red-800">{t('payment.holdExpired')}</p>
+                <button
+                  onClick={restartBooking}
+                  className="py-2 px-6 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                >
+                  {t('payment.startOver')}
+                </button>
+              </div>
+            ) : (
               <>
-                {/* Bank Transfer Option */}
-                <div className="pb-6">
-                  <h3 className="font-semibold text-lg mb-4">{t('payment.bankTransfer')}</h3>
-                  <div
-                    className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
-                    onClick={() => {
-                      navigator.clipboard.writeText('0461430473');
-                      toast.success(t('payment.copied'));
-                    }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-stone-500">{t('payment.bankName')}</span>
-                      <div className="flex items-center gap-2">
-                        <img src={kbankLogo} alt="KBank" className="h-6" />
-                        <span className="font-medium">กสิกรไทย</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">{t('payment.accountName')}</span>
-                      <span className="font-medium">บจก. สายชล เฮอริเทจ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-stone-500">{t('payment.accountNumber')}</span>
-                      <span className="font-medium font-mono">046-1-43047-3</span>
-                    </div>
-                    <p className="text-xs text-stone-400 text-center">{t('payment.clickToCopy')}</p>
-                  </div>
-                </div>
-
-                {/* Divider with "หรือ" */}
-                <div className="flex items-center gap-4 py-4">
-                  <div className="flex-1 border-t border-stone-200" />
-                  <span className="text-stone-400 text-sm">{t('payment.or')}</span>
-                  <div className="flex-1 border-t border-stone-200" />
-                </div>
-
-                {/* QR Code Display */}
+                {/* Per-property PromptPay QR */}
                 <div className="border-b pb-6">
                   <h3 className="font-semibold text-lg mb-4">{t('payment.scanQRCode')}</h3>
 
                   <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm space-y-4">
-                    {isLoadingQr ? (
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt="PromptPay QR Code"
+                        className="w-full max-w-xs mx-auto"
+                        data-testid="promptpay-qr"
+                      />
+                    ) : (
                       <div
                         className="flex items-center justify-center h-48"
                         data-testid="qr-loading"
                       >
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
                       </div>
-                    ) : (
-                      <img
-                        src={displayedQrUrl}
-                        alt="PromptPay QR Code"
-                        className="w-full"
-                        data-testid="promptpay-qr"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"%3E%3Crect fill="%23f3f4f6" width="192" height="192"/%3E%3Ctext x="96" y="96" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3EQR Code%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
-                    )}
-
-                    {isQrError && (
-                      <p
-                        className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 text-center"
-                        data-testid="qr-error"
-                      >
-                        {t('payment.qrFallback')}
-                      </p>
                     )}
 
                     <p className="text-sm text-stone-600 text-center">
                       {t('payment.scanInstructions')}
                     </p>
-
-                    <a
-                      href={displayedQrUrl}
-                      download={promptPayQrSrc ? 'promptpay-qr.svg' : 'promptpay-qr.png'}
-                      className="inline-flex items-center justify-center gap-2 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors border-t pt-3"
-                    >
-                      <FiDownload className="w-4 h-4" />
-                      {t('payment.downloadQR')}
-                    </a>
+                    <p className="text-xs text-stone-500 text-center">
+                      {t('payment.propertyAccount', { property: t(`property.${availability?.property ?? 'hf'}`) })}
+                    </p>
                   </div>
                 </div>
 
@@ -819,7 +830,6 @@ export default function BookingPage() {
 
                   {slipStatus === 'uploaded' && (
                     <div className="space-y-4">
-                      {/* Show uploaded slip preview */}
                       {slipPreview && (
                         <div className="relative border rounded-lg overflow-hidden">
                           <img
@@ -830,7 +840,6 @@ export default function BookingPage() {
                         </div>
                       )}
 
-                      {/* Status message */}
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
                         <FiClock className="w-6 h-6 text-yellow-500 mr-3" />
                         <div>
@@ -839,9 +848,8 @@ export default function BookingPage() {
                         </div>
                       </div>
 
-                      {/* Change slip button */}
                       <button
-                        onClick={() => navigate(`/my-bookings?openBooking=${createdBooking.id}&tab=payment`)}
+                        onClick={() => navigate(`/my-bookings?openBooking=${createdBooking.booking_id}&tab=payment`)}
                         className="w-full py-2 text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors"
                       >
                         {t('payment.changeSlip')}
@@ -867,47 +875,47 @@ export default function BookingPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleSkipPayment}
+                    className="flex-1 py-3 px-4 border border-stone-300 text-stone-700 rounded-md hover:bg-stone-50"
+                    data-testid="skip-payment"
+                  >
+                    {t('payment.payLater')}
+                  </button>
+
+                  {slipPreview && slipStatus === 'pending' && (
+                    <button
+                      onClick={handleSlipUpload}
+                      disabled={isUploading}
+                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
+                      data-testid="submit-slip"
+                    >
+                      {isUploading ? (
+                        <span className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                          {t('common.processing')}
+                        </span>
+                      ) : (
+                        t('payment.submitSlip')
+                      )}
+                    </button>
+                  )}
+
+                  {(slipStatus === 'uploaded' || slipStatus === 'verified') && (
+                    <button
+                      onClick={() => navigate('/my-bookings')}
+                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-semibold"
+                      data-testid="view-bookings"
+                    >
+                      {t('booking.myBookings')}
+                    </button>
+                  )}
+                </div>
               </>
             )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleSkipPayment}
-                className="flex-1 py-3 px-4 border border-stone-300 text-stone-700 rounded-md hover:bg-stone-50"
-                data-testid="skip-payment"
-              >
-                {t('payment.payLater')}
-              </button>
-
-              {slipPreview && slipStatus === 'pending' && (
-                <button
-                  onClick={handleSlipUpload}
-                  disabled={isUploading}
-                  className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
-                  data-testid="submit-slip"
-                >
-                  {isUploading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                      {t('common.processing')}
-                    </span>
-                  ) : (
-                    t('payment.submitSlip')
-                  )}
-                </button>
-              )}
-
-              {(slipStatus === 'uploaded' || slipStatus === 'verified') && (
-                <button
-                  onClick={() => navigate('/my-bookings')}
-                  className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-semibold"
-                  data-testid="view-bookings"
-                >
-                  {t('booking.myBookings')}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}

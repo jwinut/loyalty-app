@@ -1,5 +1,5 @@
 import { useAuthStore } from '../store/authStore';
-import { FiUser, FiAward, FiUsers, FiGift, FiMail, FiCalendar } from 'react-icons/fi';
+import { FiUser, FiAward, FiUsers, FiGift, FiMail, FiCalendar, FiCreditCard } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -135,6 +135,31 @@ export default function DashboardPage() {
               {t('dashboard.myServices')}
             </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Member Card (QR for the front desk) */}
+              <Link
+                to="/member-card"
+                data-testid="nav-member-card"
+                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
+              >
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <FiCreditCard className="h-6 w-6 text-primary-600" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-lg font-semibold text-stone-900 truncate">
+                          {t('memberCard.title')}
+                        </dt>
+                        <dd className="mt-1 text-sm font-medium text-stone-500">
+                          {t('memberCard.dashboardDescription')}
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
               {/* Profile & Loyalty Card */}
               <Link
                 to="/profile"

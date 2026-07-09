@@ -1888,6 +1888,7 @@ dependencies = [
  "fake",
  "futures",
  "hex",
+ "hmac",
  "http-body-util",
  "image",
  "jsonwebtoken",

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id,\n                code,\n                name,\n                description,\n                terms_and_conditions,\n                type::text as \"coupon_type!\",\n                value,\n                currency,\n                minimum_spend,\n                maximum_discount,\n                valid_from,\n                valid_until,\n                usage_limit,\n                usage_limit_per_user,\n                used_count,\n                status::text as \"status\",\n                created_at\n            FROM coupons\n            WHERE\n                ($1::text IS NULL OR status::text = $1)\n                AND ($2::text IS NULL OR type::text = $2)\n                AND ($3::text IS NULL OR (code ILIKE $3 OR name ILIKE $3))\n            ORDER BY created_at DESC\n            LIMIT $4 OFFSET $5\n            ",
+  "query": "\n            SELECT\n                id,\n                code,\n                name,\n                description,\n                terms_and_conditions,\n                type::text as \"coupon_type!\",\n                value,\n                currency,\n                minimum_spend,\n                maximum_discount,\n                valid_from,\n                valid_until,\n                usage_limit,\n                usage_limit_per_user,\n                used_count,\n                status::text as \"status\",\n                created_at,\n                property\n            FROM coupons\n            WHERE status = 'active'\n                AND ($1::text IS NULL OR type::text = $1)\n                AND ($2::text IS NULL OR (code ILIKE $2 OR name ILIKE $2))\n                AND (valid_from IS NULL OR valid_from <= NOW())\n                AND (valid_until IS NULL OR valid_until > NOW())\n            ORDER BY created_at DESC\n            LIMIT $3 OFFSET $4\n            ",
   "describe": {
     "columns": [
       {
@@ -87,11 +87,15 @@
         "ordinal": 16,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "property",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
         "Text",
         "Text",
         "Int8",
@@ -115,8 +119,9 @@
       true,
       true,
       null,
+      true,
       true
     ]
   },
-  "hash": "8819cdbb8d629a6664c05a2d02efbf0f514e48a47bdbb5dc8d0618dd340f6c0e"
+  "hash": "d0811a2fdab89f7ef6da1147bf163862f079a237083868baafad255f23c9e251"
 }

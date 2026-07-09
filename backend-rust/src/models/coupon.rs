@@ -71,6 +71,9 @@ pub struct Coupon {
     pub available_languages: Option<serde_json::Value>,
     pub last_translated: Option<DateTime<Utc>>,
     pub translation_status: Option<String>,
+    /// Optional property restriction ("hf" | "hfville"); None = program-wide.
+    #[sqlx(default)]
+    pub property: Option<String>,
 }
 
 /// User coupon assignment database entity
@@ -111,6 +114,9 @@ pub struct CreateCouponRequest {
     pub tier_restrictions: Option<serde_json::Value>,
     pub customer_segment: Option<serde_json::Value>,
     pub status: Option<CouponStatus>,
+    /// Optional property restriction ("hf" | "hfville"); None = program-wide
+    /// (ADR-0001: coupons are program-wide by default).
+    pub property: Option<String>,
 }
 
 /// Update coupon request DTO
@@ -130,6 +136,9 @@ pub struct UpdateCouponRequest {
     pub tier_restrictions: Option<serde_json::Value>,
     pub customer_segment: Option<serde_json::Value>,
     pub status: Option<CouponStatus>,
+    /// Optional property restriction ("hf" | "hfville"); None leaves the
+    /// current value unchanged (use the dedicated clear flag if ever needed).
+    pub property: Option<String>,
 }
 
 /// Coupon response DTO
@@ -152,6 +161,11 @@ pub struct CouponResponse {
     pub used_count: Option<i32>,
     pub status: Option<CouponStatus>,
     pub created_at: Option<DateTime<Utc>>,
+    /// Optional property restriction ("hf" | "hfville"); None = program-wide.
+    /// `sqlx(default)` keeps SELECTs that don't project this column working.
+    #[serde(default)]
+    #[sqlx(default)]
+    pub property: Option<String>,
 }
 
 /// User coupon response DTO
@@ -187,6 +201,7 @@ impl From<Coupon> for CouponResponse {
             used_count: coupon.used_count,
             status: coupon.status,
             created_at: coupon.created_at,
+            property: coupon.property,
         }
     }
 }

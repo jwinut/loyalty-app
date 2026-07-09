@@ -572,7 +572,277 @@ pub fn routes() -> Router<AppState> {
         .route("/admin/deduct-nights", post(admin_deduct_nights))
         .layer(middleware::from_fn(auth_middleware));
 
-    public_routes.merge(auth_routes).merge(admin_routes)
+    // Machine-to-machine routes: the PMS checkout hook. Authenticated by
+    // service token inside the handler (no JWT/auth_middleware).
+    let service_routes = Router::new().route("/stays", post(record_stay));
+
+    public_routes
+        .merge(auth_routes)
+        .merge(admin_routes)
+        .merge(service_routes)
+}
+
+// ============================================================================
+// PMS stay accrual (service-token; docs/launch-plan.md locked contract)
+// ============================================================================
+
+/// Stay accrual request posted by the PMS checkout hook at guest checkout.
+#[derive(Debug, Deserialize)]
+pub struct StayAccrualRequest {
+    pub pms_stay_id: String,
+    pub membership_id: String,
+    pub property: crate::types::Property,
+    pub check_in: chrono::NaiveDate,
+    pub check_out: chrono::NaiveDate,
+    pub nights: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StayAccrualResponse {
+    pub stay_id: Uuid,
+    pub user_id: Uuid,
+    pub property: crate::types::Property,
+    pub nights: i32,
+    pub points_awarded: i32,
+    pub already_processed: bool,
+}
+
+/// Service-token check for machine callers. Compares SHA-256 digests so the
+/// comparison time doesn't depend on the matching prefix length.
+fn verify_service_token(state: &AppState, headers: &axum::http::HeaderMap) -> Result<(), AppError> {
+    use sha2::{Digest, Sha256};
+
+    let expected = state
+        .config()
+        .loyalty_service
+        .token
+        .as_deref()
+        .ok_or_else(|| {
+            AppError::Configuration("LOYALTY_SERVICE_TOKEN is not configured".to_string())
+        })?;
+    let given = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if given.is_empty() || Sha256::digest(given.as_bytes()) != Sha256::digest(expected.as_bytes()) {
+        return Err(AppError::Unauthorized("Invalid service token".to_string()));
+    }
+    Ok(())
+}
+
+/// Current tier name for a user (None when unranked).
+async fn tier_name(db: &PgPool, user_id: Uuid) -> Result<Option<String>, AppError> {
+    let name: Option<Option<String>> = sqlx::query_scalar!(
+        r#"
+        SELECT t.name AS "name?"
+        FROM user_loyalty ul
+        LEFT JOIN tiers t ON ul.tier_id = t.id
+        WHERE ul.user_id = $1
+        "#,
+        user_id
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(name.flatten())
+}
+
+/// POST /api/loyalty/stays — record a completed stay from the PMS.
+///
+/// Idempotent by `pms_stay_id`: replays return 200 with the recorded result
+/// and `already_processed: true`; first processing returns 201. Awards
+/// nights (tier-driving) plus points from the active per-night earning rule
+/// via the `award_points` stored procedure, stamps the property on the
+/// points transaction, and sends the property-affinity LINE push.
+async fn record_stay(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    Json(payload): Json<StayAccrualRequest>,
+) -> Result<(StatusCode, Json<StayAccrualResponse>), AppError> {
+    verify_service_token(&state, &headers)?;
+
+    if payload.nights <= 0 {
+        return Err(AppError::Validation("nights must be positive".to_string()));
+    }
+    if payload.check_out <= payload.check_in {
+        return Err(AppError::Validation(
+            "check_out must be after check_in".to_string(),
+        ));
+    }
+    if payload.pms_stay_id.trim().is_empty() || payload.pms_stay_id.len() > 100 {
+        return Err(AppError::Validation("invalid pms_stay_id".to_string()));
+    }
+
+    let db = state.db();
+
+    // Resolve the member through the Link's membership ID.
+    let user_id: Option<Uuid> = sqlx::query_scalar!(
+        r#"SELECT user_id FROM user_profiles WHERE membership_id = $1"#,
+        payload.membership_id
+    )
+    .fetch_optional(db)
+    .await?;
+    let user_id = user_id.ok_or_else(|| {
+        AppError::NotFound(format!(
+            "No member with membership_id {}",
+            payload.membership_id
+        ))
+    })?;
+
+    // Idempotency gate: first writer wins the pms_stay_id.
+    let inserted: Option<Uuid> = sqlx::query_scalar!(
+        r#"
+        INSERT INTO stays (pms_stay_id, user_id, property, check_in, check_out, nights)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (pms_stay_id) DO NOTHING
+        RETURNING id
+        "#,
+        payload.pms_stay_id,
+        user_id,
+        payload.property.as_str(),
+        payload.check_in,
+        payload.check_out,
+        payload.nights
+    )
+    .fetch_optional(db)
+    .await?;
+
+    let Some(stay_id) = inserted else {
+        let existing = sqlx::query!(
+            r#"
+            SELECT id, user_id, property, nights, points_awarded
+            FROM stays WHERE pms_stay_id = $1
+            "#,
+            payload.pms_stay_id
+        )
+        .fetch_one(db)
+        .await?;
+        return Ok((
+            StatusCode::OK,
+            Json(StayAccrualResponse {
+                stay_id: existing.id,
+                user_id: existing.user_id,
+                property: existing.property.parse().unwrap_or(payload.property),
+                nights: existing.nights,
+                points_awarded: existing.points_awarded,
+                already_processed: true,
+            }),
+        ));
+    };
+
+    // Points: nights × the active per-night earning rule; no rule → nights only.
+    let points_per_night: Option<rust_decimal::Decimal> = sqlx::query_scalar!(
+        r#"
+        SELECT points_per_unit
+        FROM points_earning_rules
+        WHERE unit_type = 'night'
+          AND is_active = TRUE
+          AND (valid_from IS NULL OR valid_from <= NOW())
+          AND (valid_until IS NULL OR valid_until >= NOW())
+        ORDER BY created_at DESC
+        LIMIT 1
+        "#
+    )
+    .fetch_optional(db)
+    .await?;
+    let points: i32 = {
+        use rust_decimal::prelude::ToPrimitive;
+        points_per_night
+            .map(|rate| rate * rust_decimal::Decimal::from(payload.nights))
+            .and_then(|total| total.round().to_i32())
+            .unwrap_or(0)
+    };
+
+    let tier_before = tier_name(db, user_id).await?;
+
+    // Nights + points + tier recalculation, all inside the stored procedure.
+    let description = format!(
+        "Stay at {} ({} nights)",
+        payload.property.display_name(),
+        payload.nights
+    );
+    let award: JsonValue = sqlx::query_scalar!(
+        r#"
+        SELECT award_points($1, $2, 'earned_stay'::varchar, $3, $4, NULL, NULL, $5) AS "result!"
+        "#,
+        user_id,
+        points,
+        description,
+        payload.pms_stay_id,
+        payload.nights
+    )
+    .fetch_one(db)
+    .await?;
+
+    let tx_id = award
+        .get("transaction_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok());
+
+    // Property attribution (ADR-0001) + accrual bookkeeping on the stay row.
+    if let Some(tx_id) = tx_id {
+        sqlx::query!(
+            r#"UPDATE points_transactions SET property = $1 WHERE id = $2"#,
+            payload.property.as_str(),
+            tx_id
+        )
+        .execute(db)
+        .await?;
+    }
+    sqlx::query!(
+        r#"UPDATE stays SET points_awarded = $1, points_transaction_id = $2 WHERE id = $3"#,
+        points,
+        tx_id,
+        stay_id
+    )
+    .execute(db)
+    .await?;
+
+    // Property-affinity push — best-effort by design; accrual never fails
+    // because LINE is down.
+    let tier_after = tier_name(db, user_id).await?;
+    let mut message = format!(
+        "ขอบคุณที่เข้าพักที่ {} ค่ะ 🙏\nคุณได้รับ {} คืน และ {} คะแนน",
+        payload.property.display_name(),
+        payload.nights,
+        points
+    );
+    if tier_after != tier_before {
+        if let Some(new_tier) = &tier_after {
+            message.push_str(&format!("\nยินดีด้วย! คุณเลื่อนระดับเป็น {new_tier} 🎉"));
+        }
+    }
+    if let Err(e) = crate::services::line::push_to_member(
+        db,
+        state.config(),
+        user_id,
+        Some(payload.property),
+        &message,
+    )
+    .await
+    {
+        tracing::warn!(error = %e, user_id = %user_id, "stay accrual push failed");
+    }
+
+    tracing::info!(
+        user_id = %user_id,
+        property = %payload.property,
+        nights = payload.nights,
+        points,
+        "stay recorded"
+    );
+
+    Ok((
+        StatusCode::CREATED,
+        Json(StayAccrualResponse {
+            stay_id,
+            user_id,
+            property: payload.property,
+            nights: payload.nights,
+            points_awarded: points,
+            already_processed: false,
+        }),
+    ))
 }
 
 // ============================================================================

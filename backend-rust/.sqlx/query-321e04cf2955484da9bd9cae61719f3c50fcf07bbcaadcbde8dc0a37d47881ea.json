@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT oauth_provider_id FROM users WHERE id = $1 AND oauth_provider = 'line'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "oauth_provider_id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "321e04cf2955484da9bd9cae61719f3c50fcf07bbcaadcbde8dc0a37d47881ea"
+}

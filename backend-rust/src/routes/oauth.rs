@@ -134,17 +134,18 @@ struct GoogleUserInfo {
     picture: Option<String>,
 }
 
-/// LINE profile response
+/// LINE profile response. Also constructed from LIFF ID-token claims by
+/// the /api/auth/liff handler (same userId space — ADR-0002).
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
-struct LineProfile {
-    user_id: String,
-    display_name: String,
+pub(crate) struct LineProfile {
+    pub(crate) user_id: String,
+    pub(crate) display_name: String,
     #[serde(default)]
-    picture_url: Option<String>,
+    pub(crate) picture_url: Option<String>,
     #[serde(default)]
-    status_message: Option<String>,
+    pub(crate) status_message: Option<String>,
 }
 
 /// Authentication result after OAuth processing
@@ -158,12 +159,12 @@ pub struct OAuthResult {
 /// User response for OAuth result
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserResponse {
-    id: String,
-    email: Option<String>,
-    role: String,
-    is_active: bool,
-    email_verified: bool,
-    oauth_provider: Option<String>,
+    pub id: String,
+    pub email: Option<String>,
+    pub role: String,
+    pub is_active: bool,
+    pub email_verified: bool,
+    pub oauth_provider: Option<String>,
 }
 
 /// Token response for OAuth result
@@ -1201,6 +1202,27 @@ async fn get_line_profile(access_token: &str) -> AppResult<LineProfile> {
 
 /// Process LINE authentication and create/update user
 async fn process_line_auth(state: &AppState, profile: LineProfile) -> AppResult<OAuthResult> {
+    let (user, is_new_user) = upsert_line_user(state, &profile).await?;
+
+    // Generate JWT tokens
+    let tokens = generate_tokens(state, &user.id, user.email.as_deref(), &user.role).await?;
+
+    Ok(OAuthResult {
+        user,
+        tokens,
+        is_new_user,
+    })
+}
+
+/// Find-or-create a member from a LINE identity (silent enrollment).
+///
+/// Shared by the web LINE OAuth callback and the LIFF login endpoint
+/// (/api/auth/liff): both surfaces yield the same LINE userId because all
+/// channels live under one provider (ADR-0002).
+pub(crate) async fn upsert_line_user(
+    state: &AppState,
+    profile: &LineProfile,
+) -> AppResult<(UserResponse, bool)> {
     let line_id = &profile.user_id;
 
     tracing::debug!(
@@ -1344,14 +1366,7 @@ async fn process_line_auth(state: &AppState, profile: LineProfile) -> AppResult<
         .await
         .map_err(AppError::Database)?;
 
-    // Generate JWT tokens
-    let tokens = generate_tokens(state, &user.id, user.email.as_deref(), &user.role).await?;
-
-    Ok(OAuthResult {
-        user,
-        tokens,
-        is_new_user,
-    })
+    Ok((user, is_new_user))
 }
 
 // =============================================================================
