@@ -1722,5 +1722,25 @@
     "contactTitle": "Contact",
     "contactBody": "For data questions, export, or deletion requests, contact the hotel support email or the front desk.",
     "backToApp": "Back to the app"
+  },
+  "nav": {
+    "home": "Home",
+    "memberCard": "Member Card",
+    "coupons": "Coupons",
+    "bookings": "Bookings",
+    "profile": "Profile",
+    "surveys": "Surveys"
+  },
+  "adminNav": {
+    "loyalty": "Loyalty",
+    "coupons": "Coupons",
+    "users": "Users",
+    "surveys": "Surveys",
+    "rooms": "Rooms",
+    "roomTypes": "Room Types",
+    "availability": "Availability",
+    "bookings": "Bookings",
+    "transactions": "Transactions",
+    "email": "Email"
   }
 }

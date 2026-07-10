@@ -5,8 +5,7 @@ import { SurveyQuestion } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
 import QuestionRenderer from '../../components/surveys/QuestionRenderer';
 import SurveyProgress from '../../components/surveys/SurveyProgress';
-import DashboardButton from '../../components/navigation/DashboardButton';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
+import AppShell from '../../components/layout/AppShell';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { logger } from '../../utils/logger';
@@ -157,46 +156,40 @@ const TakeSurvey: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
-            <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
-          </div>
+      <AppShell variant="guest" title={t('surveys.title', 'Surveys')} hideTabBar>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
+          <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            <p>{error}</p>
-          </div>
-          <div className="mt-4">
-            <button
-              onClick={() => navigate('/surveys')}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors"
-            >
-              {t('surveys.backToList')}
-            </button>
-          </div>
+      <AppShell variant="guest" title={t('surveys.title', 'Surveys')} hideTabBar>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <p>{error}</p>
         </div>
-      </div>
+        <div className="mt-4">
+          <button
+            onClick={() => navigate('/surveys')}
+            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors"
+          >
+            {t('surveys.backToList')}
+          </button>
+        </div>
+      </AppShell>
     );
   }
 
   if (!survey) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="text-center py-12">
-            <p className="text-stone-500">{t('surveys.notFound')}</p>
-          </div>
+      <AppShell variant="guest" title={t('surveys.title', 'Surveys')} hideTabBar>
+        <div className="text-center py-12">
+          <p className="text-stone-500">{t('surveys.notFound')}</p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -206,30 +199,17 @@ const TakeSurvey: React.FC = () => {
   const isCompletionPage = currentQuestion >= questionCount;
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-stone-900">{survey.title}</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <LanguageSwitcher />
-              <DashboardButton variant="outline" size="md" />
-              <button
-                onClick={exitSurvey}
-                className="text-stone-600 hover:text-stone-900 font-medium text-sm"
-              >
-                {t('surveys.exit')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <AppShell variant="guest" title={survey.title} hideTabBar>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={exitSurvey}
+          className="text-stone-600 hover:text-stone-900 font-medium text-sm"
+        >
+          {t('surveys.exit')}
+        </button>
+      </div>
 
-      {/* Content */}
-      <main className="max-w-2xl mx-auto p-4">
+      <div className="max-w-2xl mx-auto">
         {!isCompletionPage ? (
           <>
             <SurveyProgress
@@ -327,8 +307,8 @@ const TakeSurvey: React.FC = () => {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 };
 

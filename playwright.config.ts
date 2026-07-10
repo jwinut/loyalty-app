@@ -79,6 +79,19 @@ export default defineConfig({
       testMatch: /.*\.browser\.spec\.ts/,
       timeout: 30000, // 30s for browser tests (login can take time)
     },
+    {
+      // Mobile viewport smoke checks (AppShell/guest tab bar, safe-area,
+      // no-horizontal-overflow). Non-gating — run via `npm run test:e2e`,
+      // not part of the CI deploy gate.
+      name: 'browser-mobile',
+      use: {
+        baseURL: FRONTEND_URL,
+        ...devices['iPhone 14'],
+        actionTimeout: 10000,
+      },
+      testMatch: /.*\.mobile\.spec\.ts/,
+      timeout: 30000,
+    },
   ],
 
   /* Global timeout settings */
