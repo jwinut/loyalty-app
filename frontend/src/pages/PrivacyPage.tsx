@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import LanguageSwitcher from '../components/LanguageSwitcher';
+import AppShell from '../components/layout/AppShell';
+import { Card } from '../components/ui';
 
 /**
  * PDPA privacy notice. Publicly reachable (no auth) — linked from the
@@ -12,49 +13,34 @@ export default function PrivacyPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="bg-white shadow">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center py-6">
-          <h1 className="text-2xl font-bold text-stone-900">{t('privacy.title')}</h1>
-          <LanguageSwitcher />
-        </div>
-      </header>
+    <AppShell variant="guest" title={t('privacy.title')}>
+      <div className="mx-auto max-w-text space-y-6">
+        <Card>
+          <h2 className="mb-2 text-title text-ink">{t('privacy.whatWeStoreTitle')}</h2>
+          <p className="text-body text-ink-muted">{t('privacy.whatWeStoreBody')}</p>
+        </Card>
 
-      <main className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-2">
-            {t('privacy.whatWeStoreTitle')}
-          </h2>
-          <p className="text-stone-700">{t('privacy.whatWeStoreBody')}</p>
-        </section>
+        <Card>
+          <h2 className="mb-2 text-title text-ink">{t('privacy.whyTitle')}</h2>
+          <p className="text-body text-ink-muted">{t('privacy.whyBody')}</p>
+        </Card>
 
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-2">
-            {t('privacy.whyTitle')}
-          </h2>
-          <p className="text-stone-700">{t('privacy.whyBody')}</p>
-        </section>
+        <Card>
+          <h2 className="mb-2 text-title text-ink">{t('privacy.messagesTitle')}</h2>
+          <p className="text-body text-ink-muted">{t('privacy.messagesBody')}</p>
+        </Card>
 
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-2">
-            {t('privacy.messagesTitle')}
-          </h2>
-          <p className="text-stone-700">{t('privacy.messagesBody')}</p>
-        </section>
-
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-2">
-            {t('privacy.contactTitle')}
-          </h2>
-          <p className="text-stone-700">{t('privacy.contactBody')}</p>
-        </section>
+        <Card>
+          <h2 className="mb-2 text-title text-ink">{t('privacy.contactTitle')}</h2>
+          <p className="text-body text-ink-muted">{t('privacy.contactBody')}</p>
+        </Card>
 
         <div className="text-center">
           <Link to="/" className="text-brand-600 hover:underline">
             {t('privacy.backToApp')}
           </Link>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
