@@ -341,7 +341,7 @@ export default function BookingPage() {
                       value={p}
                       checked={property === p}
                       onChange={() => setProperty(p)}
-                      className="text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
                       data-testid={`property-${p}`}
                     />
                     <FiMapPin className="ml-3 mr-2 text-brand-600 flex-shrink-0" />
@@ -618,7 +618,7 @@ export default function BookingPage() {
                     value="deposit50"
                     checked={paymentOption === 'deposit50'}
                     onChange={() => setPaymentOption('deposit50')}
-                    className="mt-1 text-brand-600 focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
                   />
                   <div className="ml-3 flex-1">
                     <div className="flex justify-between items-center">
@@ -642,7 +642,7 @@ export default function BookingPage() {
                     value="full"
                     checked={paymentOption === 'full'}
                     onChange={() => setPaymentOption('full')}
-                    className="mt-1 text-brand-600 focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
                   />
                   <div className="ml-3 flex-1">
                     <div className="flex justify-between items-center">
