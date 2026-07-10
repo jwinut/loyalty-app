@@ -296,7 +296,7 @@ export default function BookingPage() {
             <div key={step.number} className="flex items-center">
               <div
                 className={clsx('flex items-center justify-center w-10 h-10 rounded-full', {
-                  'bg-primary-600 text-white': currentStep === step.number,
+                  'bg-brand-600 text-white': currentStep === step.number,
                   'bg-green-500 text-white': currentStep !== step.number && step.completed,
                   'bg-stone-200 text-stone-600': currentStep !== step.number && !step.completed,
                 })}
@@ -332,7 +332,7 @@ export default function BookingPage() {
                   <label
                     key={p}
                     className={clsx('flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors',
-                      property === p ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                      property === p ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
                     )}
                   >
                     <input
@@ -341,10 +341,10 @@ export default function BookingPage() {
                       value={p}
                       checked={property === p}
                       onChange={() => setProperty(p)}
-                      className="text-primary-600 focus:ring-primary-500"
+                      className="text-brand-600 focus:ring-brand-500"
                       data-testid={`property-${p}`}
                     />
-                    <FiMapPin className="ml-3 mr-2 text-primary-600 flex-shrink-0" />
+                    <FiMapPin className="ml-3 mr-2 text-brand-600 flex-shrink-0" />
                     <span className="font-medium">{t(`property.${p}`)}</span>
                   </label>
                 ))}
@@ -365,7 +365,7 @@ export default function BookingPage() {
                     setCheckOut('');
                   }
                 }}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                 data-testid="check-in-date"
               />
             </div>
@@ -380,7 +380,7 @@ export default function BookingPage() {
                 min={minCheckOut}
                 onChange={(e) => setCheckOut(e.target.value)}
                 disabled={!checkIn}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-stone-100"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500 disabled:bg-stone-100"
                 data-testid="check-out-date"
               />
             </div>
@@ -392,7 +392,7 @@ export default function BookingPage() {
               <select
                 value={numGuests}
                 onChange={(e) => setNumGuests(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                 data-testid="num-guests"
               >
                 {[1, 2, 3, 4].map((n) => (
@@ -412,7 +412,7 @@ export default function BookingPage() {
             <button
               onClick={handleDateSubmit}
               disabled={!property || !checkIn || !checkOut || nights <= 0}
-              className="w-full py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed"
+              className="w-full py-2 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed"
               data-testid="continue-to-rooms"
             >
               {t('common.continue')}
@@ -430,7 +430,7 @@ export default function BookingPage() {
             </h2>
             <button
               onClick={() => setCurrentStep(1)}
-              className="text-primary-600 hover:underline"
+              className="text-brand-600 hover:underline"
             >
               {t('booking.changeDates')}
             </button>
@@ -447,7 +447,7 @@ export default function BookingPage() {
 
           {isLoadingRoomTypes ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
             </div>
           ) : roomTypes?.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
@@ -487,7 +487,7 @@ export default function BookingPage() {
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-2xl font-bold text-primary-600">
+                          <span className="text-2xl font-bold text-brand-600">
                             ฿{roomType.nightly_price.toLocaleString()}
                           </span>
                           <span className="text-stone-500 text-sm">/{t('booking.night')}</span>
@@ -526,7 +526,7 @@ export default function BookingPage() {
             <h2 className="text-xl font-semibold">{t('booking.confirmBooking')}</h2>
             <button
               onClick={() => setCurrentStep(2)}
-              className="text-primary-600 hover:underline"
+              className="text-brand-600 hover:underline"
             >
               {t('booking.changeRoom')}
             </button>
@@ -581,7 +581,7 @@ export default function BookingPage() {
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                     data-testid="guest-name"
                   />
                 </div>
@@ -595,7 +595,7 @@ export default function BookingPage() {
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder={t('booking.guestPhonePlaceholder')}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                     data-testid="guest-phone"
                   />
                 </div>
@@ -609,7 +609,7 @@ export default function BookingPage() {
               <div className="space-y-3">
                 <label
                   className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                    paymentOption === 'deposit50' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                    paymentOption === 'deposit50' ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
                   )}
                 >
                   <input
@@ -618,12 +618,12 @@ export default function BookingPage() {
                     value="deposit50"
                     checked={paymentOption === 'deposit50'}
                     onChange={() => setPaymentOption('deposit50')}
-                    className="mt-1 text-primary-600 focus:ring-primary-500"
+                    className="mt-1 text-brand-600 focus:ring-brand-500"
                   />
                   <div className="ml-3 flex-1">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">{t('payment.deposit')}</span>
-                      <span className="text-lg font-bold text-primary-600">
+                      <span className="text-lg font-bold text-brand-600">
                         ฿{depositAmount.toLocaleString('th-TH')}
                       </span>
                     </div>
@@ -633,7 +633,7 @@ export default function BookingPage() {
 
                 <label
                   className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                    paymentOption === 'full' ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
+                    paymentOption === 'full' ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
                   )}
                 >
                   <input
@@ -642,12 +642,12 @@ export default function BookingPage() {
                     value="full"
                     checked={paymentOption === 'full'}
                     onChange={() => setPaymentOption('full')}
-                    className="mt-1 text-primary-600 focus:ring-primary-500"
+                    className="mt-1 text-brand-600 focus:ring-brand-500"
                   />
                   <div className="ml-3 flex-1">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">{t('payment.payInFull')}</span>
-                      <span className="text-lg font-bold text-primary-600">
+                      <span className="text-lg font-bold text-brand-600">
                         ฿{totalPrice.toLocaleString('th-TH')}
                       </span>
                     </div>
@@ -670,7 +670,7 @@ export default function BookingPage() {
                 </div>
                 <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                   <span>{t('booking.total')}</span>
-                  <span className="text-primary-600">฿{totalPrice.toLocaleString()}</span>
+                  <span className="text-brand-600">฿{totalPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-stone-600">
                   <span>{t('payment.amountToPay')}</span>
@@ -683,7 +683,7 @@ export default function BookingPage() {
             <button
               onClick={handleBookingSubmit}
               disabled={createBookingMutation.isPending || !guestName.trim() || !guestPhone.trim()}
-              className="w-full py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
+              className="w-full py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
               data-testid="confirm-booking"
             >
               {createBookingMutation.isPending ? (
@@ -708,7 +708,7 @@ export default function BookingPage() {
 
           <div className="bg-white rounded-lg shadow p-6 space-y-6">
             {/* Amount summary */}
-            <div className="p-4 bg-primary-50 border-2 border-primary-200 rounded-lg space-y-2">
+            <div className="p-4 bg-brand-50 border-2 border-brand-200 rounded-lg space-y-2">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">
@@ -716,12 +716,12 @@ export default function BookingPage() {
                   </p>
                   <p className="text-sm text-stone-500">{t('payment.amountToPay')}</p>
                 </div>
-                <p className="text-2xl font-bold text-primary-600" data-testid="amount-due-now">
+                <p className="text-2xl font-bold text-brand-600" data-testid="amount-due-now">
                   ฿{createdBooking.amount_due_now.toLocaleString('th-TH')}
                 </p>
               </div>
               {createdBooking.balance_due_at_checkin > 0 && (
-                <div className="flex justify-between items-center text-sm border-t border-primary-200 pt-2">
+                <div className="flex justify-between items-center text-sm border-t border-brand-200 pt-2">
                   <span className="text-stone-600">{t('payment.balanceDueAtCheckin')}</span>
                   <span className="font-semibold" data-testid="balance-due">
                     ฿{createdBooking.balance_due_at_checkin.toLocaleString('th-TH')}
@@ -744,7 +744,7 @@ export default function BookingPage() {
                 <p className="font-medium text-red-800">{t('payment.holdExpired')}</p>
                 <button
                   onClick={restartBooking}
-                  className="py-2 px-6 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  className="py-2 px-6 bg-brand-600 text-white rounded-md hover:bg-brand-700"
                 >
                   {t('payment.startOver')}
                 </button>
@@ -768,7 +768,7 @@ export default function BookingPage() {
                         className="flex items-center justify-center h-48"
                         data-testid="qr-loading"
                       >
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600" />
                       </div>
                     )}
 
@@ -789,7 +789,7 @@ export default function BookingPage() {
                   {slipStatus === 'pending' && !slipPreview && (
                     <div
                       className={clsx('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-                        isDragging ? 'border-primary-500 bg-primary-50' : 'border-stone-300 hover:border-primary-400'
+                        isDragging ? 'border-brand-500 bg-brand-50' : 'border-stone-300 hover:border-brand-400'
                       )}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -850,7 +850,7 @@ export default function BookingPage() {
 
                       <button
                         onClick={() => navigate(`/my-bookings?openBooking=${createdBooking.booking_id}&tab=payment`)}
-                        className="w-full py-2 text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors"
+                        className="w-full py-2 text-brand-600 border border-brand-300 rounded-lg hover:bg-brand-50 transition-colors"
                       >
                         {t('payment.changeSlip')}
                       </button>
@@ -890,7 +890,7 @@ export default function BookingPage() {
                     <button
                       onClick={handleSlipUpload}
                       disabled={isUploading}
-                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
+                      className="flex-1 py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
                       data-testid="submit-slip"
                     >
                       {isUploading ? (
@@ -907,7 +907,7 @@ export default function BookingPage() {
                   {(slipStatus === 'uploaded' || slipStatus === 'verified') && (
                     <button
                       onClick={() => navigate('/my-bookings')}
-                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-semibold"
+                      className="flex-1 py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 font-semibold"
                       data-testid="view-bookings"
                     >
                       {t('booking.myBookings')}

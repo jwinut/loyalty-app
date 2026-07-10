@@ -27,7 +27,7 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
 
   const fieldClasses = isModal 
     ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    : "appearance-none block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   const handleGenderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -111,7 +111,7 @@ export function OccupationField({ register, errors, showRequiredAsterisk = false
 
   const fieldClasses = isModal 
     ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   return (
     <div>
@@ -158,7 +158,7 @@ export function DateOfBirthField({ register, errors, showRequiredAsterisk = fals
 
   const fieldClasses = isModal 
     ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm";
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   return (
     <div>

@@ -306,7 +306,7 @@ export default function MyBookingsPage() {
     return (
       <MainLayout title={t('booking.myBookings')}>
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
         </div>
       </MainLayout>
     );
@@ -319,7 +319,7 @@ export default function MyBookingsPage() {
         <h2 className="text-xl font-semibold">{t('booking.myBookings')}</h2>
         <Link
           to="/booking"
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          className="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700"
           data-testid="new-booking-button"
         >
           <FiPlus className="mr-2" />
@@ -334,7 +334,7 @@ export default function MyBookingsPage() {
             onClick={() => setActiveTab('current')}
             className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'current'
-                ? 'border-primary-500 text-primary-600'
+                ? 'border-brand-500 text-brand-600'
                 : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             )}
             data-testid="tab-current"
@@ -345,7 +345,7 @@ export default function MyBookingsPage() {
             onClick={() => setActiveTab('history')}
             className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
               activeTab === 'history'
-                ? 'border-primary-500 text-primary-600'
+                ? 'border-brand-500 text-brand-600'
                 : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             )}
             data-testid="tab-history"
@@ -370,7 +370,7 @@ export default function MyBookingsPage() {
           {activeTab === 'current' && (
             <Link
               to="/booking"
-              className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              className="inline-flex items-center px-6 py-3 bg-brand-600 text-white rounded-md hover:bg-brand-700"
             >
               <FiPlus className="mr-2" />
               {t('booking.bookYourFirstRoom')}
@@ -456,7 +456,7 @@ export default function MyBookingsPage() {
                   {/* Price, Upload Button and Chevron */}
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary-600">
+                      <div className="text-2xl font-bold text-brand-600">
                         ฿{Number(booking.totalPrice).toLocaleString()}
                       </div>
                       <div className="text-sm text-stone-500">
@@ -477,7 +477,7 @@ export default function MyBookingsPage() {
               {/* Booking Footer */}
               <div className="bg-stone-50 px-6 py-3 text-sm text-stone-500 flex items-center justify-between">
                 <span>{t('booking.bookedOn')}: {new Date(booking.createdAt).toLocaleDateString()}</span>
-                <span className="text-primary-600">{t('booking.clickForDetails')}</span>
+                <span className="text-brand-600">{t('booking.clickForDetails')}</span>
               </div>
             </div>
           ))}
@@ -525,14 +525,14 @@ export default function MyBookingsPage() {
                 <div>
                   <div className="text-sm text-stone-500 mb-1">{t('booking.checkIn')}</div>
                   <div className="font-semibold flex items-center">
-                    <FiCalendar className="mr-2 text-primary-600" />
+                    <FiCalendar className="mr-2 text-brand-600" />
                     {new Date(selectedBooking.checkInDate).toLocaleDateString()}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-stone-500 mb-1">{t('booking.checkOut')}</div>
                   <div className="font-semibold flex items-center">
-                    <FiCalendar className="mr-2 text-primary-600" />
+                    <FiCalendar className="mr-2 text-brand-600" />
                     {new Date(selectedBooking.checkOutDate).toLocaleDateString()}
                   </div>
                 </div>
@@ -540,7 +540,7 @@ export default function MyBookingsPage() {
 
               {/* Nights Count */}
               <div className="text-center py-3 bg-stone-50 rounded-lg" data-testid="booking-nights-count">
-                <span className="text-lg font-semibold text-primary-600">
+                <span className="text-lg font-semibold text-brand-600">
                   {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate)}
                 </span>{' '}
                 <span className="text-stone-600">
@@ -577,9 +577,9 @@ export default function MyBookingsPage() {
               </div>
 
               {/* Total Price */}
-              <div className="text-center py-4 bg-primary-50 rounded-lg">
+              <div className="text-center py-4 bg-brand-50 rounded-lg">
                 <div className="text-sm text-stone-500 mb-1">{t('booking.totalPrice')}</div>
-                <div className="text-3xl font-bold text-primary-600">
+                <div className="text-3xl font-bold text-brand-600">
                   ฿{Number(selectedBooking.totalPrice).toLocaleString()}
                 </div>
               </div>
@@ -591,7 +591,7 @@ export default function MyBookingsPage() {
                     setSelectedBooking(null);
                     handleUploadSlipClick(selectedBooking.id);
                   }}
-                  className="w-full py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-center"
+                  className="w-full py-2 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-center"
                 >
                   {t('payment.title')}
                 </button>
@@ -636,7 +636,7 @@ export default function MyBookingsPage() {
                     {canUploadSlip(selectedBooking) && (
                       <button
                         onClick={() => handleUploadSlipClick(selectedBooking.id)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg border border-primary-200 transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition-colors"
                       >
                         <FiPlus className="w-4 h-4" />
                         {t('payment.uploadMore')}
@@ -724,7 +724,7 @@ export default function MyBookingsPage() {
                 onChange={(e) => setCancelReason(e.target.value)}
                 rows={3}
                 placeholder={t('booking.cancelReasonPlaceholder')}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                 data-testid="cancel-reason-input"
               />
             </div>
@@ -801,7 +801,7 @@ export default function MyBookingsPage() {
                   <div>{t('booking.checkIn')}: {new Date(slipUploadBooking.checkInDate).toLocaleDateString()}</div>
                   <div>{t('booking.checkOut')}: {new Date(slipUploadBooking.checkOutDate).toLocaleDateString()}</div>
                 </div>
-                <div className="mt-2 text-lg font-bold text-primary-600">
+                <div className="mt-2 text-lg font-bold text-brand-600">
                   ฿{Number(slipUploadBooking.totalPrice).toLocaleString('th-TH')}
                 </div>
               </div>
@@ -854,7 +854,7 @@ export default function MyBookingsPage() {
                   {/* Toggle button for bank details */}
                   <button
                     onClick={() => setShowBankDetails(!showBankDetails)}
-                    className="w-full py-2 text-sm text-primary-600 hover:text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                    className="w-full py-2 text-sm text-brand-600 hover:text-brand-700 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors"
                   >
                     {showBankDetails ? t('payment.hideBankDetails') : t('payment.showBankDetails')}
                   </button>
@@ -866,7 +866,7 @@ export default function MyBookingsPage() {
                       <div className="text-center">
                         <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
                         <div
-                          className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
+                          className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-brand-300 transition-colors"
                           onClick={() => {
                             navigator.clipboard.writeText('0461430473');
                             toast.success(t('payment.copied'));
@@ -913,7 +913,7 @@ export default function MyBookingsPage() {
                           <a
                             href={promptPayQRUrl}
                             download="promptpay-qr.png"
-                            className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
+                            className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-brand-600 transition-colors"
                           >
                             <FiDownload className="w-4 h-4" />
                             {t('payment.downloadQR')}
@@ -929,7 +929,7 @@ export default function MyBookingsPage() {
                   <div className="text-center">
                     <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
                     <div
-                      className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
+                      className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-brand-300 transition-colors"
                       onClick={() => {
                         navigator.clipboard.writeText('0461430473');
                         toast.success(t('payment.copied'));
@@ -976,7 +976,7 @@ export default function MyBookingsPage() {
                       <a
                         href={promptPayQRUrl}
                         download="promptpay-qr.png"
-                        className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
+                        className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-brand-600 transition-colors"
                       >
                         <FiDownload className="w-4 h-4" />
                         {t('payment.downloadQR')}
@@ -993,7 +993,7 @@ export default function MyBookingsPage() {
                 {!slipPreview ? (
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                      isDragging ? 'border-primary-500 bg-primary-50' : 'border-stone-300 hover:border-primary-400'
+                      isDragging ? 'border-brand-500 bg-brand-50' : 'border-stone-300 hover:border-brand-400'
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -1043,7 +1043,7 @@ export default function MyBookingsPage() {
               <button
                 onClick={handleSlipUpload}
                 disabled={!slipFile || isUploading}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed flex items-center"
+                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed flex items-center"
                 data-testid="slip-upload-submit"
               >
                 {isUploading ? (

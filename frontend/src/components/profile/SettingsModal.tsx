@@ -149,7 +149,7 @@ export default function SettingsModal({
               </h3>
               <button
                 onClick={onClose}
-                className="rounded-md bg-white text-stone-400 hover:text-stone-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="rounded-md bg-white text-stone-400 hover:text-stone-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -168,7 +168,7 @@ export default function SettingsModal({
                   />
                   {updateEmojiAvatarMutation.isPending && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
                     </div>
                   )}
                 </div>
@@ -178,7 +178,7 @@ export default function SettingsModal({
                     <button
                       onClick={() => setShowEmojiSelector(!showEmojiSelector)}
                       disabled={updateEmojiAvatarMutation.isPending}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 disabled:opacity-50"
+                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-700 bg-brand-100 hover:bg-brand-200 disabled:opacity-50"
                     >
                       <FiSmile className="mr-1 h-4 w-4" />
                       Choose Emoji
@@ -259,7 +259,7 @@ export default function SettingsModal({
                         ? 'bg-stone-100 cursor-not-allowed text-stone-500 border-stone-300'
                         : emailError
                         ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-stone-300 focus:ring-primary-500 focus:border-primary-500'
+                        : 'border-stone-300 focus:ring-brand-500 focus:border-brand-500'
                     }`}
                     placeholder={t('profile.emailPlaceholder')}
                   />
@@ -295,7 +295,7 @@ export default function SettingsModal({
                       {...register('firstName')}
                       id="firstName"
                       type="text"
-                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                       placeholder={t('profile.firstNamePlaceholder')}
                     />
                   </div>
@@ -316,7 +316,7 @@ export default function SettingsModal({
                       {...register('lastName')}
                       id="lastName"
                       type="text"
-                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                       placeholder={t('profile.lastNamePlaceholder')}
                     />
                   </div>
@@ -338,7 +338,7 @@ export default function SettingsModal({
                     {...register('phone')}
                     id="phone"
                     type="tel"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('profile.phonePlaceholder')}
                   />
                 </div>
@@ -369,14 +369,14 @@ export default function SettingsModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? t('common.saving') : t('common.save')}
                 </button>

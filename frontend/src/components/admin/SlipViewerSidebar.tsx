@@ -473,7 +473,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                     onClick={() => setCurrentSlipIndex(index)}
                     className={`transition-all duration-200 rounded-full ${
                       currentSlipIndex === index
-                        ? 'w-6 h-2 bg-primary-600'
+                        ? 'w-6 h-2 bg-brand-600'
                         : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
                     }`}
                     aria-label={`Go to slip ${index + 1}`}

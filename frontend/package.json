@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --report-unused-disable-directives",
+    "lint": "eslint . --report-unused-disable-directives && node scripts/check-design.cjs",
     "lint:strict": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",

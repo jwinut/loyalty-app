@@ -50,7 +50,7 @@ export default function PrivacyPage() {
         </section>
 
         <div className="text-center">
-          <Link to="/" className="text-primary-600 hover:underline">
+          <Link to="/" className="text-brand-600 hover:underline">
             {t('privacy.backToApp')}
           </Link>
         </div>

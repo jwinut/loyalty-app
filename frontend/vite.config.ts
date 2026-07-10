@@ -51,7 +51,7 @@ export default defineConfig({
         name: 'Hotel Loyalty App',
         short_name: 'Loyalty',
         description: 'Hotel Loyalty Program Management',
-        theme_color: '#8B0000',
+        theme_color: '#FAF9F7',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

@@ -314,8 +314,8 @@ describe('GenderField', () => {
       renderGenderField({ isModal: false });
 
       const select = screen.getByRole('combobox', { name: /gender/i });
-      expect(select).toHaveClass('focus:ring-primary-500');
-      expect(select).toHaveClass('focus:border-primary-500');
+      expect(select).toHaveClass('focus:ring-brand-500');
+      expect(select).toHaveClass('focus:border-brand-500');
     });
   });
 });
@@ -508,8 +508,8 @@ describe('OccupationField', () => {
       renderOccupationField({ isModal: false });
 
       const select = screen.getByRole('combobox', { name: /occupation/i });
-      expect(select).toHaveClass('focus:ring-primary-500');
-      expect(select).toHaveClass('focus:border-primary-500');
+      expect(select).toHaveClass('focus:ring-brand-500');
+      expect(select).toHaveClass('focus:border-brand-500');
       expect(select).toHaveClass('pl-10'); // Space for icon
     });
 
@@ -680,8 +680,8 @@ describe('DateOfBirthField', () => {
       renderDateOfBirthField({ isModal: false });
 
       const input = screen.getByLabelText(/date of birth/i);
-      expect(input).toHaveClass('focus:ring-primary-500');
-      expect(input).toHaveClass('focus:border-primary-500');
+      expect(input).toHaveClass('focus:ring-brand-500');
+      expect(input).toHaveClass('focus:border-brand-500');
       expect(input).toHaveClass('pl-10'); // Space for icon
     });
 

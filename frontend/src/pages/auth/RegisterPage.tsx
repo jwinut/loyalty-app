@@ -58,7 +58,7 @@ export default function RegisterPage() {
             Or{' '}
             <Link
               to="/login"
-              className="font-medium text-primary-600 hover:text-primary-500"
+              className="font-medium text-brand-600 hover:text-brand-500"
             >
               sign in to your existing account
             </Link>
@@ -79,7 +79,7 @@ export default function RegisterPage() {
                     {...registerField('firstName')}
                     id="firstName"
                     type="text"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('profile.firstNamePlaceholder')}
                   />
                 </div>
@@ -99,7 +99,7 @@ export default function RegisterPage() {
                     {...registerField('lastName')}
                     id="lastName"
                     type="text"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('profile.lastNamePlaceholder')}
                   />
                 </div>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder="john@example.com"
                 />
               </div>
@@ -143,7 +143,7 @@ export default function RegisterPage() {
                   {...registerField('phone')}
                   id="phone"
                   type="tel"
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
@@ -165,7 +165,7 @@ export default function RegisterPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder="••••••••"
                 />
                 <button
@@ -198,7 +198,7 @@ export default function RegisterPage() {
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder="••••••••"
                 />
                 <button
@@ -223,7 +223,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creating account...' : 'Create account'}
             </button>

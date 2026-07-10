@@ -558,7 +558,7 @@ describe('MyBookingsPage', () => {
       const currentTab = screen.getByTestId('tab-current');
       const historyTab = screen.getByTestId('tab-history');
 
-      expect(currentTab).toHaveClass('border-primary-500', 'text-primary-600');
+      expect(currentTab).toHaveClass('border-brand-500', 'text-brand-600');
       expect(historyTab).toHaveClass('border-transparent', 'text-stone-500');
     });
 
@@ -586,7 +586,7 @@ describe('MyBookingsPage', () => {
       const historyTab = screen.getByTestId('tab-history');
       await user.click(historyTab);
 
-      expect(historyTab).toHaveClass('border-primary-500', 'text-primary-600');
+      expect(historyTab).toHaveClass('border-brand-500', 'text-brand-600');
     });
 
     it('should update active tab styling on switch', async () => {
@@ -598,17 +598,17 @@ describe('MyBookingsPage', () => {
       const historyTab = screen.getByTestId('tab-history');
 
       // Initially current is active
-      expect(currentTab).toHaveClass('border-primary-500');
+      expect(currentTab).toHaveClass('border-brand-500');
       expect(historyTab).toHaveClass('border-transparent');
 
       // Switch to history
       await user.click(historyTab);
-      expect(historyTab).toHaveClass('border-primary-500');
+      expect(historyTab).toHaveClass('border-brand-500');
       expect(currentTab).toHaveClass('border-transparent');
 
       // Switch back to current
       await user.click(currentTab);
-      expect(currentTab).toHaveClass('border-primary-500');
+      expect(currentTab).toHaveClass('border-brand-500');
       expect(historyTab).toHaveClass('border-transparent');
     });
   });

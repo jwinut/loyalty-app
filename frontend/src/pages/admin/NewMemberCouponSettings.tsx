@@ -144,7 +144,7 @@ export default function NewMemberCouponSettings() {
       <MainLayout title={t('admin.newMemberCoupons.title')} showProfileBanner={false}>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
             <p className="mt-4 text-stone-600">{t('admin.newMemberCoupons.loading')}</p>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function NewMemberCouponSettings() {
                 id="couponSelect"
                 value={selectedCouponId}
                 onChange={(e) => setSelectedCouponId(e.target.value)}
-                className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                 disabled={!isEnabled}
               >
                 <option value="">{t('admin.newMemberCoupons.selectCouponPlaceholder')}</option>
@@ -347,7 +347,7 @@ export default function NewMemberCouponSettings() {
                     id="pointsAmount"
                     value={pointsAmount}
                     onChange={(e) => setPointsAmount(e.target.value)}
-                    className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('admin.newMemberCoupons.pointsPlaceholder')}
                     min="1"
                     max="10000"
@@ -377,7 +377,7 @@ export default function NewMemberCouponSettings() {
                 type="button"
                 onClick={handleReset}
                 disabled={!hasChanged || isSaving}
-                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiX className="mr-2 h-4 w-4" />
                 {t('admin.newMemberCoupons.reset')}
@@ -394,7 +394,7 @@ export default function NewMemberCouponSettings() {
                   (isEnabled && couponStatus?.isExpired) ||
                   (pointsEnabled && (!pointsAmount || (parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000)))
                 }
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
                   <>

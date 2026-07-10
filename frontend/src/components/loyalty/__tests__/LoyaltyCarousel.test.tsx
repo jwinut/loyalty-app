@@ -148,7 +148,7 @@ describe('LoyaltyCarousel', () => {
       await user.click(nextButton);
 
       const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-primary-600'));
+      const activeDot = dots.find(dot => dot.classList.contains('bg-brand-600'));
       expect(activeDot).toBeDefined();
     });
 
@@ -184,7 +184,7 @@ describe('LoyaltyCarousel', () => {
       await user.click(prevButton);
 
       const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-primary-600'));
+      const activeDot = dots.find(dot => dot.classList.contains('bg-brand-600'));
       expect(activeDot).toBeDefined();
     });
 
@@ -225,7 +225,7 @@ describe('LoyaltyCarousel', () => {
         <LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />
       );
 
-      const activeDot = container.querySelector('.bg-primary-600');
+      const activeDot = container.querySelector('.bg-brand-600');
       expect(activeDot).toBeInTheDocument();
     });
 
@@ -249,7 +249,7 @@ describe('LoyaltyCarousel', () => {
       const nextButton = screen.getByRole('button', { name: /next slide/i });
       await user.click(nextButton);
 
-      const activeDots = container.querySelectorAll('.bg-primary-600');
+      const activeDots = container.querySelectorAll('.bg-brand-600');
       expect(activeDots.length).toBeGreaterThan(0);
     });
   });

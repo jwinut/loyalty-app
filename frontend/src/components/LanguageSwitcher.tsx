@@ -60,7 +60,7 @@ export default function LanguageSwitcher() {
                   <span>{language.name}</span>
                 </span>
                 {i18n.language === language.code && (
-                  <FiCheck className="h-4 w-4 text-primary-600" />
+                  <FiCheck className="h-4 w-4 text-brand-600" />
                 )}
               </button>
             ))}

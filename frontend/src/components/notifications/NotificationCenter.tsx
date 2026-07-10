@@ -160,7 +160,7 @@ export default function NotificationCenter() {
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-stone-500 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md"
+        className="relative p-2 text-stone-500 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 rounded-md"
         aria-label="Notifications"
       >
         <FiBell className="h-6 w-6" />
@@ -184,7 +184,7 @@ export default function NotificationCenter() {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    className="text-sm text-brand-600 hover:text-brand-700 font-medium"
                   >
                     {t('notifications.markAllRead', 'Mark all read')}
                   </button>
@@ -208,7 +208,7 @@ export default function NotificationCenter() {
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
               <div className="px-4 py-8 text-center text-stone-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2" />
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto mb-2" />
                 {t('notifications.loading', 'Loading...')}
               </div>
             ) : notifications.length === 0 ? (
@@ -259,7 +259,7 @@ export default function NotificationCenter() {
                             {!notification.readAt && (
                               <button
                                 onClick={() => markAsRead([notification.id])}
-                                className="p-1 text-stone-400 hover:text-primary-600 transition-colors"
+                                className="p-1 text-stone-400 hover:text-brand-600 transition-colors"
                                 title={t('notifications.markRead', 'Mark as read')}
                               >
                                 <FiCheck className="h-4 w-4" />
@@ -316,7 +316,7 @@ export default function NotificationCenter() {
           {/* Footer */}
           {totalCount > 10 && (
             <div className="px-4 py-3 border-t border-stone-200 text-center">
-              <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+              <button className="text-sm text-brand-600 hover:text-brand-700 font-medium">
                 {t('notifications.viewAll', 'View all notifications')}
               </button>
             </div>

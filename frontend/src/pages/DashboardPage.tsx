@@ -30,7 +30,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center" data-testid="dashboard-loading">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600" />
           <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           {loyaltyStatus && (
             <div className="mb-6">
               <div className="flex items-center space-x-2 mb-4">
-                <FiGift className="h-6 w-6 text-primary-600" />
+                <FiGift className="h-6 w-6 text-brand-600" />
                 <h2 className="text-xl font-semibold text-stone-900">
                   {t('loyalty.dashboard.title')}
                 </h2>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <FiCreditCard className="h-6 w-6 text-primary-600" />
+                      <FiCreditCard className="h-6 w-6 text-brand-600" />
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <FiUser className="h-6 w-6 text-primary-600" />
+                        <FiUser className="h-6 w-6 text-brand-600" />
                       </div>
                       <div className="ml-3">
                         <dt className="text-lg font-semibold text-stone-900">
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <FiCalendar className="h-6 w-6 text-primary-600" />
+                      <FiCalendar className="h-6 w-6 text-brand-600" />
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>

@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100;200;300;400;500;600;700;800;900&display=swap');
-
+/* Sarabun is loaded once via <link> in index.html (weights 400/500/600/700). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -141,7 +141,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
             onClick={() => goToSlide(index)}
             className={`transition-all duration-300 rounded-full
               ${currentSlide === index
-                ? 'w-8 h-2 bg-primary-600'
+                ? 'w-8 h-2 bg-brand-600'
                 : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
               }`}
             aria-label={`Go to slide ${index + 1}`}

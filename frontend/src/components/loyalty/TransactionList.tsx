@@ -182,7 +182,7 @@ export default function TransactionList({
               <div className="text-center pt-4">
                 <button
                   onClick={onLoadMore}
-                  className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
                 >
                   {t('common.loadMore')}
                 </button>

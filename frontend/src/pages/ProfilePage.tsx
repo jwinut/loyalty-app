@@ -256,7 +256,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600" />
           <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
         </div>
       </div>
@@ -277,7 +277,7 @@ export default function ProfilePage() {
               </h2>
               <button
                 onClick={() => setShowSettingsModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 <FiSettings className="mr-2 h-4 w-4" />
                 {t('profile.editSettings')}
