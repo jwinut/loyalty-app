@@ -14,6 +14,7 @@ import { GenderField, OccupationField, DateOfBirthField } from './ProfileFormFie
 import { useMutation } from '@tanstack/react-query';
 import { userService } from '../../services/userService';
 import { logger } from '../../utils/logger';
+import { Modal } from '../ui';
 
 const profileSchema = z.object({
   email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
@@ -128,263 +129,235 @@ export default function SettingsModal({
     }
   };
 
-  if (!isOpen) {return null;}
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop */}
-        <div
-          className="fixed inset-0 bg-stone-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        />
+    <Modal open={isOpen} onClose={onClose} title={t('profile.editProfile')} size="md">
+      {/* Profile Picture Section */}
+      <div className="mb-6">
+        <h4 className="text-md font-medium text-stone-900 mb-4">Profile Picture</h4>
 
-        {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-stone-900">
-                {t('profile.editProfile')}
-              </h3>
-              <button
-                onClick={onClose}
-                className="rounded-md bg-white text-stone-400 hover:text-stone-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <FiX className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Profile Picture Section */}
-            <div className="mb-6">
-              <h4 className="text-md font-medium text-stone-900 mb-4">Profile Picture</h4>
-
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="relative">
-                  <EmojiAvatar
-                    avatarUrl={profile?.avatarUrl}
-                    size="lg"
-                    className={updateEmojiAvatarMutation.isPending ? 'opacity-50' : ''}
-                  />
-                  {updateEmojiAvatarMutation.isPending && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <button
-                      onClick={() => setShowEmojiSelector(!showEmojiSelector)}
-                      disabled={updateEmojiAvatarMutation.isPending}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-700 bg-brand-100 hover:bg-brand-200 disabled:opacity-50"
-                    >
-                      <FiSmile className="mr-1 h-4 w-4" />
-                      Choose Emoji
-                    </button>
-
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingAvatar || updateEmojiAvatarMutation.isPending}
-                      className="inline-flex items-center px-3 py-2 border border-stone-300 text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
-                    >
-                      <FiCamera className="mr-1 h-4 w-4" />
-                      Upload Image
-                    </button>
-
-                    {profile?.avatarUrl && (
-                      <button
-                        onClick={onDeleteAvatar}
-                        disabled={uploadingAvatar || updateEmojiAvatarMutation.isPending}
-                        className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50 px-2 py-1"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-stone-500">
-                    Choose an emoji or upload your own image for your profile picture
-                  </p>
-                </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={onAvatarUpload}
-                  className="hidden"
-                />
+        <div className="flex items-center space-x-4 mb-4">
+          <div className="relative">
+            <EmojiAvatar
+              avatarUrl={profile?.avatarUrl}
+              size="lg"
+              className={updateEmojiAvatarMutation.isPending ? 'opacity-50' : ''}
+            />
+            {updateEmojiAvatarMutation.isPending && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
               </div>
+            )}
+          </div>
 
-              {/* Emoji Selector */}
-              {showEmojiSelector && (
-                <div className="border rounded-lg p-4 bg-stone-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-stone-700">Select an emoji:</span>
-                    <button
-                      onClick={() => setShowEmojiSelector(false)}
-                      className="text-stone-400 hover:text-stone-600"
-                    >
-                      <FiX className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <EmojiSelectorInline
-                    currentEmoji={extractEmojiFromUrl(profile?.avatarUrl)}
-                    onSelect={handleEmojiSelect}
-                  />
-                </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-2 mb-2">
+              <button
+                onClick={() => setShowEmojiSelector(!showEmojiSelector)}
+                disabled={updateEmojiAvatarMutation.isPending}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-700 bg-brand-100 hover:bg-brand-200 disabled:opacity-50"
+              >
+                <FiSmile className="mr-1 h-4 w-4" />
+                Choose Emoji
+              </button>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar || updateEmojiAvatarMutation.isPending}
+                className="inline-flex items-center px-3 py-2 border border-stone-300 text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
+              >
+                <FiCamera className="mr-1 h-4 w-4" />
+                Upload Image
+              </button>
+
+              {profile?.avatarUrl && (
+                <button
+                  onClick={onDeleteAvatar}
+                  disabled={uploadingAvatar || updateEmojiAvatarMutation.isPending}
+                  className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50 px-2 py-1"
+                >
+                  Remove
+                </button>
               )}
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-              {/* Email Field */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-stone-700">
-                  {t('profile.email')}
-                </label>
-                <div className="mt-1 relative">
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${emailError ? 'text-red-400' : ''}`}>
-                    <FiMail className={`h-5 w-5 ${emailError ? 'text-red-400' : 'text-stone-400'}`} />
-                  </div>
-                  <input
-                    {...register('email')}
-                    id="email"
-                    type="email"
-                    disabled={isGoogleOAuthUser}
-                    className={`appearance-none block w-full px-3 py-2 pl-10 border rounded-md shadow-sm placeholder-stone-400 focus:outline-none sm:text-sm ${
-                      isGoogleOAuthUser
-                        ? 'bg-stone-100 cursor-not-allowed text-stone-500 border-stone-300'
-                        : emailError
-                        ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-stone-300 focus:ring-brand-500 focus:border-brand-500'
-                    }`}
-                    placeholder={t('profile.emailPlaceholder')}
-                  />
-                </div>
-                {emailError && (
-                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
-                )}
-                {errors.email && !emailError && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                )}
-                {isGoogleOAuthUser && (
-                  <p className="mt-1 text-sm text-stone-500">
-                    {t('profile.googleOAuthEmailLocked')}
-                  </p>
-                )}
-                {!emailError && !isGoogleOAuthUser && (
-                  <p className="mt-1 text-xs text-stone-500">
-                    {t('profile.emailHelpText')}
-                  </p>
-                )}
+            <p className="text-xs text-stone-500">
+              Choose an emoji or upload your own image for your profile picture
+            </p>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onAvatarUpload}
+            className="hidden"
+          />
+        </div>
+
+        {/* Emoji Selector */}
+        {showEmojiSelector && (
+          <div className="border rounded-lg p-4 bg-stone-50">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-stone-700">Select an emoji:</span>
+              <button
+                onClick={() => setShowEmojiSelector(false)}
+                className="text-stone-400 hover:text-stone-600"
+              >
+                <FiX className="h-4 w-4" />
+              </button>
+            </div>
+            <EmojiSelectorInline
+              currentEmoji={extractEmojiFromUrl(profile?.avatarUrl)}
+              onSelect={handleEmojiSelect}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        {/* Email Field */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-stone-700">
+            {t('profile.email')}
+          </label>
+          <div className="mt-1 relative">
+            <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${emailError ? 'text-red-400' : ''}`}>
+              <FiMail className={`h-5 w-5 ${emailError ? 'text-red-400' : 'text-stone-400'}`} />
+            </div>
+            <input
+              {...register('email')}
+              id="email"
+              type="email"
+              disabled={isGoogleOAuthUser}
+              className={`appearance-none block w-full px-3 py-2 pl-10 border rounded-md shadow-sm placeholder-stone-400 focus:outline-none sm:text-sm ${
+                isGoogleOAuthUser
+                  ? 'bg-stone-100 cursor-not-allowed text-stone-500 border-stone-300'
+                  : emailError
+                  ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-stone-300 focus:ring-brand-500 focus:border-brand-500'
+              }`}
+              placeholder={t('profile.emailPlaceholder')}
+            />
+          </div>
+          {emailError && (
+            <p className="mt-1 text-sm text-red-600">{emailError}</p>
+          )}
+          {errors.email && !emailError && (
+            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+          )}
+          {isGoogleOAuthUser && (
+            <p className="mt-1 text-sm text-stone-500">
+              {t('profile.googleOAuthEmailLocked')}
+            </p>
+          )}
+          {!emailError && !isGoogleOAuthUser && (
+            <p className="mt-1 text-xs text-stone-500">
+              {t('profile.emailHelpText')}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
+              {t('auth.firstName')}
+            </label>
+            <div className="mt-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiUser className="h-5 w-5 text-stone-400" />
               </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
-                    {t('auth.firstName')}
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiUser className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      {...register('firstName')}
-                      id="firstName"
-                      type="text"
-                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                      placeholder={t('profile.firstNamePlaceholder')}
-                    />
-                  </div>
-                  {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
-                    {t('auth.lastName')}
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiUser className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      {...register('lastName')}
-                      id="lastName"
-                      type="text"
-                      className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                      placeholder={t('profile.lastNamePlaceholder')}
-                    />
-                  </div>
-                  {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
-                  {t('auth.phone')}
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiPhone className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    {...register('phone')}
-                    id="phone"
-                    type="tel"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                    placeholder={t('profile.phonePlaceholder')}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                )}
-              </div>
-
-              <DateOfBirthField
-                register={register}
-                errors={errors}
-                isModal={false}
+              <input
+                {...register('firstName')}
+                id="firstName"
+                type="text"
+                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                placeholder={t('profile.firstNamePlaceholder')}
               />
+            </div>
+            {errors.firstName && (
+              <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+            )}
+          </div>
 
-              <GenderField
-                register={register}
-                errors={errors}
-                isModal={false}
-              />
-
-              <OccupationField
-                register={register}
-                errors={errors}
-                isModal={false}
-              />
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSaving ? t('common.saving') : t('common.save')}
-                </button>
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
+              {t('auth.lastName')}
+            </label>
+            <div className="mt-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiUser className="h-5 w-5 text-stone-400" />
               </div>
-            </form>
+              <input
+                {...register('lastName')}
+                id="lastName"
+                type="text"
+                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                placeholder={t('profile.lastNamePlaceholder')}
+              />
+            </div>
+            {errors.lastName && (
+              <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+            )}
           </div>
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
+            {t('auth.phone')}
+          </label>
+          <div className="mt-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiPhone className="h-5 w-5 text-stone-400" />
+            </div>
+            <input
+              {...register('phone')}
+              id="phone"
+              type="tel"
+              className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              placeholder={t('profile.phonePlaceholder')}
+            />
+          </div>
+          {errors.phone && (
+            <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+          )}
+        </div>
+
+        <DateOfBirthField
+          register={register}
+          errors={errors}
+          isModal={false}
+        />
+
+        <GenderField
+          register={register}
+          errors={errors}
+          isModal={false}
+        />
+
+        <OccupationField
+          register={register}
+          errors={errors}
+          isModal={false}
+        />
+
+        <div className="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? t('common.saving') : t('common.save')}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
 import { logger } from '../../utils/logger';
 import { notify } from '../../utils/notificationManager';
+import { Modal } from '../ui';
 
 interface QRCodeModalProps {
   coupon: UserActiveCoupon;
@@ -57,26 +58,11 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
     }
   };
 
+  const handleClose = onClose ?? (() => {});
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="text-lg font-semibold text-stone-900">
-          {t('coupons.useCoupon')}
-        </h3>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* QR Code Content */}
-      <div className="p-6 text-center">
+    <Modal open onClose={handleClose} title={t('coupons.useCoupon')} size="sm">
+      <div data-testid="qr-code-content" className={`text-center ${className}`}>
         {/* Coupon Basic Info */}
         <div className="mb-6">
           <h4 className="text-xl font-bold text-stone-900 mb-2">
@@ -86,7 +72,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
         {/* QR Code */}
         <div className="flex flex-col items-center mb-6" ref={qrCodeRef}>
-          <div className="bg-white p-6 rounded-lg shadow-inner border-2 border-stone-200 mb-4">
+          <div className="bg-white p-6 rounded-lg shadow-soft border-2 border-stone-200 mb-4">
             {/* QR Code Display */}
             <div className="w-64 h-64 flex items-center justify-center rounded-lg">
               {isGeneratingQR ? (
@@ -97,8 +83,8 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
                   </div>
                 </div>
               ) : qrCodeDataURL ? (
-                <img 
-                  src={qrCodeDataURL} 
+                <img
+                  src={qrCodeDataURL}
                   alt={`QR Code for ${coupon.code}`}
                   className="w-full h-full object-contain rounded-lg"
                 />
@@ -112,7 +98,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
               )}
             </div>
           </div>
-          
+
           {/* Coupon Code underneath */}
           <div className="text-center">
             <div className="text-sm text-stone-600 mb-1 font-medium">
@@ -164,7 +150,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
