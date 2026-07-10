@@ -26,3 +26,8 @@ export type { FormFieldProps } from './FormField';
 
 export { Modal } from './Modal';
 export type { ModalProps, ModalSize, ModalMobilePresentation } from './Modal';
+
+export { PageHeader, type PageHeaderProps, type PageHeaderDensity } from './PageHeader';
+export { Section, type SectionProps, type SectionSurface, type SectionWidth, type SectionSpacing, type SectionElement } from './Section';
+export { TabNav, type TabNavProps, type TabItem, type TabLinkItem } from './TabNav';
+export { EmptyState, type EmptyStateProps, type EmptyStateIcon } from './EmptyState';
