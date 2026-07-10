@@ -48,9 +48,9 @@ export default defineConfig({
       srcDir: 'public',
       filename: 'sw-custom.js',
       manifest: {
-        name: 'Hotel Loyalty App',
-        short_name: 'Loyalty',
-        description: 'Hotel Loyalty Program Management',
+        name: 'The Harbour Front Hotel Loyalty',
+        short_name: 'HF Loyalty',
+        description: 'The Harbour Front Hotel loyalty program',
         theme_color: '#FAF9F7',
         background_color: '#ffffff',
         display: 'standalone',

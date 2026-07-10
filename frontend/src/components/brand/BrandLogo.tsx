@@ -12,15 +12,25 @@ export type BrandLogoProps = {
 
 const WORDMARK_TEXT = 'The Harbour Front Hotel';
 
-// tone switches ink↔white text classes; the monogram tile itself is a
-// fixed brand-colored badge and doesn't need to adjust with tone.
+// tone switches ink↔parchment. The monogram's black layer inherits it via
+// fill-current; the crimson H is fixed brand-600 on every surface.
 const TONE_WORDMARK_CLASSES: Record<BrandLogoTone, string> = {
   onLight: 'text-ink',
   onDark: 'text-tile-text',
 };
 
-function Monogram({ className }: { className?: string }) {
-  return <MonogramArt className={cn('h-8 w-8 shrink-0', className)} />;
+function Monogram({
+  tone,
+  className,
+}: {
+  tone: BrandLogoTone;
+  className?: string;
+}) {
+  return (
+    <MonogramArt
+      className={cn('h-8 w-8 shrink-0', TONE_WORDMARK_CLASSES[tone], className)}
+    />
+  );
 }
 
 function Wordmark({
@@ -46,9 +56,9 @@ function Wordmark({
 /**
  * Brand mark — monogram, wordmark, or the lockup (monogram + wordmark row).
  *
- * PLACEHOLDER: the monogram is inline placeholder art (see `logo-art.tsx`).
- * Real traced vector paths land in a parallel logo PR and only that file
- * changes — this component's API is swap-ready.
+ * The monogram is a faithful 1:1 vector trace of the hotel's original
+ * logo artwork (see `logo-art.tsx`); the wordmark is the hotel name as
+ * styled text.
  */
 export function BrandLogo({
   variant = 'lockup',
@@ -56,7 +66,7 @@ export function BrandLogo({
   className,
 }: BrandLogoProps) {
   if (variant === 'monogram') {
-    return <Monogram className={className} />;
+    return <Monogram tone={tone} className={className} />;
   }
 
   if (variant === 'wordmark') {
@@ -65,7 +75,7 @@ export function BrandLogo({
 
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
-      <Monogram />
+      <Monogram tone={tone} />
       <Wordmark tone={tone} />
     </span>
   );
