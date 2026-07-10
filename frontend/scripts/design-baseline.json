@@ -1,10 +1,10 @@
 {
   "primary-alias": 0,
   "cool-grays": 0,
-  "font-extrabold": 4,
-  "font-medium": 550,
-  "legacy-shadows": 300,
-  "off-grammar-radii": 313,
-  "oversized-titles": 30,
-  "hardcoded-hex": 82
+  "font-extrabold": 0,
+  "font-medium": 529,
+  "legacy-shadows": 276,
+  "off-grammar-radii": 295,
+  "oversized-titles": 26,
+  "hardcoded-hex": 129
 }
