@@ -40,7 +40,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                     value={String(option.value)}
                     checked={isChecked}
                     onChange={(e) => handleAnswerChange(e.target.value)}
-                    className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
+                    className="mr-3 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
                   />
                   <span className={`text-stone-700 select-none ${isChecked ? 'font-medium text-brand-700' : ''}`}>{String(option.text)}</span>
                 </label>
@@ -147,7 +147,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 value="yes"
                 checked={String(answer) === 'yes'}
                 onChange={(e) => handleAnswerChange(e.target.value)}
-                className="mr-2 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
+                className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
               />
               <span className={`text-stone-700 select-none ${String(answer) === 'yes' ? 'font-medium text-brand-700' : ''}`}>{t('common.yes', 'Yes')}</span>
             </label>
@@ -158,7 +158,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 value="no"
                 checked={String(answer) === 'no'}
                 onChange={(e) => handleAnswerChange(e.target.value)}
-                className="mr-2 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300"
+                className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
               />
               <span className={`text-stone-700 select-none ${String(answer) === 'no' ? 'font-medium text-brand-700' : ''}`}>{t('common.no', 'No')}</span>
             </label>

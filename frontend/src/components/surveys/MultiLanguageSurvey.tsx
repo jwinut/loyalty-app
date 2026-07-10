@@ -160,11 +160,11 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
             {question.type === 'yes_no' && (
               <div className="space-x-4">
                 <label className="inline-flex items-center">
-                  <input type="radio" name={question.id} value="yes" className="mr-2" disabled />
+                  <input type="radio" name={question.id} value="yes" className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" disabled />
                   Yes
                 </label>
                 <label className="inline-flex items-center">
-                  <input type="radio" name={question.id} value="no" className="mr-2" disabled />
+                  <input type="radio" name={question.id} value="no" className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" disabled />
                   No
                 </label>
               </div>

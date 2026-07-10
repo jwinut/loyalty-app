@@ -352,7 +352,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               <div className="space-y-1">
                 {options?.map((option) => (
                   <label key={option.id} className="flex items-center">
-                    <input type="radio" name={`preview-${question.id}`} className="mr-2" />
+                    <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
                     <span className="text-sm">{option.text}</span>
                   </label>
                 ))}
@@ -399,11 +399,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             {question.type === 'yes_no' && (
               <div className="space-y-1">
                 <label className="flex items-center">
-                  <input type="radio" name={`preview-${question.id}`} className="mr-2" />
+                  <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
                   <span className="text-sm">{t('common.yes')}</span>
                 </label>
                 <label className="flex items-center">
-                  <input type="radio" name={`preview-${question.id}`} className="mr-2" />
+                  <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
                   <span className="text-sm">{t('common.no')}</span>
                 </label>
               </div>
