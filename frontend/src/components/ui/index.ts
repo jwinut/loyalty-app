@@ -11,3 +11,8 @@ export type { BadgeProps, BadgeTone, BadgeSize } from './Badge';
 
 export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
+
+export { PageHeader, type PageHeaderProps, type PageHeaderDensity } from './PageHeader';
+export { Section, type SectionProps, type SectionSurface, type SectionWidth, type SectionSpacing, type SectionElement } from './Section';
+export { TabNav, type TabNavProps, type TabItem, type TabLinkItem } from './TabNav';
+export { EmptyState, type EmptyStateProps, type EmptyStateIcon } from './EmptyState';
