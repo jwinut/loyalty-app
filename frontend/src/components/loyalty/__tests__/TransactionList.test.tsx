@@ -99,7 +99,8 @@ describe('TransactionList', () => {
       const { container } = render(<TransactionList transactions={mockTransactions} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveClass('bg-white', 'rounded-lg', 'shadow-md', 'p-6');
+      expect(mainDiv).toHaveAttribute('data-surface', 'card');
+      expect(mainDiv).toHaveClass('rounded-card', 'p-6');
     });
   });
 
@@ -180,18 +181,18 @@ describe('TransactionList', () => {
       expect(minusIcons.length).toBeGreaterThan(0);
     });
 
-    it('should apply green background for positive points', () => {
+    it('should apply the success surface tone for positive points', () => {
       const { container } = render(<TransactionList transactions={mockTransactions} />);
 
-      const greenBackgrounds = container.querySelectorAll('.bg-green-50');
-      expect(greenBackgrounds.length).toBeGreaterThan(0);
+      const successBackgrounds = container.querySelectorAll('.bg-success-50');
+      expect(successBackgrounds.length).toBeGreaterThan(0);
     });
 
-    it('should apply red background for negative points', () => {
+    it('should apply the error surface tone for negative points', () => {
       const { container } = render(<TransactionList transactions={mockTransactions} />);
 
-      const redBackgrounds = container.querySelectorAll('.bg-red-50');
-      expect(redBackgrounds.length).toBeGreaterThan(0);
+      const errorBackgrounds = container.querySelectorAll('.bg-error-50');
+      expect(errorBackgrounds.length).toBeGreaterThan(0);
     });
   });
 

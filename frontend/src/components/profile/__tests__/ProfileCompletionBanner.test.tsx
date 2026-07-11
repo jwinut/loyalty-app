@@ -169,7 +169,7 @@ describe('ProfileCompletionBanner', () => {
       });
     });
 
-    it('should have gradient background styling', async () => {
+    it('should have a solid brand-600 band (no gradient)', async () => {
       mockProfileCompletionQuery({
         isComplete: false,
         missingFields: ['firstName'],
@@ -180,7 +180,8 @@ describe('ProfileCompletionBanner', () => {
 
       await waitFor(() => {
         const banner = container.firstChild as HTMLElement;
-        expect(banner).toHaveClass('bg-gradient-to-r', 'from-brand-600', 'to-purple-600');
+        expect(banner).toHaveClass('bg-brand-600', 'text-white');
+        expect(banner.className).not.toMatch(/gradient|purple/);
       });
     });
   });
@@ -593,12 +594,14 @@ describe('ProfileCompletionBanner', () => {
       });
 
       await waitFor(() => {
-        const backdrop = document.querySelector('.bg-stone-500');
+        const backdrop = document.querySelector('.bg-ink\\/40');
         expect(backdrop).toBeInTheDocument();
       });
 
-      const backdrop = document.querySelector('.bg-stone-500') as HTMLElement;
-      fireEvent.click(backdrop);
+      // The Modal primitive's backdrop dismisses on mousedown (not click), and
+      // only when the event target is the backdrop itself, not a bubbled child.
+      const backdrop = document.querySelector('.bg-ink\\/40') as HTMLElement;
+      fireEvent.mouseDown(backdrop, { target: backdrop });
 
       await waitFor(() => {
         expect(screen.getAllByText('Complete Profile')).toHaveLength(1);

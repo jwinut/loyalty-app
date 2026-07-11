@@ -133,19 +133,21 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         <FiChevronRight className="w-6 h-6 text-stone-600" />
       </button>
 
-      {/* Pagination Dots */}
-      <div className="flex justify-center items-center space-x-2 mt-6">
+      {/* Pagination Dots — each button is a full 44px hit area around a small visual dot */}
+      <div className="flex items-center justify-center mt-6">
         {slides.map((slide, index) => (
           <button
             key={slide.id}
             onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full
-              ${currentSlide === index
-                ? 'w-8 h-2 bg-brand-600'
-                : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
-              }`}
+            className="flex h-11 w-11 items-center justify-center rounded-full"
             aria-label={`Go to slide ${index + 1}`}
-          />
+          >
+            <span
+              aria-hidden="true"
+              className={`h-2 rounded-full transition-all duration-300
+                ${currentSlide === index ? 'w-8 bg-brand-600' : 'w-2 bg-stone-300'}`}
+            />
+          </button>
         ))}
       </div>
 
