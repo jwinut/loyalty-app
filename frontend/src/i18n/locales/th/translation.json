@@ -1114,7 +1114,9 @@
       "page": "หน้า",
       "of": "จาก",
       "previous": "ก่อนหน้า",
-      "next": "ถัดไป"
+      "next": "ถัดไป",
+      "couponColumn": "คูปอง",
+      "userColumn": "ผู้ใช้"
     },
     "couponAssignment": {
       "editAssignment": "แก้ไขการมอบหมาย",
@@ -1135,6 +1137,26 @@
       "createSurvey": "สร้างแบบสำรวจ",
       "editSurvey": "แก้ไขแบบสำรวจ",
       "deleteSurvey": "ลบแบบสำรวจ",
+      "management": {
+        "columns": {
+          "survey": "แบบสำรวจ",
+          "updated": "อัปเดตล่าสุด",
+          "actions": "การดำเนินการ"
+        },
+        "templatesLink": "เทมเพลต",
+        "allStatuses": "สถานะทั้งหมด",
+        "previewTooltip": "ดูตัวอย่างแบบสำรวจ",
+        "analyticsTooltip": "ดูข้อมูลวิเคราะห์",
+        "invitationsTooltip": "จัดการคำเชิญ",
+        "exportTooltip": "ส่งออกคำตอบ",
+        "emptyTitle": "ไม่พบแบบสำรวจ",
+        "emptyDescription": "เริ่มต้นด้วยการสร้างแบบสำรวจลูกค้าแบบแรกของคุณ",
+        "deleteConfirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบแบบสำรวจนี้ การดำเนินการนี้ไม่สามารถย้อนกลับได้และจะลบคำตอบและคำเชิญทั้งหมดที่เกี่ยวข้อง",
+        "loadError": "โหลดแบบสำรวจไม่สำเร็จ",
+        "deleteError": "ลบแบบสำรวจไม่สำเร็จ",
+        "exportSuccess": "ส่งออกคำตอบแบบสำรวจสำเร็จ",
+        "exportError": "ส่งออกคำตอบแบบสำรวจไม่สำเร็จ"
+      },
       "surveyBuilder": {
         "pageTitle": {
           "create": "สร้างแบบสำรวจ",
@@ -1200,6 +1222,7 @@
         "optionValuePlaceholder": "ค่า",
         "newOptionText": "ตัวเลือกที่ {{number}}",
         "addOption": "+ เพิ่มตัวเลือก",
+        "removeOption": "ลบตัวเลือก",
         "minRating": "คะแนนต่ำสุด",
         "maxRating": "คะแนนสูงสุด",
         "requiredQuestion": "คำถามบังคับ",
@@ -1293,7 +1316,19 @@
         "noResponses": "ยังไม่มีคำตอบ",
         "insights": "ข้อมูลเชิงลึกสำคัญ",
         "trends": "แนวโน้มคำตอบ",
-        "exportData": "ส่งออกข้อมูลแบบสำรวจ"
+        "exportData": "ส่งออกข้อมูลแบบสำรวจ",
+        "responsePercentage": "ร้อยละของคำตอบ",
+        "ratingDistribution": "การกระจายคะแนน",
+        "yesNoDistribution": "การกระจายใช่/ไม่ใช่",
+        "dailyResponseCount": "จำนวนคำตอบรายวัน",
+        "averageRating": "คะแนนเฉลี่ย",
+        "outOf": "จาก {{max}}",
+        "textResponsesCollected": "รวบรวมคำตอบแบบข้อความ {{count}} รายการ",
+        "textResponsesNote": "คำตอบแบบข้อความรวมอยู่ในไฟล์ CSV ที่ส่งออก",
+        "loadError": "โหลดข้อมูลวิเคราะห์แบบสำรวจไม่สำเร็จ",
+        "surveyIdRequired": "ต้องระบุรหัสแบบสำรวจ",
+        "exportSuccess": "ส่งออกข้อมูลวิเคราะห์สำเร็จ",
+        "exportError": "ส่งออกข้อมูลวิเคราะห์ไม่สำเร็จ"
       },
       "invitations": {
         "title": "คำเชิญแบบสำรวจ",
@@ -1308,7 +1343,40 @@
         "publicSurveyTitle": "นี่คือแบบสำรวจสาธารณะ",
         "publicSurveyDescription": "แบบสำรวจสาธารณะสามารถใช้งานได้อัตโนมัติสำหรับผู้ใช้ทุกคนในแอป ไม่จำเป็นต้องมีคำเชิญ - ผู้ใช้สามารถค้นหาและทำแบบสำรวจนี้ได้โดยตรงจากเมนู \"ทำแบบสำรวจ\" ของตน",
         "publicSurveyType": "สาธารณะ",
-        "surveyType": "ประเภทแบบสำรวจ"
+        "surveyType": "ประเภทแบบสำรวจ",
+        "surveyIdRequired": "ต้องระบุรหัสแบบสำรวจ",
+        "loadError": "โหลดคำเชิญแบบสำรวจไม่สำเร็จ",
+        "sendError": "ส่งคำเชิญไม่สำเร็จ",
+        "resendSuccess": "ส่งคำเชิญซ้ำสำเร็จ",
+        "resendError": "ส่งคำเชิญซ้ำไม่สำเร็จ",
+        "loadUsersError": "โหลดรายชื่อผู้ใช้ไม่สำเร็จ",
+        "selectAtLeastOneUser": "กรุณาเลือกผู้ใช้อย่างน้อยหนึ่งคน",
+        "noInvitationsSentToUsers": "ไม่มีการส่งคำเชิญ ผู้ใช้อาจไม่ตรงตามเกณฑ์เป้าหมายหรือได้รับคำเชิญไปแล้ว",
+        "searchUsersPlaceholder": "ค้นหาผู้ใช้ด้วยอีเมลหรือชื่อ...",
+        "usersSelectedCount": "เลือกแล้ว {{count}} คน",
+        "sendInvitationsCount": "ส่งคำเชิญ ({{count}})",
+        "noUsersFound": "ไม่พบผู้ใช้",
+        "joined": "เข้าร่วมเมื่อ",
+        "invited": "เชิญเมื่อ",
+        "sentOn": "ส่งเมื่อ",
+        "userIdLabel": "รหัสผู้ใช้",
+        "sendNow": "ส่งเดี๋ยวนี้",
+        "statsTotal": "คำเชิญทั้งหมด",
+        "statsSent": "ส่งแล้ว",
+        "statsViewed": "ดูแล้ว",
+        "statsStarted": "เริ่มทำแล้ว",
+        "statsCompleted": "เสร็จสมบูรณ์",
+        "statusPending": "รอดำเนินการ",
+        "statusSent": "ส่งแล้ว",
+        "statusViewed": "ดูแล้ว",
+        "statusInProgress": "กำลังดำเนินการ",
+        "statusCompleted": "เสร็จสมบูรณ์",
+        "recipientsHeading": "ผู้รับคำเชิญ",
+        "viewAnalytics": "ดูการวิเคราะห์",
+        "sendFirstInvitations": "ส่งคำเชิญครั้งแรก",
+        "statusFilterAll": "สถานะทั้งหมด",
+        "availabilityLabel": "การเข้าถึง",
+        "availabilityAllUsers": "ผู้ใช้ทุกคนสามารถเข้าถึงแบบสำรวจนี้ได้"
       },
       "couponAssignment": {
         "title": "รางวัลแบบสำรวจ",
@@ -1343,7 +1411,8 @@
         "updateSuccess": "อัปเดตการกำหนดคูปองเรียบร้อยแล้ว",
         "updateError": "ไม่สามารถอัปเดตการกำหนดคูปองได้",
         "removeSuccess": "ลบการกำหนดคูปองเรียบร้อยแล้ว",
-        "removeError": "ไม่สามารถลบการกำหนดคูปองได้"
+        "removeError": "ไม่สามารถลบการกำหนดคูปองได้",
+        "valueColumn": "มูลค่า"
       },
       "templates": {
         "title": "เทมเพลตแบบสำรวจ",
@@ -1360,6 +1429,7 @@
         "startFromScratch": "เริ่มต้นใหม่",
         "createCustomSurvey": "สร้างแบบสำรวจที่กำหนดเองด้วยคำถามของคุณเอง",
         "useTemplate": "ใช้เทมเพลต",
+        "loadError": "โหลดเทมเพลตแบบสำรวจไม่สำเร็จ",
         "popularityText": "{{percent}}% ใช้เทมเพลตนี้",
         "questionsCount": "{{count}} คำถาม",
         "customTemplatesTitle": "เทมเพลตกำหนดเองของคุณ",

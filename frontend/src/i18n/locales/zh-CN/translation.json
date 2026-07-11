@@ -678,7 +678,9 @@
       "page": "第",
       "of": "页，共",
       "previous": "上一页",
-      "next": "下一页"
+      "next": "下一页",
+      "couponColumn": "优惠券",
+      "userColumn": "用户"
     },
     "tabs": {
       "public": "公开",
@@ -692,6 +694,33 @@
       "createSurvey": "创建新调研",
       "editSurvey": "编辑调研",
       "deleteSurvey": "删除调研",
+      "statuses": {
+        "draft": "草稿",
+        "active": "进行中",
+        "paused": "已暂停",
+        "completed": "已完成",
+        "archived": "已归档"
+      },
+      "management": {
+        "columns": {
+          "survey": "调研",
+          "updated": "更新时间",
+          "actions": "操作"
+        },
+        "templatesLink": "模板",
+        "allStatuses": "所有状态",
+        "previewTooltip": "预览调研",
+        "analyticsTooltip": "查看分析",
+        "invitationsTooltip": "管理邀请",
+        "exportTooltip": "导出回答",
+        "emptyTitle": "未找到调研",
+        "emptyDescription": "创建您的第一份客户调研以开始使用",
+        "deleteConfirmMessage": "确定要删除此调研吗？此操作无法撤销，将删除所有相关的回答和邀请。",
+        "loadError": "加载调研失败",
+        "deleteError": "删除调研失败",
+        "exportSuccess": "调研回答导出成功",
+        "exportError": "调研回答导出失败"
+      },
       "surveyBuilder": {
         "pageTitle": {
           "create": "创建调研",
@@ -748,6 +777,7 @@
       "saveDraft": "保存草稿",
       "createAndPublish": "创建并发布",
       "updateAndPublish": "更新并发布",
+      "removeQuestion": "删除问题",
       "validation": {
         "titleAndQuestionRequired": "请输入调研标题并至少添加一个问题",
         "questionTextRequired": "问题文本是必填的",
@@ -773,7 +803,19 @@
         "noResponses": "尚未收集到回答",
         "insights": "关键洞察",
         "trends": "回答趋势",
-        "exportData": "导出调研数据"
+        "exportData": "导出调研数据",
+        "responsePercentage": "回答百分比",
+        "ratingDistribution": "评分分布",
+        "yesNoDistribution": "是/否分布",
+        "dailyResponseCount": "每日回答数",
+        "averageRating": "平均评分",
+        "outOf": "满分 {{max}}",
+        "textResponsesCollected": "已收集 {{count}} 条文本回答",
+        "textResponsesNote": "文本回答已包含在导出的 CSV 文件中",
+        "loadError": "调研分析数据加载失败",
+        "surveyIdRequired": "缺少调研 ID",
+        "exportSuccess": "分析数据导出成功",
+        "exportError": "分析数据导出失败"
       },
       "invitations": {
         "title": "调研邀请",
@@ -788,7 +830,40 @@
         "publicSurveyTitle": "这是公开调研",
         "publicSurveyDescription": "公开调研对应用中的所有用户自动可用。无需邀请 - 用户可以直接从他们的\"参与调研\"菜单中找到并参与此调研。",
         "publicSurveyType": "公开",
-        "surveyType": "调研类型"
+        "surveyType": "调研类型",
+        "surveyIdRequired": "缺少调研 ID",
+        "loadError": "调研邀请加载失败",
+        "sendError": "邀请发送失败",
+        "resendSuccess": "邀请重新发送成功",
+        "resendError": "邀请重新发送失败",
+        "loadUsersError": "用户加载失败",
+        "selectAtLeastOneUser": "请至少选择一位用户",
+        "noInvitationsSentToUsers": "未发送任何邀请。用户可能不符合定向条件，或已收到过邀请。",
+        "searchUsersPlaceholder": "按邮箱或姓名搜索用户...",
+        "usersSelectedCount": "已选择 {{count}} 人",
+        "sendInvitationsCount": "发送邀请（{{count}}）",
+        "noUsersFound": "未找到用户",
+        "joined": "加入时间",
+        "invited": "邀请时间",
+        "sentOn": "发送时间",
+        "userIdLabel": "用户 ID",
+        "sendNow": "立即发送",
+        "statsTotal": "邀请总数",
+        "statsSent": "已发送",
+        "statsViewed": "已查看",
+        "statsStarted": "已开始",
+        "statsCompleted": "已完成",
+        "statusPending": "待处理",
+        "statusSent": "已发送",
+        "statusViewed": "已查看",
+        "statusInProgress": "进行中",
+        "statusCompleted": "已完成",
+        "recipientsHeading": "邀请对象",
+        "viewAnalytics": "查看分析",
+        "sendFirstInvitations": "发送首批邀请",
+        "statusFilterAll": "全部状态",
+        "availabilityLabel": "可用性",
+        "availabilityAllUsers": "所有用户均可访问此调研"
       },
       "couponAssignment": {
         "title": "调研奖励",
@@ -822,7 +897,8 @@
         "updateSuccess": "优惠券分配更新成功",
         "updateError": "更新优惠券分配失败",
         "removeSuccess": "优惠券分配移除成功",
-        "removeError": "移除优惠券分配失败"
+        "removeError": "移除优惠券分配失败",
+        "valueColumn": "价值"
       },
       "questionEditor": {
         "questionNumber": "问题 {{number}}",
@@ -836,6 +912,7 @@
         "optionValuePlaceholder": "值",
         "newOptionText": "选项 {{number}}",
         "addOption": "+ 添加选项",
+        "removeOption": "删除选项",
         "minRating": "最低评分",
         "maxRating": "最高评分",
         "requiredQuestion": "必答问题",
@@ -868,6 +945,7 @@
         "startFromScratch": "从头开始",
         "createCustomSurvey": "创建包含您自己问题的自定义调研",
         "useTemplate": "使用模板",
+        "loadError": "加载调研模板失败",
         "popularityText": "{{percent}}% 的人使用此模板",
         "questionsCount": "{{count}} 个问题",
         "customTemplatesTitle": "您的自定义模板",

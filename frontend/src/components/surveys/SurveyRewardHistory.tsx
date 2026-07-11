@@ -5,6 +5,12 @@ import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 import { SurveyRewardHistory } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { EmptyState } from '../ui/EmptyState';
+import { Table, type TableColumn } from '../ui/Table';
 
 interface SurveyRewardHistoryProps {
   surveyId: string;
@@ -51,154 +57,152 @@ const SurveyRewardHistoryComponent: React.FC<SurveyRewardHistoryProps> = ({
     return new Date(dateString).toLocaleString();
   };
 
-  if (loading && currentPage === 1) {
+  function RewardDetails({ reward }: { reward: SurveyRewardHistory }) {
+    if (!reward.metadata) {
+      return null;
+    }
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-stone-200 rounded w-1/4 mb-4" />
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-stone-200 rounded" />
-            ))}
-          </div>
+      <details className="group mt-2 text-fine text-ink-muted">
+        <summary className="cursor-pointer hover:text-ink">
+          {t('surveys.rewardHistory.viewDetails')}
+        </summary>
+        <div className="mt-2 rounded-lg border border-hairline bg-surface-sunken p-3">
+          <pre className="overflow-x-auto text-fine">
+            {JSON.stringify(reward.metadata, null, 2)}
+          </pre>
         </div>
-      </div>
+      </details>
     );
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-stone-200">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-medium text-stone-900">
-              {t('surveys.rewardHistory.title')}
-            </h3>
-            <p className="text-sm text-stone-500 mt-1">
-              {t('surveys.rewardHistory.description')}
-            </p>
+  const columns: TableColumn<SurveyRewardHistory>[] = [
+    {
+      key: 'reward',
+      header: t('surveys.rewardHistory.couponColumn'),
+      cell: (reward) => (
+        <div>
+          <div className="flex items-center gap-2">
+            <FiGift className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
+            <span className="font-semibold text-ink">
+              {reward.coupon_code} - {reward.coupon_name}
+            </span>
           </div>
+          <RewardDetails reward={reward} />
         </div>
+      ),
+    },
+    {
+      key: 'user',
+      header: t('surveys.rewardHistory.userColumn'),
+      cell: (reward) => (
+        <div className="flex items-center gap-2">
+          <FiUser className="h-4 w-4 flex-shrink-0 text-success-600" aria-hidden="true" />
+          <span>{reward.user_name ?? 'Unknown User'} ({reward.user_email})</span>
+        </div>
+      ),
+    },
+    {
+      key: 'awardedAt',
+      header: t('surveys.rewardHistory.awarded'),
+      cell: (reward) => (
+        <div className="flex items-center gap-2">
+          <FiCalendar className="h-4 w-4 flex-shrink-0 text-warning-600" aria-hidden="true" />
+          <span>{formatDate(reward.awarded_at)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('surveys.stats.status'),
+      align: 'right',
+      cell: () => <Badge tone="success">{t('surveys.couponAssignment.completed')}</Badge>,
+    },
+  ];
 
-        {/* Search */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FiSearch className="h-5 w-5 text-stone-400" />
-          </div>
-          <input
+  const emptyContent = (
+    <EmptyState
+      icon={FiGift}
+      title={rewards.length === 0 ? t('surveys.rewardHistory.noRewardsAwarded') : t('surveys.rewardHistory.noRewardsMatch')}
+      description={rewards.length === 0 ? t('surveys.rewardHistory.couponsWillAppear') : t('surveys.rewardHistory.tryAdjustingSearch')}
+    />
+  );
+
+  return (
+    <Card padding="none">
+      <div className="border-b border-hairline p-6">
+        <h3 className="text-title text-ink">
+          {t('surveys.rewardHistory.title')}
+        </h3>
+        <p className="mt-1 text-caption text-ink-muted">
+          {t('surveys.rewardHistory.description')}
+        </p>
+
+        <div className="mt-4">
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-stone-300 rounded-md leading-5 bg-white placeholder-stone-500 focus:outline-none focus:placeholder-stone-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
             placeholder={t('surveys.rewardHistory.searchPlaceholder')}
+            leadingIcon={<FiSearch className="h-5 w-5" aria-hidden="true" />}
           />
         </div>
       </div>
 
       <div className="p-6">
-        {filteredRewards.length === 0 ? (
-          <div className="text-center py-8">
-            <FiGift className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-            <p className="text-stone-500">
-              {rewards.length === 0 
-                ? t('surveys.rewardHistory.noRewardsAwarded')
-                : t('surveys.rewardHistory.noRewardsMatch')
-              }
-            </p>
-            <p className="text-sm text-stone-400 mt-2">
-              {rewards.length === 0 
-                ? t('surveys.rewardHistory.couponsWillAppear')
-                : t('surveys.rewardHistory.tryAdjustingSearch')
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredRewards.map((reward) => (
-              <div
-                key={reward.id}
-                className="border border-stone-200 rounded-lg p-4 hover:bg-stone-50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="flex items-center">
-                        <FiGift className="h-5 w-5 text-brand-500 mr-2" />
-                        <h4 className="font-medium text-stone-900">
-                          {reward.coupon_code} - {reward.coupon_name}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-stone-600">
-                      <div className="flex items-center">
-                        <FiUser className="mr-2 text-green-500" />
-                        <span>
-                          {reward.user_name ?? 'Unknown User'} ({reward.user_email})
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-orange-500" />
-                        <span>
-                          {t('surveys.rewardHistory.awarded')}: {formatDate(reward.awarded_at)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {reward.metadata && (
-                      <div className="mt-2 text-sm text-stone-500">
-                        <details className="group">
-                          <summary className="cursor-pointer hover:text-stone-700">
-                            {t('surveys.rewardHistory.viewDetails')}
-                          </summary>
-                          <div className="mt-2 p-3 bg-stone-50 rounded border">
-                            <pre className="text-xs overflow-x-auto">
-                              {JSON.stringify(reward.metadata, null, 2)}
-                            </pre>
-                          </div>
-                        </details>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="ml-4">
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                      {t('surveys.couponAssignment.completed')}
-                    </span>
-                  </div>
-                </div>
+        <Table
+          columns={columns}
+          rows={filteredRewards}
+          rowKey={(reward) => reward.id}
+          loading={loading && currentPage === 1}
+          empty={emptyContent}
+          mobileCard={(reward) => (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-body font-semibold text-ink">
+                  {reward.user_name ?? 'Unknown User'}
+                </p>
+                <Badge tone="success">{t('surveys.couponAssignment.completed')}</Badge>
               </div>
-            ))}
-          </div>
-        )}
+              <p className="text-fine text-ink-muted">{reward.user_email}</p>
+              <div className="flex items-center gap-2 text-caption text-ink">
+                <FiGift className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
+                <span>{reward.coupon_code} - {reward.coupon_name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-caption text-ink-muted">
+                <FiCalendar className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>{t('surveys.rewardHistory.awarded')}: {formatDate(reward.awarded_at)}</span>
+              </div>
+              <RewardDetails reward={reward} />
+            </div>
+          )}
+        />
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-6 pt-4 border-t border-stone-200">
-            <p className="text-sm text-stone-700">
+          <div className="mt-6 flex items-center justify-between border-t border-hairline pt-4">
+            <p className="text-caption text-ink">
               {t('surveys.rewardHistory.page')} {currentPage} {t('surveys.rewardHistory.of')} {totalPages}
             </p>
-            <div className="flex space-x-2">
-              <button
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm bg-stone-200 text-stone-700 rounded hover:bg-stone-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('surveys.rewardHistory.previous')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm bg-stone-200 text-stone-700 rounded hover:bg-stone-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('surveys.rewardHistory.next')}
-              </button>
+              </Button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
