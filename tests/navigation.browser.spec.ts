@@ -24,7 +24,8 @@ test.describe('Navigation (browser)', () => {
     await loginViaUI(page, user.email, user.password);
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
-    await page.getByTestId('nav-dashboard').click();
+    // Persistent nav moved into the AppShell top bar; the brand logo links home.
+    await page.getByTestId('guest-top-bar-logo').click();
 
     await expect(page).toHaveURL(/\/dashboard/);
   });

@@ -36,7 +36,11 @@ export default function GuestTopBar({ title }: GuestTopBarProps) {
       data-testid="guest-top-bar"
     >
       <div className="mx-auto flex h-12 max-w-page items-center justify-between gap-4 px-4 pt-[env(safe-area-inset-top)] sm:px-6">
-        <Link to="/dashboard" className="flex shrink-0 items-center gap-2">
+        <Link
+          to="/dashboard"
+          className="flex shrink-0 items-center gap-2"
+          data-testid="guest-top-bar-logo"
+        >
           <BrandLogo variant="monogram" />
           <BrandLogo variant="wordmark" className="hidden sm:block" />
         </Link>
