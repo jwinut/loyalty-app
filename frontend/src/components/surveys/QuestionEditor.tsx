@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
-import { FiMove, FiPlus, FiX } from 'react-icons/fi';
+import { FiMove, FiPlus, FiStar, FiTrash2, FiX } from 'react-icons/fi';
 import { SurveyQuestion, QuestionOption } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { FormField } from '../ui/FormField';
+import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 
 interface QuestionEditorProps {
   question: SurveyQuestion;
@@ -166,123 +171,111 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
   const parsedMaxRating = Number.parseInt(maxRating, 10);
   const displayMaxRating = Number.isNaN(parsedMaxRating) ? ratingDefaults.max : parsedMaxRating;
+  const hasQuestionTextError = !questionText || questionText.trim() === '';
+  const minRatingFieldId = `min-rating-${question.id}`;
+  const maxRatingFieldId = `max-rating-${question.id}`;
+  const requiredToggleId = `required-${question.id}`;
 
   return (
-    <div
-      className={`border rounded-lg p-4 bg-white ${isDragging ? 'opacity-50' : ''}`}
+    <Card
       draggable={canMove}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       data-question-id={question.id}
+      className={isDragging ? 'opacity-50' : undefined}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-2">
+      <div className="mb-4 flex items-start justify-between">
+        <div className="flex items-center gap-2">
           {canMove && (
             <button
+              type="button"
               role="presentation"
-              className="p-1 text-stone-400 hover:text-stone-600 cursor-move"
+              className="cursor-move p-1 text-ink-faint hover:text-ink-muted"
             >
-              <FiMove className="h-4 w-4" />
+              <FiMove className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
-          <span className="text-sm font-medium text-stone-900">
+          <span className="text-caption font-semibold text-ink">
             {t('surveys.admin.questionEditor.questionNumber', { number: question.order })}
           </span>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
-            {getQuestionTypeLabel(question.type)}
-          </span>
+          <Badge tone="brand">{getQuestionTypeLabel(question.type)}</Badge>
         </div>
-        
-        <button
+
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onRemove}
           disabled={disabled}
-          aria-label="trash"
-          className="p-1 text-stone-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={t('surveys.admin.removeQuestion')}
         >
-          <span className="text-sm font-medium">Trash</span>
-        </button>
+          <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+        </Button>
       </div>
 
       <div className="space-y-4">
         {/* Question Text */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            {t('surveys.admin.questionEditor.questionText')}
-          </label>
-          <textarea
+        <FormField
+          label={t('surveys.admin.questionEditor.questionText')}
+          htmlFor={`question-text-${question.id}`}
+          error={hasQuestionTextError ? t('surveys.admin.questionEditor.fieldRequired') : undefined}
+        >
+          <Textarea
             value={questionText}
             onChange={(e) => handleQuestionTextChange(e.target.value)}
             disabled={disabled}
             rows={2}
-            className={clsx(
-              'block w-full rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm',
-              !questionText || questionText.trim() === ''
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                : 'border-stone-300',
-              disabled && 'bg-stone-100'
-            )}
             placeholder={t('surveys.admin.questionEditor.questionTextPlaceholder')}
           />
-          {(!questionText || questionText.trim() === '') && (
-            <p className="mt-1 text-sm text-red-600">{t('surveys.admin.questionEditor.fieldRequired')}</p>
-          )}
-        </div>
+        </FormField>
 
         {/* Question Description */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            {t('surveys.admin.questionEditor.description')}
-          </label>
-          <input
+        <FormField label={t('surveys.admin.questionEditor.description')} htmlFor={`question-description-${question.id}`}>
+          <Input
             type="text"
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             disabled={disabled}
-            className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
             placeholder={t('surveys.admin.questionEditor.descriptionPlaceholder')}
           />
-        </div>
+        </FormField>
 
         {/* Options for choice questions */}
         {(question.type === 'single_choice' || question.type === 'multiple_choice') && (
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
+            <p className="mb-2 text-caption font-semibold text-ink">
               {t('surveys.admin.questionEditor.answerOptions')}
-            </label>
+            </p>
             <div className="space-y-2">
               {options?.map((option, index) => (
-                <div key={option.id} className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-stone-500 w-6">{index + 1}.</span>
-                  <input
+                <div key={option.id} className="flex items-center gap-2">
+                  <span className="w-6 text-caption font-semibold text-ink-muted">{index + 1}.</span>
+                  <Input
                     type="text"
+                    className="flex-1"
                     value={option.text}
                     onChange={(e) => updateOption(option.id, e.target.value)}
                     disabled={disabled}
-                    className={`flex-1 border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
                     placeholder={t('surveys.admin.questionEditor.optionTextPlaceholder')}
                   />
                   {options && options.length > 2 && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => removeOption(option.id)}
                       disabled={disabled}
-                      className="p-1 text-stone-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={t('surveys.admin.questionEditor.removeOption')}
                     >
-                      <span aria-hidden="true">×</span>
-                      <FiX className="h-4 w-4" />
-                    </button>
+                      <FiX className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   )}
                 </div>
               ))}
-              <button
-                onClick={addOption}
-                disabled={disabled}
-                className="flex items-center text-sm text-brand-600 hover:text-brand-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiPlus className="mr-1 h-4 w-4" />
+              <Button variant="ghost" onClick={addOption} disabled={disabled}>
+                <FiPlus className="h-4 w-4" aria-hidden="true" />
                 {t('surveys.admin.questionEditor.addOption')}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -290,128 +283,118 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         {/* Rating range for rating questions */}
         {(question.type === 'rating_5' || question.type === 'rating_10') && (
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('surveys.admin.questionEditor.minRating')}
-              </label>
-              <input
+            <FormField label={t('surveys.admin.questionEditor.minRating')} htmlFor={minRatingFieldId}>
+              <Input
                 type="number"
                 value={minRating}
                 onChange={(e) => handleMinRatingChange(e.target.value)}
                 disabled={disabled}
                 min="1"
                 max={question.type === 'rating_5' ? 5 : 10}
-                className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('surveys.admin.questionEditor.maxRating')}
-              </label>
-              <input
+            </FormField>
+            <FormField label={t('surveys.admin.questionEditor.maxRating')} htmlFor={maxRatingFieldId}>
+              <Input
                 type="number"
                 value={maxRating}
                 onChange={(e) => handleMaxRatingChange(e.target.value)}
                 disabled={disabled}
                 min="1"
                 max={question.type === 'rating_5' ? 5 : 10}
-                className={`block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm ${disabled ? 'bg-stone-100' : ''}`}
               />
-            </div>
+            </FormField>
           </div>
         )}
 
         {/* Required toggle */}
         <div className="flex items-center">
           <input
-            id={`required-${question.id}`}
+            id={requiredToggleId}
             type="checkbox"
             checked={isRequired}
             onChange={(e) => handleRequiredToggle(e.target.checked)}
             disabled={disabled}
-            className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded disabled:opacity-50"
+            className="h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600 disabled:opacity-50"
           />
-          <label htmlFor={`required-${question.id}`} className="ml-2 block text-sm text-stone-700">
+          <label htmlFor={requiredToggleId} className="ml-2 block text-caption text-ink">
             {t('surveys.admin.questionEditor.requiredQuestion')}
           </label>
         </div>
 
         {/* Preview */}
-        <div className="mt-4 p-3 bg-stone-50 rounded-md">
-          <p className="text-xs text-stone-500 mb-2 font-medium">{t('surveys.admin.questionEditor.preview')}</p>
-          <div className="text-sm">
-            <p className="font-medium text-stone-900 mb-1">
+        <div className="mt-4 rounded-lg bg-surface-sunken p-3">
+          <p className="mb-2 text-fine font-semibold text-ink-muted">{t('surveys.admin.questionEditor.preview')}</p>
+          <div className="text-caption">
+            <p className="mb-1 font-semibold text-ink">
               {questionText || t('surveys.admin.questionEditor.previewPlaceholder')}
-              {isRequired && <span className="text-red-500 ml-1">*</span>}
+              {isRequired && <span className="ml-1 text-error-600">*</span>}
             </p>
             {description && (
-              <p className="text-xs text-stone-600 mb-2">{description}</p>
+              <p className="mb-2 text-fine text-ink-muted">{description}</p>
             )}
-            
+
             {question.type === 'single_choice' && (
               <div className="space-y-1">
                 {options?.map((option) => (
                   <label key={option.id} className="flex items-center">
                     <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
-                    <span className="text-sm">{option.text}</span>
+                    <span className="text-caption">{option.text}</span>
                   </label>
                 ))}
               </div>
             )}
-            
+
             {question.type === 'multiple_choice' && (
               <div className="space-y-1">
                 {options?.map((option) => (
                   <label key={option.id} className="flex items-center">
-                    <input type="checkbox" className="mr-2" />
-                    <span className="text-sm">{option.text}</span>
+                    <input type="checkbox" className="mr-2 h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600" />
+                    <span className="text-caption">{option.text}</span>
                   </label>
                 ))}
               </div>
             )}
-            
+
             {question.type === 'text' && (
-              <input
+              <Input
                 type="text"
                 disabled
-                className="w-full border-stone-300 rounded text-sm"
                 placeholder={t('surveys.admin.questionEditor.textInputPlaceholder')}
               />
             )}
-            
+
             {question.type === 'textarea' && (
-              <textarea
+              <Textarea
                 disabled
                 rows={3}
-                className="w-full border-stone-300 rounded text-sm"
                 placeholder={t('surveys.admin.questionEditor.longTextInputPlaceholder')}
               />
             )}
-            
+
             {(question.type === 'rating_5' || question.type === 'rating_10') && (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center gap-1">
                 {Array.from({ length: displayMaxRating }, (_, i) => (
-                  <span key={i} className="text-stone-300 text-lg">★</span>
+                  <FiStar key={i} className="h-4 w-4 text-ink-faint" aria-hidden="true" />
                 ))}
               </div>
             )}
-            
+
             {question.type === 'yes_no' && (
               <div className="space-y-1">
                 <label className="flex items-center">
                   <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
-                  <span className="text-sm">{t('common.yes')}</span>
+                  <span className="text-caption">{t('common.yes')}</span>
                 </label>
                 <label className="flex items-center">
                   <input type="radio" name={`preview-${question.id}`} className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" />
-                  <span className="text-sm">{t('common.no')}</span>
+                  <span className="text-caption">{t('common.no')}</span>
                 </label>
               </div>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiArrowLeft } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { Survey } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
 import SurveyPreview from '../../components/surveys/SurveyPreview';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
+import AppShell from '../../components/layout/AppShell';
+import { Card } from '../../components/ui/Card';
+import { buttonVariants } from '../../components/ui/Button';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 const SurveyPreviewPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +28,7 @@ const SurveyPreviewPage: React.FC = () => {
 
   const loadSurvey = async () => {
     if (!id) {
-      setError('Survey ID is required');
+      setError(t('surveys.admin.analytics.surveyIdRequired'));
       setLoading(false);
       return;
     }
@@ -31,7 +36,7 @@ const SurveyPreviewPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const surveyData = await surveyService.getSurveyById(id);
       setSurvey(surveyData);
     } catch (err) {
@@ -39,8 +44,8 @@ const SurveyPreviewPage: React.FC = () => {
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      setError(errorMessage ?? 'Failed to load survey');
-      toast.error('Failed to load survey');
+      setError(errorMessage ?? t('surveys.admin.messages.loadError'));
+      toast.error(t('surveys.admin.messages.loadError'));
     } finally {
       setLoading(false);
     }
@@ -48,65 +53,42 @@ const SurveyPreviewPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
-            <span className="ml-3 text-stone-600">Loading survey...</span>
-          </div>
+      <AppShell variant="admin" title={t('surveys.admin.questionEditor.preview')}>
+        <div className="mx-auto max-w-text">
+          <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
-   
   if (error || !survey) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            <p>{error ?? 'Survey not found'}</p>
-            <Link to="/admin/surveys" className="text-red-800 underline mt-2 inline-block">
-              Back to Surveys
-            </Link>
-          </div>
+      <AppShell variant="admin" title={t('surveys.admin.questionEditor.preview')}>
+        <div className="mx-auto max-w-text">
+          <Card>
+            <EmptyState
+              title={error ?? t('surveys.notFound')}
+              action={
+                <Link to="/admin/surveys" className={buttonVariants({ variant: 'secondary' })}>
+                  {t('surveys.backToSurveys')}
+                </Link>
+              }
+            />
+          </Card>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <Link
-                to="/admin/surveys"
-                className="mr-4 text-stone-400 hover:text-stone-600"
-              >
-                <FiArrowLeft className="h-6 w-6" />
-              </Link>
-              <h1 className="text-3xl font-bold text-stone-900">Survey Preview</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <SurveyPreview 
-            survey={survey} 
-            onClose={() => window.history.back()} 
-          />
-        </div>
-      </main>
-    </div>
+    <AppShell variant="admin" title={t('surveys.admin.questionEditor.preview')}>
+      <div className="mx-auto max-w-text">
+        <SurveyPreview
+          survey={survey}
+          onClose={() => window.history.back()}
+        />
+      </div>
+    </AppShell>
   );
 };
 

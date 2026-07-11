@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   FiFileText,
   FiStar,
@@ -9,10 +9,15 @@ import {
   FiPlus,
   FiCopy
 } from 'react-icons/fi';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import { SurveyQuestion } from '../../types/survey';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { TabNav } from '../../components/ui/TabNav';
 
 interface SurveyTemplate {
   id: string;
@@ -29,7 +34,7 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
     id: 'satisfaction',
     name: t('surveys.admin.templates.predefinedTemplates.satisfaction.name'),
     description: t('surveys.admin.templates.predefinedTemplates.satisfaction.description'),
-    icon: <FiStar className="h-8 w-8" />,
+    icon: <FiStar className="h-8 w-8" aria-hidden="true" />,
     category: t('surveys.admin.templates.categories.feedback'),
     popularity: 95,
     questions: [
@@ -75,7 +80,7 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
     id: 'nps',
     name: t('surveys.admin.templates.predefinedTemplates.nps.name'),
     description: t('surveys.admin.templates.predefinedTemplates.nps.description'),
-    icon: <FiUsers className="h-8 w-8" />,
+    icon: <FiUsers className="h-8 w-8" aria-hidden="true" />,
     category: t('surveys.admin.templates.categories.loyalty'),
     popularity: 88,
     questions: [
@@ -115,7 +120,7 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
     id: 'post-stay',
     name: t('surveys.admin.templates.predefinedTemplates.postStay.name'),
     description: t('surveys.admin.templates.predefinedTemplates.postStay.description'),
-    icon: <FiFileText className="h-8 w-8" />,
+    icon: <FiFileText className="h-8 w-8" aria-hidden="true" />,
     category: t('surveys.admin.templates.categories.feedback'),
     popularity: 82,
     questions: [
@@ -169,7 +174,7 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
     id: 'event-feedback',
     name: t('surveys.admin.templates.predefinedTemplates.eventFeedback.name'),
     description: t('surveys.admin.templates.predefinedTemplates.eventFeedback.description'),
-    icon: <FiUsers className="h-8 w-8" />,
+    icon: <FiUsers className="h-8 w-8" aria-hidden="true" />,
     category: t('surveys.admin.templates.categories.events'),
     popularity: 75,
     questions: [
@@ -221,7 +226,7 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
     id: 'quick-pulse',
     name: t('surveys.admin.templates.predefinedTemplates.quickPulse.name'),
     description: t('surveys.admin.templates.predefinedTemplates.quickPulse.description'),
-    icon: <FiHelpCircle className="h-8 w-8" />,
+    icon: <FiHelpCircle className="h-8 w-8" aria-hidden="true" />,
     category: t('surveys.admin.templates.categories.quick'),
     popularity: 70,
     questions: [
@@ -244,6 +249,10 @@ const getPredefinedTemplates = (t: (key: string) => string): SurveyTemplate[] =>
   }
 ];
 
+function isActivationKey(key: string): boolean {
+  return key === 'Enter' || key === ' ';
+}
+
 const SurveyTemplates: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -255,7 +264,7 @@ const SurveyTemplates: React.FC = () => {
       setTemplates(getPredefinedTemplates(t));
     } catch (error) {
       logger.error('Error initializing templates:', error);
-      toast.error('Failed to load survey templates');
+      toast.error(t('surveys.admin.templates.loadError'));
     }
   }, [t]);
 
@@ -268,14 +277,14 @@ const SurveyTemplates: React.FC = () => {
     { key: 'Custom', label: t('surveys.admin.templates.categories.custom') }
   ];
 
-  const filteredTemplates = selectedCategory === 'all' 
-    ? templates 
+  const filteredTemplates = selectedCategory === 'all'
+    ? templates
     : templates.filter(template => template.category === t(`surveys.admin.templates.categories.${selectedCategory.toLowerCase()}`));
 
   const handleUseTemplate = (template: SurveyTemplate) => {
     // Navigate to survey builder with template data
-    navigate('/admin/surveys/create', { 
-      state: { 
+    navigate('/admin/surveys/create', {
+      state: {
         template: {
           title: template.name,
           description: template.description,
@@ -285,115 +294,84 @@ const SurveyTemplates: React.FC = () => {
     });
   };
 
+  const handleStartFromScratch = useCallback(() => navigate('/admin/surveys/create'), [navigate]);
+
+  const handleBlankCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!isActivationKey(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    handleStartFromScratch();
+  };
+
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-stone-900">{t('surveys.admin.templates.title')}</h1>
-              <p className="text-sm text-stone-600 mt-1">
-                {t('surveys.admin.templates.subtitle')}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                to="/admin/surveys"
-                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-              >
-                {t('surveys.admin.templates.backToSurveys')}
-              </Link>
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
-      </header>
+    <AppShell variant="admin" title={t('surveys.admin.templates.title')}>
+      <PageHeader
+        density="admin"
+        title={t('surveys.admin.templates.title')}
+        subtitle={t('surveys.admin.templates.subtitle')}
+        backTo="/admin/surveys"
+      />
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Category Filter */}
-          <div className="mb-6">
-            <div className="flex space-x-2 overflow-x-auto pb-2">
-              {categories.map(category => (
-                <button
-                  key={category.key}
-                  onClick={() => setSelectedCategory(category.key)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === category.key
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-white text-stone-700 hover:bg-stone-100'
-                  }`}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Category Filter */}
+      <TabNav
+        aria-label={t('surveys.admin.templates.allTemplates')}
+        items={categories.map((category) => ({ value: category.key, label: category.label }))}
+        value={selectedCategory}
+        onChange={setSelectedCategory}
+        className="mb-6"
+      />
 
-          {/* Blank Template Card */}
-          <div className="mb-8">
-            <div
-              onClick={() => navigate('/admin/surveys/create')}
-              className="bg-white rounded-lg shadow-sm border-2 border-dashed border-stone-300 hover:border-brand-400 p-8 text-center cursor-pointer transition-all hover:shadow-md"
-            >
-              <FiPlus className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-stone-900 mb-2">
-                {t('surveys.admin.templates.startFromScratch')}
-              </h3>
-              <p className="text-stone-600">
-                {t('surveys.admin.templates.createCustomSurvey')}
-              </p>
-            </div>
-          </div>
+      {/* Blank Template Card */}
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={handleStartFromScratch}
+        onKeyDown={handleBlankCardKeyDown}
+        className="mb-8 cursor-pointer border-dashed text-center hover:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset"
+        padding="lg"
+      >
+        <FiPlus className="mx-auto mb-4 h-12 w-12 text-ink-faint" aria-hidden="true" />
+        <h3 className="mb-2 text-title text-ink">
+          {t('surveys.admin.templates.startFromScratch')}
+        </h3>
+        <p className="text-caption text-ink-muted">
+          {t('surveys.admin.templates.createCustomSurvey')}
+        </p>
+      </Card>
 
-          {/* Template Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map(template => (
-              <div
-                key={template.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="text-brand-600">{template.icon}</div>
-                    <span className="text-xs text-stone-500">
-                      {t('surveys.admin.templates.popularityText', { percent: template.popularity })}
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-stone-900 mb-2">
-                    {template.name}
-                  </h3>
-                  
-                  <p className="text-sm text-stone-600 mb-4">
-                    {template.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between text-xs text-stone-500 mb-4">
-                    <span>{t('surveys.admin.templates.questionsCount', { count: template.questions.length })}</span>
-                    <span className="bg-stone-100 px-2 py-1 rounded">
-                      {template.category}
-                    </span>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleUseTemplate(template)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
-                    >
-                      <FiCopy className="mr-2 h-4 w-4" />
-                      {t('surveys.admin.templates.useTemplate')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-    </div>
+      {/* Template Grid */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredTemplates.map(template => (
+          <Card key={template.id} className="flex flex-col">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="text-brand-600">{template.icon}</div>
+              <span className="text-fine text-ink-muted">
+                {t('surveys.admin.templates.popularityText', { percent: template.popularity })}
+              </span>
+            </div>
+
+            <h3 className="mb-2 text-title text-ink">
+              {template.name}
+            </h3>
+
+            <p className="mb-4 flex-1 text-caption text-ink-muted">
+              {template.description}
+            </p>
+
+            <div className="mb-4 flex items-center justify-between text-fine text-ink-muted">
+              <span>{t('surveys.admin.templates.questionsCount', { count: template.questions.length })}</span>
+              <Badge tone="neutral">{template.category}</Badge>
+            </div>
+
+            <Button variant="primary" onClick={() => handleUseTemplate(template)}>
+              <FiCopy className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.templates.useTemplate')}
+            </Button>
+          </Card>
+        ))}
+      </div>
+    </AppShell>
   );
 };
 

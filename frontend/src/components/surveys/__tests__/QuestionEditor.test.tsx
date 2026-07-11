@@ -33,6 +33,8 @@ const mockTranslate = vi.fn((key: string, options?: { number?: number }) => {
     'surveys.admin.questionEditor.previewPlaceholder': 'Your question text will appear here',
     'surveys.admin.questionEditor.textInputPlaceholder': 'Your answer...',
     'surveys.admin.questionEditor.longTextInputPlaceholder': 'Your detailed answer...',
+    'surveys.admin.questionEditor.removeOption': 'Remove option',
+    'surveys.admin.removeQuestion': 'Remove Question',
     'common.yes': 'Yes',
     'common.no': 'No',
   };
@@ -189,8 +191,7 @@ describe('QuestionEditor', () => {
         />
       );
 
-      const removeButton = screen.getByRole('button', { name: /trash/i }) ||
-                          document.querySelector('[class*="hover:text-red-600"]');
+      const removeButton = screen.getByRole('button', { name: 'Remove Question' });
       expect(removeButton).toBeInTheDocument();
     });
   });
@@ -345,7 +346,7 @@ describe('QuestionEditor', () => {
       );
 
       const textarea = screen.getByPlaceholderText('Enter your question...');
-      expect(textarea).toHaveClass('border-red-300');
+      expect(textarea).toHaveAttribute('aria-invalid', 'true');
     });
   });
 
@@ -526,14 +527,9 @@ describe('QuestionEditor', () => {
         />
       );
 
-      const removeButtons = screen.getAllByRole('button');
-      const xButton = removeButtons.find(btn => btn.textContent?.includes('×') ||
-                                                btn.querySelector('svg'));
-
-      if (xButton) {
-        await user.click(xButton);
-        expect(mockOnUpdate).toHaveBeenCalled();
-      }
+      const xButton = screen.getAllByRole('button', { name: 'Remove option' })[0]!;
+      await user.click(xButton);
+      expect(mockOnUpdate).toHaveBeenCalled();
     });
 
     it('should not allow removing option when only 2 options remain', () => {
@@ -557,11 +553,8 @@ describe('QuestionEditor', () => {
         />
       );
 
-      // With only 2 options, X buttons should not be displayed
-      const allButtons = screen.getAllByRole('button');
-      const xButtons = allButtons.filter(btn =>
-        btn.textContent?.includes('×') && btn.className.includes('hover:text-red-600')
-      );
+      // With only 2 options, per-option remove buttons should not be displayed
+      const xButtons = screen.queryAllByRole('button', { name: 'Remove option' });
 
       expect(xButtons.length).toBe(0);
     });
@@ -866,7 +859,7 @@ describe('QuestionEditor', () => {
     });
 
     it('should disable remove button when disabled', () => {
-      const { container } = render(
+      render(
         <QuestionEditor
           question={baseSingleChoiceQuestion}
           index={0}
@@ -879,7 +872,7 @@ describe('QuestionEditor', () => {
         />
       );
 
-      const removeButton = container.querySelector('[class*="disabled:opacity-50"]');
+      const removeButton = screen.getByRole('button', { name: 'Remove Question' });
       expect(removeButton).toBeDisabled();
     });
 
@@ -982,7 +975,7 @@ describe('QuestionEditor', () => {
   describe('Button Actions', () => {
     it('should call onRemove when remove button clicked', async () => {
       const user = userEvent.setup();
-      const { container } = render(
+      render(
         <QuestionEditor
           question={baseSingleChoiceQuestion}
           index={0}
@@ -994,7 +987,7 @@ describe('QuestionEditor', () => {
         />
       );
 
-      const removeButton = container.querySelector('[class*="hover:text-red-600"]') as HTMLElement;
+      const removeButton = screen.getByRole('button', { name: 'Remove Question' });
       await user.click(removeButton);
 
       expect(mockOnRemove).toHaveBeenCalledTimes(1);

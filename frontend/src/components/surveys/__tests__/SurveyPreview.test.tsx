@@ -310,7 +310,7 @@ describe('SurveyPreview', () => {
       const navDots = Array.from(dots).filter(dot =>
         dot.className.includes('w-3') && dot.className.includes('h-3')
       );
-      expect(navDots[0]).toHaveClass('bg-brand-600');
+      expect(navDots[0]).toHaveAttribute('aria-current', 'true');
     });
 
     it('should allow clicking dots to navigate', async () => {
@@ -352,8 +352,8 @@ describe('SurveyPreview', () => {
         dot.className.includes('w-3') && dot.className.includes('h-3')
       );
 
-      // First dot should indicate answered (green)
-      expect(navDots[0]).toHaveClass('bg-green-400');
+      // First dot should indicate answered
+      expect(navDots[0]).toHaveAttribute('data-answered', 'true');
     });
   });
 
@@ -569,12 +569,9 @@ describe('SurveyPreview', () => {
 
   describe('Styling and Layout', () => {
     it('should have proper container structure', () => {
-      const { container } = render(
-        <SurveyPreview survey={mockSurvey} onClose={mockOnClose} />
-      );
+      render(<SurveyPreview survey={mockSurvey} onClose={mockOnClose} />);
 
-      const mainContainer = container.querySelector('.bg-white.shadow.rounded-lg');
-      expect(mainContainer).toBeInTheDocument();
+      expect(screen.getByTestId('survey-preview-container')).toBeInTheDocument();
     });
 
     it('should have blue header background', () => {
@@ -586,13 +583,10 @@ describe('SurveyPreview', () => {
       expect(header).toBeInTheDocument();
     });
 
-    it('should have gray footer background', () => {
-      const { container } = render(
-        <SurveyPreview survey={mockSurvey} onClose={mockOnClose} />
-      );
+    it('should have a footer region', () => {
+      render(<SurveyPreview survey={mockSurvey} onClose={mockOnClose} />);
 
-      const footer = container.querySelector('.bg-stone-50');
-      expect(footer).toBeInTheDocument();
+      expect(screen.getByTestId('survey-preview-footer')).toBeInTheDocument();
     });
 
     it('should have minimum height for question area', () => {
