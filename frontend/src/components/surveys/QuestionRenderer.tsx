@@ -1,6 +1,7 @@
 import React from 'react';
 import { SurveyQuestion } from '../../types/survey';
 import { useTranslation } from 'react-i18next';
+import { cn } from '../ui/cn';
 
 // Survey answer can be string, number, boolean, array of strings, or null
 type SurveyAnswer = string | number | boolean | string[] | null;
@@ -10,6 +11,16 @@ interface QuestionRendererProps {
   answer: SurveyAnswer;
   onAnswerChange: (questionId: string, answer: SurveyAnswer) => void;
   error?: string;
+}
+
+// Shared full-width, >=44px touch target for a single radio/checkbox option
+// row — the label wraps the input so the whole row is tappable, not just the
+// small control itself.
+function optionRowClasses(isSelected: boolean): string {
+  return cn(
+    'flex min-h-11 w-full cursor-pointer items-center rounded-lg border p-3 transition-colors',
+    isSelected ? 'border-brand-600 bg-brand-50' : 'border-hairline hover:border-hairline-strong'
+  );
 }
 
 const QuestionRenderer: React.FC<QuestionRendererProps> = ({
@@ -33,7 +44,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
               // Convert both to strings for comparison to handle type mismatches
               const isChecked = String(answer) === String(option.value);
               return (
-                <label key={option.id} className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
+                <label key={option.id} className={optionRowClasses(isChecked)}>
                   <input
                     type="radio"
                     name={`question_${question.id}`}
@@ -42,7 +53,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                     onChange={(e) => handleAnswerChange(e.target.value)}
                     className="mr-3 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
                   />
-                  <span className={`text-stone-700 select-none ${isChecked ? 'font-medium text-brand-700' : ''}`}>{String(option.text)}</span>
+                  <span className={`text-ink select-none ${isChecked ? 'font-semibold text-brand-700' : ''}`}>{String(option.text)}</span>
                 </label>
               );
             })}
@@ -52,24 +63,27 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       case 'multiple_choice':
         return (
           <div className="space-y-3">
-            {question.options?.map((option) => (
-              <label key={option.id} className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
-                <input
-                  type="checkbox"
-                  checked={Array.isArray(answer) && answer.includes(String(option.value))}
-                  onChange={(e) => {
-                    const currentAnswers = Array.isArray(answer) ? answer : [];
-                    if (e.target.checked) {
-                      handleAnswerChange([...currentAnswers, String(option.value)]);
-                    } else {
-                      handleAnswerChange(currentAnswers.filter(a => a !== String(option.value)));
-                    }
-                  }}
-                  className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 focus:ring-2 border-stone-300 rounded"
-                />
-                <span className={`text-stone-700 select-none ${Array.isArray(answer) && answer.includes(String(option.value)) ? 'font-medium text-brand-700' : ''}`}>{String(option.text)}</span>
-              </label>
-            ))}
+            {question.options?.map((option) => {
+              const isChecked = Array.isArray(answer) && answer.includes(String(option.value));
+              return (
+                <label key={option.id} className={optionRowClasses(isChecked)}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const currentAnswers = Array.isArray(answer) ? answer : [];
+                      if (e.target.checked) {
+                        handleAnswerChange([...currentAnswers, String(option.value)]);
+                      } else {
+                        handleAnswerChange(currentAnswers.filter(a => a !== String(option.value)));
+                      }
+                    }}
+                    className="mr-3 h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
+                  />
+                  <span className={`text-ink select-none ${isChecked ? 'font-semibold text-brand-700' : ''}`}>{String(option.text)}</span>
+                </label>
+              );
+            })}
           </div>
         );
 
@@ -139,8 +153,8 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 
       case 'yes_no':
         return (
-          <div className="flex space-x-4">
-            <label className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
+          <div className="space-y-3">
+            <label className={optionRowClasses(String(answer) === 'yes')}>
               <input
                 type="radio"
                 name={`question_${question.id}`}
@@ -149,9 +163,9 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 onChange={(e) => handleAnswerChange(e.target.value)}
                 className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
               />
-              <span className={`text-stone-700 select-none ${String(answer) === 'yes' ? 'font-medium text-brand-700' : ''}`}>{t('common.yes', 'Yes')}</span>
+              <span className={`text-ink select-none ${String(answer) === 'yes' ? 'font-semibold text-brand-700' : ''}`}>{t('common.yes', 'Yes')}</span>
             </label>
-            <label className="flex items-center cursor-pointer hover:bg-stone-50 p-2 rounded-md transition-colors">
+            <label className={optionRowClasses(String(answer) === 'no')}>
               <input
                 type="radio"
                 name={`question_${question.id}`}
@@ -160,7 +174,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 onChange={(e) => handleAnswerChange(e.target.value)}
                 className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-2 focus:ring-brand-600"
               />
-              <span className={`text-stone-700 select-none ${String(answer) === 'no' ? 'font-medium text-brand-700' : ''}`}>{t('common.no', 'No')}</span>
+              <span className={`text-ink select-none ${String(answer) === 'no' ? 'font-semibold text-brand-700' : ''}`}>{t('common.no', 'No')}</span>
             </label>
           </div>
         );

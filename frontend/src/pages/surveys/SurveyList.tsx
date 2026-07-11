@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiUsers, FiEye, FiCalendar, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiEye, FiCalendar, FiRefreshCw, FiClipboard } from 'react-icons/fi';
 import { Survey } from '../../types/survey';
 import { useAuthRedirect } from '../../hooks/useAuthRedirect';
 import AppShell from '../../components/layout/AppShell';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { surveyService } from '../../services/surveyService';
+import { Badge, Button, buttonVariants, Card, EmptyState, TabNav } from '../../components/ui';
+
+type SurveyTab = 'public' | 'invited';
 
 const SurveyList: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthRedirect(); // Additional auth check
-  const [activeTab, setActiveTab] = useState<'public' | 'invited'>('public');
+  const [activeTab, setActiveTab] = useState<SurveyTab>('public');
 
   // Fetch public surveys using React Query
   const {
@@ -51,72 +54,58 @@ const SurveyList: React.FC = () => {
   };
 
   const renderSurveyCard = (survey: Survey) => (
-    <div
-      key={survey.id}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
-    >
-      <div className="p-6 flex flex-col h-full">
-        <div className="flex-1">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <h3 className="text-xl font-semibold text-stone-900">
-                  {survey.title}
-                </h3>
-                <span className={clsx('inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
-                  survey.access_type === 'public'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-brand-100 text-brand-800'
-                )}
-                >
-                  {survey.access_type === 'public' ? (
-                    <>
-                      <FiUsers className="mr-1 h-3 w-3" />
-                      Public
-                    </>
-                  ) : (
-                    <>
-                      <FiEye className="mr-1 h-3 w-3" />
-                      Invited
-                    </>
-                  )}
-                </span>
-              </div>
-              {survey.description && (
-                <p className="text-stone-600 text-sm mb-4 line-clamp-3">
-                  {survey.description}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-sm text-stone-500 mb-4">
-            <span>
-              {survey.questions.length} {t('surveys.questions', 'questions')}
-            </span>
-            <span className="flex items-center">
-              <FiCalendar className="mr-1 h-3 w-3" />
-              {formatDate(survey.created_at)}
-            </span>
-          </div>
+    <Card key={survey.id} className="flex h-full flex-col">
+      <div className="flex-1">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <h3 className="text-body font-semibold text-ink">
+            {survey.title}
+          </h3>
+          <Badge tone={survey.access_type === 'public' ? 'success' : 'brand'}>
+            {survey.access_type === 'public' ? (
+              <>
+                <FiUsers className="h-3 w-3" aria-hidden="true" />
+                {t('surveys.accessType.public')}
+              </>
+            ) : (
+              <>
+                <FiEye className="h-3 w-3" aria-hidden="true" />
+                {t('surveys.accessType.invited')}
+              </>
+            )}
+          </Badge>
         </div>
-
-        <div className="flex space-x-3 mt-auto">
-          <Link
-            to={`/surveys/${survey.id}/take`}
-            className="flex-1 bg-brand-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors flex items-center justify-center"
-          >
-            {t('surveys.takeSurvey', 'Take Survey')}
-          </Link>
-          <Link
-            to={`/surveys/${survey.id}/details`}
-            className="flex-1 bg-stone-100 text-stone-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors flex items-center justify-center"
-          >
-            {t('surveys.viewDetails', 'View Details')}
-          </Link>
-        </div>
+        {survey.description && (
+          <p className="mb-4 line-clamp-3 text-caption text-ink-muted">
+            {survey.description}
+          </p>
+        )}
       </div>
-    </div>
+
+      <div className="mb-4 flex items-center justify-between text-caption text-ink-muted">
+        <span>
+          {survey.questions.length} {t('surveys.questions', 'questions')}
+        </span>
+        <span className="flex items-center gap-1">
+          <FiCalendar className="h-3 w-3" aria-hidden="true" />
+          {formatDate(survey.created_at)}
+        </span>
+      </div>
+
+      <div className="mt-auto flex gap-3">
+        <Link
+          to={`/surveys/${survey.id}/take`}
+          className={buttonVariants({ className: 'flex-1 justify-center' })}
+        >
+          {t('surveys.takeSurvey', 'Take Survey')}
+        </Link>
+        <Link
+          to={`/surveys/${survey.id}/details`}
+          className={buttonVariants({ variant: 'secondary', className: 'flex-1 justify-center' })}
+        >
+          {t('surveys.viewDetails', 'View Details')}
+        </Link>
+      </div>
+    </Card>
   );
 
   const currentSurveys = activeTab === 'public' ? publicSurveys : invitedSurveys;
@@ -124,14 +113,10 @@ const SurveyList: React.FC = () => {
   return (
     <AppShell variant="guest" title={t('surveys.title', 'Surveys')}>
       <div className="flex items-center justify-end mb-6">
-        <button
-          onClick={loadSurveys}
-          disabled={loading}
-          className="inline-flex items-center px-3 py-2 border border-stone-300 shadow-sm text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50"
-        >
-          <FiRefreshCw className={clsx('mr-2 h-4 w-4', loading && 'animate-spin')} />
+        <Button variant="secondary" size="sm" onClick={loadSurveys} disabled={loading}>
+          <FiRefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} aria-hidden="true" />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {loading && (
@@ -154,46 +139,42 @@ const SurveyList: React.FC = () => {
       )}
 
       {/* Survey Type Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-stone-200">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('public')}
-              className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-                activeTab === 'public'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              )}
-            >
-              <div className="flex items-center">
-                <FiUsers className="mr-2 h-4 w-4" />
-                {t('surveys.tabs.public')} {t('surveys.title')} ({publicSurveys.length})
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('invited')}
-              className={clsx('whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-                activeTab === 'invited'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              )}
-            >
-              <div className="flex items-center">
-                <FiEye className="mr-2 h-4 w-4" />
-                {t('surveys.tabs.invited')} {t('surveys.title')} ({invitedSurveys.length})
-              </div>
-            </button>
-          </nav>
-        </div>
-      </div>
+      <TabNav
+        aria-label="Tabs"
+        className="mb-6"
+        value={activeTab}
+        onChange={(value) => setActiveTab(value as SurveyTab)}
+        items={[
+          {
+            value: 'public',
+            label: (
+              <span className="flex items-center gap-2">
+                <FiUsers className="h-4 w-4" aria-hidden="true" />
+                {t('surveys.tabs.public')} {t('surveys.title')}
+              </span>
+            ),
+            count: publicSurveys.length,
+          },
+          {
+            value: 'invited',
+            label: (
+              <span className="flex items-center gap-2">
+                <FiEye className="h-4 w-4" aria-hidden="true" />
+                {t('surveys.tabs.invited')} {t('surveys.title')}
+              </span>
+            ),
+            count: invitedSurveys.length,
+          },
+        ]}
+      />
 
       {/* Survey Description */}
       <div className="mb-6 p-4 bg-brand-50 border border-brand-200 rounded-lg">
         <div className="flex items-start">
           {activeTab === 'public' ? (
-            <FiUsers className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" />
+            <FiUsers className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" aria-hidden="true" />
           ) : (
-            <FiEye className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" />
+            <FiEye className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" aria-hidden="true" />
           )}
           <div>
             <h3 className="text-sm font-medium text-brand-900 mb-1">
@@ -210,17 +191,15 @@ const SurveyList: React.FC = () => {
       </div>
 
       {currentSurveys.length === 0 && !loading && !errorMessage ? (
-        <div className="text-center py-12">
-          <div className="text-stone-500 text-lg mb-4">
-            {activeTab === 'public' ? '📋' : '✉️'} {t('surveys.noSurveys', 'No surveys available')}
-          </div>
-          <p className="text-stone-400">
-            {activeTab === 'public'
+        <EmptyState
+          icon={FiClipboard}
+          title={t('surveys.noSurveys', 'No surveys available')}
+          description={
+            activeTab === 'public'
               ? t('surveys.noPublicSurveys', 'No public surveys are currently available. Check back later!')
               : t('surveys.noInvitedSurveys', 'You haven\'t been invited to any surveys yet.')
-            }
-          </p>
-        </div>
+          }
+        />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {currentSurveys.map((survey: Survey) => renderSurveyCard(survey))}
@@ -229,13 +208,9 @@ const SurveyList: React.FC = () => {
 
       {/* Refresh button */}
       <div className="mt-8 text-center">
-        <button
-          onClick={loadSurveys}
-          disabled={loading}
-          className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
-        >
+        <Button variant="secondary" onClick={loadSurveys} disabled={loading}>
           {loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh')}
-        </button>
+        </Button>
       </div>
     </AppShell>
   );

@@ -1036,6 +1036,13 @@
       "public": "Public",
       "invited": "Invited"
     },
+    "stats": {
+      "questions": "Questions",
+      "status": "Status",
+      "accessType": "Access Type",
+      "created": "Created",
+      "details": "Details"
+    },
     "completed": {
       "title": "Survey Completed Successfully!",
       "message": "Thank you for sharing your valuable feedback with us. Your responses help us improve our services and create better experiences for all our guests.",

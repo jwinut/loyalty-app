@@ -240,7 +240,7 @@ describe('QuestionRenderer', () => {
       expect(radioButtons[1]!).toBeChecked();
     });
 
-    it('should apply hover styling to option labels', () => {
+    it('renders each option as a full-width, touch-friendly row', () => {
       const { container } = render(
         <QuestionRenderer
           question={singleChoiceQuestion}
@@ -250,9 +250,23 @@ describe('QuestionRenderer', () => {
       );
 
       const labels = container.querySelectorAll('label');
+      expect(labels.length).toBeGreaterThan(0);
       labels.forEach(label => {
-        expect(label).toHaveClass('hover:bg-stone-50');
+        expect(label).toHaveClass('min-h-11', 'w-full', 'hover:border-hairline-strong');
       });
+    });
+
+    it('marks the selected option row with the brand border/background', () => {
+      render(
+        <QuestionRenderer
+          question={singleChoiceQuestion}
+          answer={'2'}
+          onAnswerChange={mockOnAnswerChange}
+        />
+      );
+
+      const selectedLabel = screen.getByText('Blue').closest('label');
+      expect(selectedLabel).toHaveClass('border-brand-600', 'bg-brand-50');
     });
 
     it('should highlight selected option with blue text', () => {

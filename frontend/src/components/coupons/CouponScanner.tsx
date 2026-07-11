@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
+import { FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
 import { RedeemCouponResponse, Coupon, UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import { logger } from '../../utils/logger';
 import { notify } from '../../utils/notificationManager';
 import { useMutation } from '@tanstack/react-query';
+import { Button, FormField, Input } from '../ui';
+import { cn } from '../ui/cn';
 
 interface CouponScannerProps {
   onRedemptionComplete?: (result: RedeemCouponResponse) => void;
@@ -39,7 +41,7 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
   // Camera functionality (simplified - in production, use a proper QR code scanner library)
   const startCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' } // Use back camera on mobile
       });
       if (videoRef.current) {
@@ -190,47 +192,52 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
     : null;
 
   return (
-    <div className={clsx('bg-white rounded-lg shadow-lg', className)}>
+    <div className={cn('rounded-card border border-hairline bg-surface-card', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-xl font-semibold text-stone-900">
+      <div className="flex items-center justify-between border-b border-hairline p-4">
+        <h2 className="text-title text-ink">
           {t('coupons.scanCoupon')}
         </h2>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
-          >
-            ×
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            {'×'}
+          </Button>
         )}
       </div>
 
       <div className="p-6">
         {/* Scan Mode Toggle */}
-        <div className="flex mb-6 bg-stone-100 rounded-lg p-1">
-          <button
-            onClick={() => setScanMode('manual')}
-            className={clsx(
-              'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+        <div className="mb-6 flex rounded-lg bg-surface-sunken p-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            aria-pressed={scanMode === 'manual'}
+            className={cn(
+              'flex-1 rounded-lg',
               scanMode === 'manual'
-                ? 'bg-white text-stone-900 shadow-sm'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-surface-card text-ink hover:bg-surface-card'
+                : 'text-ink-muted hover:bg-transparent hover:text-ink'
             )}
+            onClick={() => setScanMode('manual')}
           >
             {t('coupons.manualEntry')}
-          </button>
-          <button
-            onClick={() => setScanMode('camera')}
-            className={clsx(
-              'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            aria-pressed={scanMode === 'camera'}
+            className={cn(
+              'flex-1 rounded-lg',
               scanMode === 'camera'
-                ? 'bg-white text-stone-900 shadow-sm'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-surface-card text-ink hover:bg-surface-card'
+                : 'text-ink-muted hover:bg-transparent hover:text-ink'
             )}
+            onClick={() => setScanMode('camera')}
           >
             {t('coupons.scanCamera')}
-          </button>
+          </Button>
         </div>
 
         {/* Camera View */}
@@ -240,10 +247,10 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
               ref={videoRef}
               autoPlay
               playsInline
-              className="w-full max-w-sm mx-auto rounded-lg bg-stone-100"
+              className="mx-auto w-full max-w-sm rounded-lg bg-surface-sunken"
             />
             {cameraActive && (
-              <p className="text-center text-sm text-stone-600 mt-2">
+              <p className="mt-2 text-center text-caption text-ink-muted">
                 {t('coupons.pointCameraAtQR')}
               </p>
             )}
@@ -253,45 +260,35 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
         {/* Redemption Form */}
         <form onSubmit={handleRedeemCoupon} className="space-y-4" noValidate>
           {/* QR Code Input */}
-          <div>
-            <label htmlFor="qrCode" className="block text-sm font-medium text-stone-700 mb-1">
-              {t('coupons.qrCode')} *
-            </label>
-            <input
-              type="text"
-              id="qrCode"
+          <FormField label={t('coupons.qrCode')} htmlFor="qrCode" required>
+            <Input
               value={qrCode}
               onChange={(e) => handleQRCodeChange(e.target.value)}
               placeholder={t('coupons.enterQRCode')}
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
-          </div>
+          </FormField>
 
           {/* Validation Result */}
           {validationResult && (
-            <div className={clsx(
-              'p-3 rounded-md',
-              validationResult.valid
-                ? 'bg-green-50 border border-green-200'
-                : 'bg-red-50 border border-red-200'
-            )}
-            >
-              <div className={clsx(
-                'flex items-center',
-                validationResult.valid ? 'text-green-800' : 'text-red-800 bg-red-50 border-red-200',
-                !validationResult.valid && 'bg-red-50 border border-red-200 rounded-md p-2'
-              )}
+            <div className={cn('rounded-lg p-3', validationResult.valid ? 'bg-success-50' : 'bg-error-50')}>
+              <div
+                className={cn(
+                  'flex items-center gap-2',
+                  validationResult.valid ? 'text-success-700' : 'text-error-700'
+                )}
               >
-                <span className="mr-2">
-                  {validationResult.valid ? '✅' : '❌'}
-                </span>
-                <span className="font-medium">{String(validationResult?.message ?? '')}</span>
+                {validationResult.valid ? (
+                  <FiCheckCircle className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <FiXCircle className="h-4 w-4" aria-hidden="true" />
+                )}
+                <span className="font-semibold">{String(validationResult?.message ?? '')}</span>
               </div>
-              
+
               {validationResult.valid && validationResult.data ? (
-                <div className="mt-2 text-sm text-green-700">
-                  <div className="font-medium">{(validationResult.data as Coupon | UserActiveCoupon)?.name ?? ''}</div>
+                <div className="mt-2 text-caption text-success-700">
+                  <div className="font-semibold">{(validationResult.data as Coupon | UserActiveCoupon)?.name ?? ''}</div>
                   <div>{(validationResult.data as Coupon | UserActiveCoupon)?.description ?? ''}</div>
                   <div className="mt-1">
                     {t('coupons.value')}: {couponService.formatCouponValue(validationResult.data as Coupon | UserActiveCoupon)}
@@ -302,46 +299,39 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
           )}
 
           {/* Original Amount */}
-          <div>
-            <label htmlFor="originalAmount" className="block text-sm font-medium text-stone-700 mb-1">
-              {t('coupons.originalAmount')} *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-stone-500">$</span>
-              <input
-                type="number"
-                id="originalAmount"
-                value={originalAmount}
-                onChange={(e) => setOriginalAmount(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full pl-8 pr-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                required
-              />
-            </div>
-          </div>
+          <FormField label={t('coupons.originalAmount')} htmlFor="originalAmount" required>
+            <Input
+              type="number"
+              value={originalAmount}
+              onChange={(e) => setOriginalAmount(e.target.value)}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              leadingIcon={<span>$</span>}
+              required
+            />
+          </FormField>
 
           {/* Discount Preview */}
           {discountPreview && discountPreview.isValid && (
-            <div className="bg-brand-50 border border-brand-200 rounded-md p-3">
-              <h4 className="font-medium text-brand-900 mb-2">
+            <div className="rounded-lg border border-brand-200 bg-brand-50 p-3">
+              <h4 className="mb-2 font-semibold text-brand-900">
                 {t('coupons.discountPreview')}
               </h4>
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1 text-caption">
                 <div className="flex justify-between">
                   <span className="text-brand-700">{t('coupons.originalAmount')}:</span>
-                  <span className="font-medium">฿{parseFloat(originalAmount).toFixed(2)}</span>
+                  <span className="font-semibold">฿{parseFloat(originalAmount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-brand-700">{t('coupons.discount')}:</span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-semibold text-success-700">
                     -฿{discountPreview.discountAmount.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-brand-200 pt-1">
-                  <span className="text-brand-900 font-medium">{t('coupons.finalAmount')}:</span>
-                  <span className="font-bold text-brand-900">
+                  <span className="font-semibold text-brand-900">{t('coupons.finalAmount')}:</span>
+                  <span className="text-body font-bold text-brand-900">
                     ฿{discountPreview.finalAmount.toFixed(2)}
                   </span>
                 </div>
@@ -350,76 +340,62 @@ const CouponScanner: React.FC<CouponScannerProps> = ({
           )}
 
           {/* Transaction Reference */}
-          <div>
-            <label htmlFor="transactionReference" className="block text-sm font-medium text-stone-700 mb-1">
-              {t('coupons.transactionReference')}
-            </label>
-            <input
-              type="text"
-              id="transactionReference"
+          <FormField label={t('coupons.transactionReference')} htmlFor="transactionReference">
+            <Input
               value={transactionReference}
               onChange={(e) => setTransactionReference(e.target.value)}
               placeholder={t('coupons.enterTransactionReference')}
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
-          </div>
+          </FormField>
 
           {/* Location */}
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-stone-700 mb-1">
-              {t('coupons.location')}
-            </label>
-            <input
-              type="text"
-              id="location"
+          <FormField label={t('coupons.location')} htmlFor="location">
+            <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder={t('coupons.enterLocation')}
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
-          </div>
+          </FormField>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            disabled={isRedeeming || !qrCode.trim() || !originalAmount}
-            className="w-full bg-brand-600 text-white py-3 px-4 rounded-md font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full"
+            loading={isRedeeming}
+            disabled={!qrCode.trim() || !originalAmount}
           >
             {isRedeeming ? t('common.processing') : t('coupons.redeemCoupon')}
-          </button>
+          </Button>
         </form>
 
         {/* Redemption Result */}
         {redemptionResult && (
-          <div className={clsx(
-            'mt-6 p-4 rounded-md',
-            redemptionResult.success
-              ? 'bg-green-50 border border-green-200'
-              : 'bg-red-50 border border-red-200'
-          )}
-          >
-            <div className={clsx(
-              'flex items-center mb-2',
-              redemptionResult.success ? 'text-green-800' : 'text-red-800'
-            )}
+          <div className={cn('mt-6 rounded-lg p-4', redemptionResult.success ? 'bg-success-50' : 'bg-error-50')}>
+            <div
+              className={cn(
+                'mb-2 flex items-center gap-2',
+                redemptionResult.success ? 'text-success-700' : 'text-error-700'
+              )}
             >
-              <span className="mr-2 text-xl">
-                {redemptionResult.success ? '🎉' : '❌'}
-              </span>
-              <span className="font-medium">{redemptionResult.message}</span>
+              {redemptionResult.success ? (
+                <FiCheckCircle className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <FiX className="h-5 w-5" aria-hidden="true" />
+              )}
+              <span className="font-semibold">{redemptionResult.message}</span>
             </div>
-            
+
             {redemptionResult.success && (
-              <div className="text-sm text-green-700 space-y-1">
+              <div className="space-y-1 text-caption text-success-700">
                 <div className="flex justify-between">
                   <span>{t('coupons.discountApplied')}:</span>
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     ฿{redemptionResult.discountAmount.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>{t('coupons.customerPays')}:</span>
-                  <span className="font-bold text-lg">
+                  <span className="text-body font-bold">
                     ฿{redemptionResult.finalAmount.toFixed(2)}
                   </span>
                 </div>
