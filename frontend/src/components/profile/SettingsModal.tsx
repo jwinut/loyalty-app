@@ -133,7 +133,7 @@ export default function SettingsModal({
     <Modal open={isOpen} onClose={onClose} title={t('profile.editProfile')} size="md">
       {/* Profile Picture Section */}
       <div className="mb-6">
-        <h4 className="text-md font-medium text-stone-900 mb-4">Profile Picture</h4>
+        <h4 className="text-md font-semibold text-stone-900 mb-4">Profile Picture</h4>
 
         <div className="flex items-center space-x-4 mb-4">
           <div className="relative">
@@ -154,7 +154,7 @@ export default function SettingsModal({
               <button
                 onClick={() => setShowEmojiSelector(!showEmojiSelector)}
                 disabled={updateEmojiAvatarMutation.isPending}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-700 bg-brand-100 hover:bg-brand-200 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-semibold rounded-lg text-brand-700 bg-brand-100 hover:bg-brand-200 disabled:opacity-50"
               >
                 <FiSmile className="mr-1 h-4 w-4" />
                 Choose Emoji
@@ -163,7 +163,7 @@ export default function SettingsModal({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar || updateEmojiAvatarMutation.isPending}
-                className="inline-flex items-center px-3 py-2 border border-stone-300 text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 border border-stone-300 text-sm leading-4 font-semibold rounded-lg text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
               >
                 <FiCamera className="mr-1 h-4 w-4" />
                 Upload Image
@@ -198,7 +198,7 @@ export default function SettingsModal({
         {showEmojiSelector && (
           <div className="border rounded-lg p-4 bg-stone-50">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-stone-700">Select an emoji:</span>
+              <span className="text-sm font-semibold text-stone-700">Select an emoji:</span>
               <button
                 onClick={() => setShowEmojiSelector(false)}
                 className="text-stone-400 hover:text-stone-600"
@@ -218,7 +218,7 @@ export default function SettingsModal({
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         {/* Email Field */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-stone-700">
+          <label htmlFor="email" className="block text-sm font-semibold text-stone-700">
             {t('profile.email')}
           </label>
           <div className="mt-1 relative">
@@ -230,7 +230,7 @@ export default function SettingsModal({
               id="email"
               type="email"
               disabled={isGoogleOAuthUser}
-              className={`appearance-none block w-full px-3 py-2 pl-10 border rounded-md shadow-sm placeholder-stone-400 focus:outline-none sm:text-sm ${
+              className={`appearance-none block w-full px-3 py-2 pl-10 border rounded-lg placeholder-stone-400 focus:outline-none sm:text-sm ${
                 isGoogleOAuthUser
                   ? 'bg-stone-100 cursor-not-allowed text-stone-500 border-stone-300'
                   : emailError
@@ -260,7 +260,7 @@ export default function SettingsModal({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="firstName" className="block text-sm font-semibold text-stone-700">
               {t('auth.firstName')}
             </label>
             <div className="mt-1 relative">
@@ -271,7 +271,7 @@ export default function SettingsModal({
                 {...register('firstName')}
                 id="firstName"
                 type="text"
-                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                 placeholder={t('profile.firstNamePlaceholder')}
               />
             </div>
@@ -281,7 +281,7 @@ export default function SettingsModal({
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="lastName" className="block text-sm font-semibold text-stone-700">
               {t('auth.lastName')}
             </label>
             <div className="mt-1 relative">
@@ -292,7 +292,7 @@ export default function SettingsModal({
                 {...register('lastName')}
                 id="lastName"
                 type="text"
-                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                 placeholder={t('profile.lastNamePlaceholder')}
               />
             </div>
@@ -303,7 +303,7 @@ export default function SettingsModal({
         </div>
 
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
+          <label htmlFor="phone" className="block text-sm font-semibold text-stone-700">
             {t('auth.phone')}
           </label>
           <div className="mt-1 relative">
@@ -314,7 +314,7 @@ export default function SettingsModal({
               {...register('phone')}
               id="phone"
               type="tel"
-              className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               placeholder={t('profile.phonePlaceholder')}
             />
           </div>
@@ -345,14 +345,14 @@ export default function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+            className="px-4 py-2 border border-stone-300 rounded-lg text-sm font-semibold text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
           >
             {t('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? t('common.saving') : t('common.save')}
           </button>

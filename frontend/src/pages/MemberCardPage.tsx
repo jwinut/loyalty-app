@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
 import { useAuthStore } from '../store/authStore';
 import { userService } from '../services/userService';
 import { loyaltyService } from '../services/loyaltyService';
@@ -69,7 +69,7 @@ export default function MemberCardPage() {
   }, [membershipId]);
 
   return (
-    <MainLayout title={t('memberCard.title')}>
+    <AppShell variant="guest" title={t('memberCard.title')}>
       <div className="mx-auto max-w-md">
         <Card surface="tile" padding="none" className="overflow-hidden shadow-soft">
           <div className="px-6 py-4">
@@ -122,6 +122,6 @@ export default function MemberCardPage() {
           </div>
         </Card>
       </div>
-    </MainLayout>
+    </AppShell>
   );
 }

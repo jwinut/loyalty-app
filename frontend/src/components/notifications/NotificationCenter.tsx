@@ -189,7 +189,7 @@ export default function NotificationCenter() {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+                    className="text-sm text-brand-600 hover:text-brand-700 font-semibold"
                   >
                     {t('notifications.markAllRead', 'Mark all read')}
                   </button>
@@ -291,7 +291,7 @@ export default function NotificationCenter() {
                                 const couponName = (coupon as { name: unknown }).name;
                                 if (typeof couponName === 'string') {
                                   return (
-                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('coupon')}`}>
+                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border ${getNotificationColor('coupon')}`}>
                                       <FiTag className="h-3 w-3" aria-hidden="true" /> {couponName}
                                     </div>
                                   );
@@ -303,7 +303,7 @@ export default function NotificationCenter() {
                               const points = notification.data?.pointsAwarded;
                               if (typeof points === 'number') {
                                 return (
-                                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('reward')} ml-2`}>
+                                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border ${getNotificationColor('reward')} ml-2`}>
                                     <FiStar className="h-3 w-3" aria-hidden="true" /> +{points} points
                                   </div>
                                 );
@@ -324,7 +324,7 @@ export default function NotificationCenter() {
           {/* Footer */}
           {totalCount > 10 && (
             <div className="px-4 py-3 border-t border-stone-200 text-center">
-              <button className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+              <button className="text-sm text-brand-600 hover:text-brand-700 font-semibold">
                 {t('notifications.viewAll', 'View all notifications')}
               </button>
             </div>

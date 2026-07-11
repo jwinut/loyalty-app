@@ -501,11 +501,13 @@ describe('LoyaltyCarousel', () => {
       expect(prevButton).toHaveClass('opacity-50', 'cursor-not-allowed');
     });
 
-    it('should apply shadow to navigation buttons', () => {
+    it('should render navigation buttons as flat circular controls', () => {
       render(<LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />);
 
       const nextButton = screen.getByRole('button', { name: /next slide/i });
-      expect(nextButton).toHaveClass('shadow-lg');
+      expect(nextButton).toHaveClass('rounded-full', 'bg-white');
+      // Flat per the design system — no elevation classes on this control.
+      expect(nextButton.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should have proper dot styling', () => {

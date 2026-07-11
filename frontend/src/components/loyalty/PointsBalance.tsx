@@ -59,7 +59,7 @@ export default function PointsBalance({
 
       {/* Tier Benefits Preview */}
       <div className="border-t pt-4">
-        <div className="text-sm font-medium text-stone-700 mb-2">
+        <div className="text-sm font-semibold text-stone-700 mb-2">
           {t('loyalty.tierBenefits')}
         </div>
         <div className="text-sm text-stone-600">

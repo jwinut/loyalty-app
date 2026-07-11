@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { UserActiveCoupon } from '../../types/coupon';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
+import { FiLoader, FiXCircle, FiClipboard, FiAlertTriangle } from 'react-icons/fi';
 import { logger } from '../../utils/logger';
 import { notify } from '../../utils/notificationManager';
 import { Modal } from '../ui';
@@ -77,7 +78,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
             <div className="w-64 h-64 flex items-center justify-center rounded-lg">
               {isGeneratingQR ? (
                 <div className="text-center">
-                  <div className="text-4xl mb-3">⏳</div>
+                  <FiLoader data-testid="qr-loading-icon" className="mx-auto mb-3 h-10 w-10 animate-spin text-stone-400" aria-hidden="true" />
                   <div className="text-sm text-stone-600 font-semibold">
                     {t('coupons.generatingQR', 'Generating QR Code...')}
                   </div>
@@ -90,7 +91,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
                 />
               ) : (
                 <div className="text-center">
-                  <div className="text-4xl mb-3">❌</div>
+                  <FiXCircle data-testid="qr-error-icon" className="mx-auto mb-3 h-10 w-10 text-error-600" aria-hidden="true" />
                   <div className="text-sm text-stone-600 font-semibold">
                     {t('coupons.qrError', 'Error generating QR code')}
                   </div>
@@ -101,7 +102,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
           {/* Coupon Code underneath */}
           <div className="text-center">
-            <div className="text-sm text-stone-600 mb-1 font-medium">
+            <div className="text-sm text-stone-600 mb-1 font-semibold">
               {t('coupons.couponCode', 'Coupon Code')}
             </div>
             <div className="text-lg font-mono bg-stone-100 px-4 py-2 rounded-lg border">
@@ -112,8 +113,8 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
         {/* Redemption Instructions */}
         <div className="bg-brand-50 rounded-lg p-4 mb-6">
-          <h5 className="font-medium text-brand-900 mb-3 flex items-center justify-center">
-            <span className="mr-2">📋</span>
+          <h5 className="font-semibold text-brand-900 mb-3 flex items-center justify-center">
+            <FiClipboard data-testid="qr-instructions-icon" className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('coupons.howToUse')}
           </h5>
           <ol className="text-sm text-brand-800 text-left space-y-2">
@@ -134,8 +135,9 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
         {/* Important Note */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
-          <p className="text-sm text-amber-800">
-            <span className="font-semibold">⚠️ {t('common.important')}:</span> {t('coupons.oneTimeUse')}
+          <p className="flex items-start gap-1.5 text-sm text-amber-800">
+            <FiAlertTriangle data-testid="qr-warning-icon" className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span><span className="font-semibold">{t('common.important')}:</span> {t('coupons.oneTimeUse')}</span>
           </p>
         </div>
 
@@ -143,9 +145,9 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
         <div className="flex justify-center">
           <button
             onClick={copyToClipboard}
-            className="bg-stone-100 text-stone-700 py-3 px-6 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors flex items-center justify-center"
+            className="bg-stone-100 text-stone-700 py-3 px-6 rounded-lg text-sm font-semibold hover:bg-stone-200 transition-colors flex items-center justify-center"
           >
-            <span className="mr-2">📋</span>
+            <FiClipboard data-testid="qr-copy-icon" className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('coupons.copyCode')}
           </button>
         </div>

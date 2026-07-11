@@ -50,7 +50,9 @@ describe('EmojiSelector', () => {
       const { container } = render(<EmojiSelector onSelect={mockOnSelect} />);
 
       const selector = container.firstChild as HTMLElement;
-      expect(selector).toHaveClass('bg-white', 'rounded-lg', 'border', 'shadow-lg', 'p-6');
+      expect(selector).toHaveClass('bg-white', 'rounded-lg', 'border', 'p-6');
+      // Flat per the design system — no elevation classes on this panel.
+      expect(selector.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should render info text at bottom', () => {
@@ -254,7 +256,9 @@ describe('EmojiSelector', () => {
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
       await user.click(emojiButton!);
 
-      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
+      // Flat per the design system — selection reads via border/bg only.
+      expect(emojiButton?.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should highlight currentEmoji on initial render', () => {
@@ -262,7 +266,9 @@ describe('EmojiSelector', () => {
       render(<EmojiSelector currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const emojiButton = screen.getAllByRole('button').find(btn => btn.textContent === '😀');
-      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
+      // Flat per the design system — selection reads via border/bg only.
+      expect(emojiButton?.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should remove highlight from previously selected emoji', async () => {
@@ -725,7 +731,9 @@ describe('EmojiSelectorInline', () => {
       render(<EmojiSelectorInline currentEmoji="😀" onSelect={mockOnSelect} />);
 
       const emojiButton = screen.getByText('😀').closest('button');
-      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100', 'shadow-sm');
+      expect(emojiButton).toHaveClass('border-brand-500', 'bg-brand-100');
+      // Flat per the design system — selection reads via border/bg only.
+      expect(emojiButton?.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should not highlight any emoji when currentEmoji is null', () => {

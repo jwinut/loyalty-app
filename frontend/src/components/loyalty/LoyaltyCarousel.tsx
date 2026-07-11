@@ -115,7 +115,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         onClick={goToPrevious}
         disabled={currentSlide === 0}
         className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10
-          items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
+          items-center justify-center w-10 h-10 rounded-full bg-white
           ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Previous slide"
       >
@@ -126,7 +126,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         onClick={goToNext}
         disabled={currentSlide === totalSlides - 1}
         className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10
-          items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
+          items-center justify-center w-10 h-10 rounded-full bg-white
           ${currentSlide === totalSlides - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Next slide"
       >

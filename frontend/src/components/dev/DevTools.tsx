@@ -36,7 +36,7 @@ export default function DevTools() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-brand-600 text-white p-4 rounded-lg shadow-lg max-w-sm z-50">
+    <div className="fixed bottom-4 right-4 bg-brand-600 text-white p-4 rounded-lg max-w-sm z-50">
       <div className="flex items-start space-x-2">
         <div className="flex-shrink-0">
           ⚛️

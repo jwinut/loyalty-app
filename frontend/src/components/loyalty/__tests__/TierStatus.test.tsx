@@ -123,7 +123,9 @@ describe('TierStatus', () => {
       const { container } = render(<TierStatus loyaltyStatus={mockLoyaltyStatus} allTiers={mockTiers} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveClass('bg-white', 'rounded-lg', 'shadow-md', 'p-6');
+      expect(mainDiv).toHaveClass('bg-white', 'rounded-lg', 'p-6');
+      // Flat per the design system — no elevation classes on this card.
+      expect(mainDiv.className).not.toMatch(/\bshadow-(?!none)/);
     });
   });
 
@@ -141,7 +143,7 @@ describe('TierStatus', () => {
       const silverElements = screen.getAllByText('Silver');
       // Find the one in the header (has the color style)
       const headerTierName = silverElements.find(el =>
-        el.classList.contains('font-medium') && !el.classList.contains('text-stone-900')
+        el.classList.contains('font-semibold') && !el.classList.contains('text-stone-900')
       );
       expect(headerTierName).toHaveStyle({ color: tierTheme('Silver', '#C0C0C0').accent });
     });

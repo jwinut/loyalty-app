@@ -2,7 +2,7 @@ import { useAuthStore } from '../store/authStore';
 import { FiGift, FiUsers } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
 import LoyaltyCarousel from '../components/loyalty/LoyaltyCarousel';
 import { loyaltyService, UserLoyaltyStatus } from '../services/loyaltyService';
 import { Card, Skeleton } from '../components/ui';
@@ -95,14 +95,14 @@ export default function DashboardPage() {
 
   if (loyaltyLoading) {
     return (
-      <MainLayout title={dashboardTitle}>
+      <AppShell variant="guest" title={dashboardTitle}>
         <DashboardLoadingSkeleton />
-      </MainLayout>
+      </AppShell>
     );
   }
 
   return (
-    <MainLayout title={dashboardTitle}>
+    <AppShell variant="guest" title={dashboardTitle}>
       {loyaltyStatus && <TierHero loyaltyStatus={loyaltyStatus} />}
 
       {loyaltyStatus && (
@@ -142,6 +142,6 @@ export default function DashboardPage() {
         <h3 className="text-title text-ink">{t('dashboard.welcomeMessage')}</h3>
         <p className="mt-2 max-w-text text-body text-ink-muted">{t('dashboard.welcomeDescription')}</p>
       </Card>
-    </MainLayout>
+    </AppShell>
   );
 }

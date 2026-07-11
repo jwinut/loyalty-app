@@ -265,8 +265,8 @@ describe('DashboardButton', () => {
       expect(button).toHaveClass(
         'inline-flex',
         'items-center',
-        'font-medium',
-        'rounded-md',
+        'font-semibold',
+        'rounded-lg',
         'transition-colors'
       );
     });

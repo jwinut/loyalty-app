@@ -85,9 +85,9 @@ export function formatEmojiAvatar(avatar: string | null | undefined, size: 'sm' 
   
   const sizeClasses = {
     sm: 'text-lg', // ~18px
-    md: 'text-2xl', // ~24px  
-    lg: 'text-3xl', // ~30px
-    xl: 'text-4xl', // ~36px
+    md: 'text-2xl', // ~24px
+    lg: 'text-display-lg', // 34px
+    xl: 'text-display-xl', // 40px
   };
   
   return {

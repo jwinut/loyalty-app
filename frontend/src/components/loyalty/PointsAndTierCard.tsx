@@ -45,7 +45,7 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
 
       {/* Tier Benefits Preview */}
       <div className="border-t pt-4">
-        <div className="text-sm font-medium text-stone-700 mb-3">
+        <div className="text-sm font-semibold text-stone-700 mb-3">
           {t('loyalty.tierBenefits')}
         </div>
         {typeof loyaltyStatus.tier_benefits === 'object' && loyaltyStatus.tier_benefits !== null && 'perks' in loyaltyStatus.tier_benefits && Array.isArray(loyaltyStatus.tier_benefits.perks) && loyaltyStatus.tier_benefits.perks.length > 0 && (

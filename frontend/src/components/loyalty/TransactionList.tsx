@@ -129,7 +129,7 @@ export default function TransactionList({
               {/* Transaction Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-stone-900 truncate">
+                  <p className="font-semibold text-stone-900 truncate">
                     {getPointsFocusedDescription(transaction)}
                   </p>
                   <div className="text-right">
@@ -183,7 +183,7 @@ export default function TransactionList({
               <div className="text-center pt-4">
                 <button
                   onClick={onLoadMore}
-                  className="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
                 >
                   {t('common.loadMore')}
                 </button>

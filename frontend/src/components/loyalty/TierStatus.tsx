@@ -28,14 +28,14 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-stone-900">
           {t('loyalty.tierStatus')}
         </h3>
         <div className="flex items-center space-x-2">
           <FiAward className="w-5 h-5" style={{ color: headerTheme.accent }} />
-          <span className="font-medium" style={{ color: headerTheme.accent }}>
+          <span className="font-semibold" style={{ color: headerTheme.accent }}>
             {loyaltyStatus.tier_name}
           </span>
         </div>
@@ -78,7 +78,7 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
               {/* Tier Info */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className={`font-medium ${
+                  <span className={`font-semibold ${
                     isCurrentTier ? 'text-stone-900' : isCompleted ? 'text-stone-700' : 'text-stone-500'
                   }`}
                   >
@@ -139,7 +139,7 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
       {/* Next Tier Benefits Preview */}
       {!isTopTier && loyaltyStatus.next_tier_name && (
         <div className="mt-6 p-4 bg-stone-50 rounded-lg">
-          <div className="text-sm font-medium text-stone-700 mb-2">
+          <div className="text-sm font-semibold text-stone-700 mb-2">
             {t('loyalty.nextTierBenefits', { tier: loyaltyStatus.next_tier_name })}
           </div>
           <div className="text-xs text-stone-600">
@@ -153,7 +153,7 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
       {/* Top Tier Message */}
       {isTopTier && (
         <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: headerTheme.tintBg }}>
-          <div className="text-sm font-medium flex items-center gap-1.5" style={{ color: headerTheme.onTint }}>
+          <div className="text-sm font-semibold flex items-center gap-1.5" style={{ color: headerTheme.onTint }}>
             <FiAward className="w-4 h-4" aria-hidden="true" />
             {t('loyalty.topTierMessage')}
           </div>

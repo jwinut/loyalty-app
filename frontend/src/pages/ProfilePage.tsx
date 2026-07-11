@@ -11,7 +11,7 @@ import { notify } from '../utils/notificationManager';
 import { logger } from '../utils/logger';
 import { FiCopy, FiSettings, FiLogOut } from 'react-icons/fi';
 import EmailDisplay from '../components/common/EmailDisplay';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
 import { formatDateToDDMMYYYY } from '../utils/dateFormatter';
 import SettingsModal from '../components/profile/SettingsModal';
 import EmojiAvatar from '../components/profile/EmojiAvatar';
@@ -273,7 +273,7 @@ export default function ProfilePage() {
   const roleBadgeTone = user?.role ? ROLE_BADGE_TONE[user.role as keyof typeof ROLE_BADGE_TONE] : undefined;
 
   return (
-    <MainLayout title={t('profile.title')} showProfileBanner={false}>
+    <AppShell variant="guest" title={t('profile.title')} showProfileBanner={false}>
         {/* Profile Information Section */}
         <Card className="mb-6">
           {/* Profile Header with Settings Button */}
@@ -463,6 +463,6 @@ export default function ProfilePage() {
           onCancel={() => setShowDeleteConfirm(false)}
           variant="danger"
         />
-    </MainLayout>
+    </AppShell>
   );
 }

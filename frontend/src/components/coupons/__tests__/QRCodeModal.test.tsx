@@ -441,7 +441,7 @@ describe('QRCodeModal', () => {
 
       render(<QRCodeModal coupon={mockCoupon} />);
 
-      expect(screen.getByText('⏳')).toBeInTheDocument();
+      expect(screen.getByTestId('qr-loading-icon')).toBeInTheDocument();
     });
 
     it('should hide loading state after QR code generated', async () => {
@@ -526,7 +526,7 @@ describe('QRCodeModal', () => {
       render(<QRCodeModal coupon={mockCoupon} />);
 
       await waitFor(() => {
-        expect(screen.getByText('❌')).toBeInTheDocument();
+        expect(screen.getByTestId('qr-error-icon')).toBeInTheDocument();
       });
     });
 
@@ -620,8 +620,8 @@ describe('QRCodeModal', () => {
       });
 
       // There are two clipboard icons: one in instructions header and one in copy button
-      const clipboardIcons = screen.getAllByText('📋');
-      expect(clipboardIcons.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByTestId('qr-instructions-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('qr-copy-icon')).toBeInTheDocument();
     });
   });
 
@@ -664,7 +664,7 @@ describe('QRCodeModal', () => {
         expect(screen.getByAltText('QR Code for SAVE20')).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/⚠️/)).toBeInTheDocument();
+      expect(screen.getByTestId('qr-warning-icon')).toBeInTheDocument();
     });
   });
 
@@ -762,9 +762,9 @@ describe('QRCodeModal', () => {
         expect(screen.getByAltText('QR Code for SAVE20')).toBeInTheDocument();
       });
 
-      // The button contains the emoji and text
+      // The button contains the clipboard icon and text
       const copyButton = screen.getByText('Copy Code');
-      expect(copyButton.parentElement?.textContent).toContain('📋');
+      expect(copyButton.closest('button')?.querySelector('[data-testid="qr-copy-icon"]')).toBeInTheDocument();
     });
 
     it('should handle multiple copy attempts', async () => {

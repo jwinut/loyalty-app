@@ -142,14 +142,14 @@ describe('EmojiAvatar', () => {
       const { container } = render(<EmojiAvatar avatarUrl="emoji:😀" size="lg" />);
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('w-16', 'h-16', 'text-3xl');
+      expect(avatar).toHaveClass('w-16', 'h-16', 'text-display-lg');
     });
 
     it('should apply extra large size when specified', () => {
       const { container } = render(<EmojiAvatar avatarUrl="emoji:😀" size="xl" />);
 
       const avatar = container.firstChild as HTMLElement;
-      expect(avatar).toHaveClass('w-20', 'h-20', 'text-4xl');
+      expect(avatar).toHaveClass('w-20', 'h-20', 'text-display-xl');
     });
   });
 
@@ -465,7 +465,7 @@ describe('EmojiAvatarLarge', () => {
     const { container } = render(<EmojiAvatarLarge avatarUrl="emoji:😀" />);
 
     const avatar = container.firstChild as HTMLElement;
-    expect(avatar).toHaveClass('w-20', 'h-20', 'text-4xl');
+    expect(avatar).toHaveClass('w-20', 'h-20', 'text-display-xl');
   });
 
   it('should forward onClick prop', async () => {

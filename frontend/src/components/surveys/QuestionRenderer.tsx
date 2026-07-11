@@ -93,7 +93,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             type="text"
             value={typeof answer === 'string' || typeof answer === 'number' ? String(answer) : ''}
             onChange={(e) => handleAnswerChange(e.target.value)}
-            className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder={t('surveys.enterAnswer', 'Enter your answer...')}
           />
         );
@@ -104,7 +104,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             value={typeof answer === 'string' || typeof answer === 'number' ? String(answer) : ''}
             onChange={(e) => handleAnswerChange(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder={t('surveys.enterAnswer', 'Enter your answer...')}
           />
         );
@@ -118,7 +118,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 key={rating}
                 type="button"
                 onClick={() => handleAnswerChange(rating)}
-                className={`w-10 h-10 rounded-full border-2 font-medium transition-colors ${
+                className={`w-10 h-10 rounded-full border-2 font-semibold transition-colors ${
                   Number(answer) === rating
                     ? 'bg-brand-600 text-white border-brand-600'
                     : 'bg-white text-stone-700 border-stone-300 hover:border-brand-300'
@@ -139,7 +139,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 key={rating}
                 type="button"
                 onClick={() => handleAnswerChange(rating)}
-                className={`w-12 h-10 rounded border-2 font-medium transition-colors ${
+                className={`w-12 h-10 rounded border-2 font-semibold transition-colors ${
                   Number(answer) === rating
                     ? 'bg-brand-600 text-white border-brand-600'
                     : 'bg-white text-stone-700 border-stone-300 hover:border-brand-300'
@@ -191,7 +191,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   return (
     <div className="mb-6">
       <div className="mb-4">
-        <h3 className="text-lg font-medium text-stone-900 mb-2">
+        <h3 className="text-lg font-semibold text-stone-900 mb-2">
           {question.text}
           {question.required && <span className="text-red-500 ml-1">*</span>}
         </h3>

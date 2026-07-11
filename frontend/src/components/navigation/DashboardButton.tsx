@@ -22,7 +22,7 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
     navigate('/dashboard');
   };
 
-  const baseClasses = 'inline-flex items-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'inline-flex items-center font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variantClasses = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500',

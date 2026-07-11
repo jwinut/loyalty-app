@@ -28,7 +28,7 @@ export default function EmojiSelector({
   };
 
   return (
-    <div className={`bg-white rounded-lg border shadow-lg p-6 ${className}`}>
+    <div className={`bg-white rounded-lg border p-6 ${className}`}>
       <div className="text-center mb-4">
         <h3 className="text-lg font-semibold text-stone-900 mb-2">
           Choose Your Profile Picture
@@ -42,9 +42,9 @@ export default function EmojiSelector({
       <div className="flex justify-center mb-6">
         <div className="w-20 h-20 rounded-full bg-stone-100 border-2 border-stone-200 flex items-center justify-center">
           {selectedEmoji ? (
-            <span className="text-4xl">{selectedEmoji}</span>
+            <span className="text-display-xl">{selectedEmoji}</span>
           ) : (
-            <span className="text-4xl text-stone-400">👤</span>
+            <span className="text-display-xl text-stone-400">👤</span>
           )}
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function EmojiSelector({
                 w-8 h-8 rounded border flex items-center justify-center
                 text-lg transition-all duration-200 hover:scale-110
                 ${selectedEmoji === emoji 
-                  ? 'border-brand-500 bg-brand-100 shadow-sm' 
+                  ? 'border-brand-500 bg-brand-100' 
                   : 'border-stone-200 hover:border-stone-300 hover:bg-white'
                 }
               `}
@@ -78,7 +78,7 @@ export default function EmojiSelector({
           <button
             onClick={onCancel}
             className="flex-1 px-4 py-2 text-stone-700 bg-stone-100 hover:bg-stone-200 
-                     rounded-lg font-medium transition-colors"
+                     rounded-lg font-semibold transition-colors"
           >
             Cancel
           </button>
@@ -87,7 +87,7 @@ export default function EmojiSelector({
           onClick={handleConfirm}
           disabled={!selectedEmoji}
           className={`
-            flex-1 px-4 py-2 rounded-lg font-medium transition-colors
+            flex-1 px-4 py-2 rounded-lg font-semibold transition-colors
             ${selectedEmoji
               ? 'bg-brand-600 hover:bg-brand-700 text-white'
               : 'bg-stone-300 text-stone-500 cursor-not-allowed'
@@ -126,7 +126,7 @@ export function EmojiSelectorInline({
                 w-7 h-7 rounded border flex items-center justify-center
                 text-sm transition-all duration-200 hover:scale-110
                 ${currentEmoji === emoji 
-                  ? 'border-brand-500 bg-brand-100 shadow-sm' 
+                  ? 'border-brand-500 bg-brand-100' 
                   : 'border-stone-200 hover:border-stone-300 hover:bg-white'
                 }
               `}

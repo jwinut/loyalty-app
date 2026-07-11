@@ -109,8 +109,9 @@ describe('DevTools', () => {
       expect(notification?.className).toContain('text-white');
       expect(notification?.className).toContain('p-4');
       expect(notification?.className).toContain('rounded-lg');
-      expect(notification?.className).toContain('shadow-lg');
       expect(notification?.className).toContain('z-50');
+      // Flat per the design system — no elevation classes on this panel.
+      expect(notification?.className).not.toMatch(/\bshadow-(?!none)/);
     });
   });
 

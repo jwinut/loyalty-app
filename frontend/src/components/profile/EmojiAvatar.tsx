@@ -19,8 +19,8 @@ export default function EmojiAvatar({
   const sizeClasses = {
     sm: 'w-8 h-8 text-lg',
     md: 'w-12 h-12 text-2xl',
-    lg: 'w-16 h-16 text-3xl',
-    xl: 'w-20 h-20 text-4xl',
+    lg: 'w-16 h-16 text-display-lg',
+    xl: 'w-20 h-20 text-display-xl',
   };
 
   // Handle non-emoji avatars (uploaded images and URLs)

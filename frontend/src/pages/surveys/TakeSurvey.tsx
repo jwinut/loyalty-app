@@ -8,6 +8,7 @@ import SurveyProgress from '../../components/surveys/SurveyProgress';
 import AppShell from '../../components/layout/AppShell';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import clsx from 'clsx';
+import { FiCheck } from 'react-icons/fi';
 import { logger } from '../../utils/logger';
 import { Button, Card } from '../../components/ui';
 
@@ -169,13 +170,13 @@ const TakeSurvey: React.FC = () => {
   if (error) {
     return (
       <AppShell variant="guest" title={t('surveys.title', 'Surveys')} hideTabBar>
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <p>{error}</p>
         </div>
         <div className="mt-4">
           <button
             onClick={() => navigate('/surveys')}
-            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2 px-4 rounded-md transition-colors"
+            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold py-2 px-4 rounded-lg transition-colors"
           >
             {t('surveys.backToList')}
           </button>
@@ -291,8 +292,9 @@ const TakeSurvey: React.FC = () => {
             </p>
 
             <div className="bg-success-50 rounded-lg p-4 mb-6">
-              <p className="text-caption text-success-700">
-                ✓ {t('surveys.completed.saved')}
+              <p className="flex items-center justify-center gap-1.5 text-caption text-success-700">
+                <FiCheck className="h-4 w-4" aria-hidden="true" />
+                {t('surveys.completed.saved')}
               </p>
             </div>
 

@@ -258,79 +258,11 @@ const SurveyBuilder: React.FC = () => {
     }
   }, [survey.questions, t]);
 
-  // Inject validation error highlighting CSS
-  useEffect(() => {
-    const styleId = 'validation-highlighting-styles';
-    
-    // Check if styles already exist
-    if (document.getElementById(styleId)) {
-      return;
-    }
-
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .validation-error-highlight {
-        border: 3px solid #ef4444 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
-        transition: all 0.3s ease-in-out !important;
-        animation: validation-pulse 0.5s ease-in-out !important;
-      }
-      
-      @keyframes validation-pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
-      }
-      
-      .validation-error-highlight textarea {
-        border-color: #ef4444 !important;
-        background-color: #fef2f2 !important;
-      }
-      
-      .validation-field-error {
-        border: 2px solid #ef4444 !important;
-        background-color: #fef2f2 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-        animation: field-error-pulse 0.6s ease-in-out !important;
-      }
-      
-      @keyframes field-error-pulse {
-        0% { 
-          transform: scale(1);
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-        }
-        50% { 
-          transform: scale(1.01);
-          box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.2);
-        }
-        100% { 
-          transform: scale(1);
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-        }
-      }
-      
-      .validation-field-error:focus {
-        border-color: #dc2626 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
-        background-color: #ffffff !important;
-      }
-      
-      .validation-error-highlight:hover {
-        border-color: #dc2626 !important;
-      }
-    `;
-
-    document.head.appendChild(style);
-
-    // Cleanup function to remove styles when component unmounts
-    return () => {
-      const existingStyle = document.getElementById(styleId);
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    };
-  }, []);
+  // Validation error highlighting: .validation-error-highlight /
+  // .validation-field-error and their keyframes now live as static,
+  // build-time CSS in src/styles/index.css (colors resolve through
+  // Tailwind's theme() there instead of hardcoded hex) — this component
+  // only toggles those class names, it no longer injects a <style> tag.
 
   const handleSurveyChange = (field: string, value: unknown) => {
     setSurvey(prev => ({

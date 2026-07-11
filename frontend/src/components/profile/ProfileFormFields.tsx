@@ -26,8 +26,8 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
   const [selectedGender, setSelectedGender] = useState('');
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
+    : "appearance-none block w-full px-3 py-2 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   const handleGenderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -52,7 +52,7 @@ export function GenderField({ register, errors, showRequiredAsterisk = false, is
 
   return (
     <div>
-      <label htmlFor="gender" className="block text-sm font-medium text-stone-700">
+      <label htmlFor="gender" className="block text-sm font-semibold text-stone-700">
         {!isModal && <FiUser className="inline h-4 w-4 mr-2" />}
         {t('profile.gender')} {showRequiredAsterisk && '*'}
       </label>
@@ -110,12 +110,12 @@ export function OccupationField({ register, errors, showRequiredAsterisk = false
   const { t } = useTranslation();
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900 bg-white"
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   return (
     <div>
-      <label htmlFor="occupation" className="block text-sm font-medium text-stone-700">
+      <label htmlFor="occupation" className="block text-sm font-semibold text-stone-700">
         <FiBriefcase className="inline h-4 w-4 mr-2" />
         {t('profile.occupation')} {showRequiredAsterisk && '*'}
       </label>
@@ -157,12 +157,12 @@ export function DateOfBirthField({ register, errors, showRequiredAsterisk = fals
   const { t } = useTranslation();
 
   const fieldClasses = isModal 
-    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900"
-    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
+    ? "mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm text-stone-900"
+    : "appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm";
 
   return (
     <div>
-      <label htmlFor="dateOfBirth" className="block text-sm font-medium text-stone-700">
+      <label htmlFor="dateOfBirth" className="block text-sm font-semibold text-stone-700">
         <FiCalendar className="inline h-4 w-4 mr-2" />
         {t('profile.dateOfBirth')} {showRequiredAsterisk && '*'}
       </label>

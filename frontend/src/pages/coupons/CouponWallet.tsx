@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { FiGift } from 'react-icons/fi';
+import { FiGift, FiAlertTriangle, FiClock, FiCheckCircle, FiCheck } from 'react-icons/fi';
 import { UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import CouponCard from '../../components/coupons/CouponCard';
@@ -90,7 +90,7 @@ const CouponWallet: React.FC = () => {
   if (isLoading && coupons.length === 0) {
     return (
       <AppShell variant="guest" title={t('coupons.myCoupons')}>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-6 bg-stone-200 rounded w-1/4" />
             <div className="space-y-3">
@@ -113,7 +113,7 @@ const CouponWallet: React.FC = () => {
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="inline-flex items-center font-medium border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-md hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+          className="inline-flex items-center font-semibold border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-lg hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
         >
           {isLoading ? t('common.loading') : t('common.refresh')}
         </button>
@@ -135,9 +135,9 @@ const CouponWallet: React.FC = () => {
       {errorMessage && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex">
-            <div className="text-red-400 mr-3">⚠️</div>
+            <div className="text-red-400 mr-3"><FiAlertTriangle className="h-5 w-5" aria-hidden="true" /></div>
             <div>
-              <h3 className="text-red-800 font-medium">
+              <h3 className="text-red-800 font-semibold">
                 {t('errors.error')}
               </h3>
               <p className="text-red-700 mt-1">{errorMessage}</p>
@@ -181,7 +181,7 @@ const CouponWallet: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center mb-4">
                 <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <span className="text-red-600 text-xl">⏰</span>
+                  <FiClock className="h-5 w-5 text-red-600" aria-hidden="true" />
                 </div>
                 <h2 className="flex items-center gap-2 text-xl font-semibold text-red-700">
                   {t('coupons.expiringSoon')}
@@ -206,7 +206,7 @@ const CouponWallet: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center mb-4">
                 <div className="bg-green-100 p-2 rounded-full mr-3">
-                  <span className="text-green-600 text-xl">✅</span>
+                  <FiCheckCircle className="h-5 w-5 text-green-600" aria-hidden="true" />
                 </div>
                 <h2 className="flex items-center gap-2 text-xl font-semibold text-stone-900">
                   {t('coupons.activeCoupons')}
@@ -238,14 +238,11 @@ const CouponWallet: React.FC = () => {
                 : 'bg-red-100'
             )}
             >
-              <span className={clsx('text-xl',
-                activeFilter === 'used'
-                  ? 'text-stone-600'
-                  : 'text-red-600'
+              {activeFilter === 'used' ? (
+                <FiCheck className="h-5 w-5 text-stone-600" aria-hidden="true" />
+              ) : (
+                <FiClock className="h-5 w-5 text-red-600" aria-hidden="true" />
               )}
-              >
-                {activeFilter === 'used' ? '✓' : '⏰'}
-              </span>
             </div>
             <h2 className={clsx('flex items-center gap-2 text-xl font-semibold',
               activeFilter === 'used'

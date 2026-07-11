@@ -46,7 +46,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../components/layout/MainLayout', () => ({
+vi.mock('../../components/layout/AppShell', () => ({
   default: ({ children, title }: { children: React.ReactNode; title: string }) => (
     <div>
       <h1>{title}</h1>

@@ -417,7 +417,7 @@ describe('PointsBalance', () => {
       expect(mainDiv).toHaveClass('p-6');
     });
 
-    it('should be a flat card surface (rounded, no shadow) per the design system', () => {
+    it('should be a flat card surface (rounded, no elevation) per the design system', () => {
       const { container } = render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const mainDiv = container.firstChild as HTMLElement;

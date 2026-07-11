@@ -251,10 +251,11 @@ function App() {
             position="top-center"
             toastOptions={{
               duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
+              // react-hot-toast renders via a portal outside the component
+              // tree, but still accepts a plain Tailwind class list — reuse
+              // the design system's near-black "tile" surface instead of a
+              // bespoke inline color.
+              className: 'bg-tile text-tile-text',
             }}
           />
           <Routes>

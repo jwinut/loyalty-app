@@ -1,4 +1,5 @@
-/* Sarabun is loaded once via <link> in index.html (weights 400/500/600/700). */
+/* Sarabun is loaded once via <link> in index.html (weights 400/600/700 —
+   the type ladder has no 500/800 step, so those weights aren't fetched). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,5 +21,65 @@
     font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
     line-height: 1.7;
     letter-spacing: 0.01em;
+  }
+}
+
+@layer components {
+  /*
+   * Survey builder validation-error highlighting (moved out of a
+   * runtime-injected <style> tag in SurveyBuilder.tsx, which previously
+   * carried its own hardcoded hex — colors here resolve through
+   * Tailwind's theme() at build time instead). SurveyBuilder.tsx toggles
+   * these class names via classList.add/remove on the relevant question
+   * container, textarea, or option input.
+   */
+  .validation-error-highlight {
+    border: 3px solid theme('colors.error.600') !important;
+    box-shadow: 0 0 0 3px rgb(197 48 48 / 0.2) !important;
+    transition: all 0.3s ease-in-out !important;
+    animation: validation-pulse 0.5s ease-in-out !important;
+  }
+
+  .validation-error-highlight textarea {
+    border-color: theme('colors.error.600') !important;
+    background-color: theme('colors.error.50') !important;
+  }
+
+  .validation-field-error {
+    border: 2px solid theme('colors.error.600') !important;
+    background-color: theme('colors.error.50') !important;
+    box-shadow: 0 0 0 3px rgb(197 48 48 / 0.1) !important;
+    animation: field-error-pulse 0.6s ease-in-out !important;
+  }
+
+  .validation-field-error:focus {
+    border-color: theme('colors.error.700') !important;
+    box-shadow: 0 0 0 3px rgb(197 48 48 / 0.3) !important;
+    background-color: theme('colors.surface.card') !important;
+  }
+
+  .validation-error-highlight:hover {
+    border-color: theme('colors.error.700') !important;
+  }
+}
+
+@keyframes validation-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes field-error-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px rgb(197 48 48 / 0.1);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 5px rgb(197 48 48 / 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px rgb(197 48 48 / 0.1);
   }
 }

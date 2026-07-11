@@ -121,7 +121,7 @@ const SurveyList: React.FC = () => {
 
       {loading && (
         <div className="mb-6">
-          <div className="flex justify-center items-center h-24 bg-white rounded-md border border-stone-200">
+          <div className="flex justify-center items-center h-24 bg-white rounded-lg border border-stone-200">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
             <span className="ml-3 text-stone-600">{t('surveys.loading')}</span>
           </div>
@@ -129,7 +129,7 @@ const SurveyList: React.FC = () => {
       )}
 
       {errorMessage && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <div className="flex">
             <div className="ml-3">
               <p className="text-sm">{errorMessage}</p>
@@ -177,7 +177,7 @@ const SurveyList: React.FC = () => {
             <FiEye className="flex-shrink-0 h-5 w-5 text-brand-600 mt-0.5 mr-3" aria-hidden="true" />
           )}
           <div>
-            <h3 className="text-sm font-medium text-brand-900 mb-1">
+            <h3 className="text-sm font-semibold text-brand-900 mb-1">
               {activeTab === 'public' ? 'Public Surveys' : 'Invited Surveys'}
             </h3>
             <p className="text-sm text-brand-800">

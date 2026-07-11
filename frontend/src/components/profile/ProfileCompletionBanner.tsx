@@ -176,7 +176,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
               <FiGift className="h-6 w-6 text-yellow-300" />
             </div>
             <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-semibold">
                 <span className="inline-flex items-center">
                   <span className="bg-yellow-300 text-brand-900 px-2 py-0.5 rounded-full text-xs font-semibold mr-2">
                     {t('profile.newMemberOffer')}
@@ -191,7 +191,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
             <div className="flex-shrink-0 ml-4">
               <button
                 onClick={handleOpenModal}
-                className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-md text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-semibold rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
               >
                 {t('profile.completeProfile')}
                 <FiChevronRight className="ml-1 h-4 w-4" />
@@ -202,7 +202,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
             <button
               type="button"
               onClick={handleDismiss}
-              className="inline-flex items-center justify-center p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
+              className="inline-flex items-center justify-center p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
               aria-label={t('common.dismiss')}
             >
               <FiX className="h-5 w-5" />
@@ -222,7 +222,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
             {/* Only show fields that are actually missing */}
             {profileStatus?.missingFields?.includes('firstName') && (
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
+                <label htmlFor="firstName" className="block text-sm font-semibold text-stone-700">
                   <FiUser className="inline h-4 w-4 mr-2" />
                   {t('auth.firstName')} *
                 </label>
@@ -230,7 +230,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
                   type="text"
                   id="firstName"
                   {...register('firstName')}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder={t('profile.firstNamePlaceholder')}
                 />
                 {errors.firstName && (
@@ -241,7 +241,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
 
             {profileStatus?.missingFields?.includes('lastName') && (
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
+                <label htmlFor="lastName" className="block text-sm font-semibold text-stone-700">
                   <FiUser className="inline h-4 w-4 mr-2" />
                   {t('auth.lastName')}
                 </label>
@@ -249,7 +249,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
                   type="text"
                   id="lastName"
                   {...register('lastName')}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder={t('profile.lastNamePlaceholder')}
                 />
               </div>
@@ -284,7 +284,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
 
             {profileStatus?.missingFields?.includes('phone') && (
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
+                <label htmlFor="phone" className="block text-sm font-semibold text-stone-700">
                   <FiPhone className="inline h-4 w-4 mr-2" />
                   {t('profile.phone')}
                 </label>
@@ -292,7 +292,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
                   type="tel"
                   id="phone"
                   {...register('phone')}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   placeholder={t('profile.phonePlaceholder')}
                 />
               </div>
