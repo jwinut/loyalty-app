@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import {
-  FiX,
   FiCalendar,
   FiDollarSign,
   FiClock,
@@ -12,6 +11,8 @@ import {
 } from 'react-icons/fi';
 import { formatDateTimeToEuropean } from '../../utils/dateFormatter';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { Button, Card, FormField, Input, Modal, Select, Textarea, TabNav } from '../../components/ui';
+import type { TabItem } from '../../components/ui';
 
 // Types matching BookingManagement
 interface BookingUser {
@@ -92,6 +93,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isSaving, setIsSaving] = useState(false);
+  const headingRef = useRef<HTMLParagraphElement>(null);
 
   // Form state - Details tab
   const [checkInDate, setCheckInDate] = useState(booking.checkInDate.split('T')[0]);
@@ -261,538 +263,502 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     return actionMap[action] ?? action;
   };
 
+  // Table's onRowClick primitive gives us a single activation per tab strip;
+  // the Cancel tab stays unreachable once a booking is already cancelled,
+  // matching the old disabled <button> — TabNav has no per-item disabled
+  // state, so the guard lives in the change handler instead.
+  const handleTabChange = (value: string) => {
+    if (value === 'cancel' && isBookingCancelled) {
+      return;
+    }
+    setActiveTab(value as TabType);
+  };
+
+  const tabItems: TabItem[] = [
+    {
+      value: 'details',
+      label: (
+        <span className="flex items-center gap-2">
+          <FiCalendar className="h-4 w-4" aria-hidden="true" />
+          {t('admin.booking.bookingManagement.editModal.tabs.details')}
+        </span>
+      ),
+    },
+    {
+      value: 'payment',
+      label: (
+        <span className="flex items-center gap-2">
+          <FiDollarSign className="h-4 w-4" aria-hidden="true" />
+          {t('admin.booking.bookingManagement.editModal.tabs.payment')}
+        </span>
+      ),
+    },
+    {
+      value: 'audit',
+      label: (
+        <span className="flex items-center gap-2">
+          <FiClock className="h-4 w-4" aria-hidden="true" />
+          {t('admin.booking.bookingManagement.editModal.tabs.audit')}
+        </span>
+      ),
+    },
+    {
+      value: 'cancel',
+      label: (
+        <span className={`flex items-center gap-2 ${isBookingCancelled ? 'opacity-40' : ''}`}>
+          <FiAlertTriangle className="h-4 w-4" aria-hidden="true" />
+          {t('admin.booking.bookingManagement.editModal.tabs.cancel')}
+        </span>
+      ),
+    },
+  ];
+
   if (!isOpen) {return null;}
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={t('admin.booking.bookingManagement.editModal.title')}
+      size="lg"
+      initialFocusRef={headingRef}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          {activeTab !== 'audit' && activeTab !== 'cancel' && (
+            <Button type="button" onClick={handleSave} loading={isSaving}>
+              {isSaving ? t('common.saving') : t('common.save')}
+            </Button>
+          )}
+        </div>
+      }
+    >
+      <p ref={headingRef} tabIndex={-1} className="mb-4 text-caption text-ink-muted outline-none">
+        {t('admin.booking.bookingManagement.editModal.bookingId')}: {booking.id.substring(0, 8)}...
+      </p>
+
+      <TabNav
+        aria-label={t('admin.booking.bookingManagement.editModal.title')}
+        items={tabItems}
+        value={activeTab}
+        onChange={handleTabChange}
+        className="mb-6"
+      />
+
+      {/* Details Tab */}
+      {activeTab === 'details' && (
+        <div className="space-y-6">
+          {/* User Info (Read-only) */}
+          <Card surface="sunken">
+            <h3 className="mb-3 flex items-center gap-2 text-caption font-semibold text-ink">
+              <FiUser className="h-4 w-4" aria-hidden="true" />
+              {t('admin.booking.bookingManagement.editModal.userInfo')}
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-caption">
+              <div>
+                <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.name')}:</span>
+                <span className="ml-2 text-ink">
+                  {booking.user.firstName && booking.user.lastName
+                    ? `${booking.user.firstName} ${booking.user.lastName}`
+                    : booking.user.email}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.email')}:</span>
+                <span className="ml-2 text-ink">{booking.user.email}</span>
+              </div>
+              <div>
+                <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.membershipId')}:</span>
+                <span className="ml-2 font-mono text-ink">
+                  {booking.user.membershipId ?? '-'}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.phone')}:</span>
+                <span className="ml-2 text-ink">{booking.user.phone ?? '-'}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Editable Fields */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField label={t('admin.booking.bookingManagement.editModal.checkInDate')} htmlFor="edit-check-in">
+              <Input
+                id="edit-check-in"
+                type="date"
+                value={checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)}
+              />
+            </FormField>
+            <FormField label={t('admin.booking.bookingManagement.editModal.checkOutDate')} htmlFor="edit-check-out">
+              <Input
+                id="edit-check-out"
+                type="date"
+                value={checkOutDate}
+                onChange={(e) => setCheckOutDate(e.target.value)}
+                min={checkInDate}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField label={t('admin.booking.bookingManagement.editModal.numberOfGuests')} htmlFor="edit-guests">
+              <Input
+                id="edit-guests"
+                type="number"
+                value={numberOfGuests}
+                onChange={(e) => setNumberOfGuests(parseInt(e.target.value) || 1)}
+                min={1}
+                max={10}
+              />
+            </FormField>
+            <FormField label={t('admin.booking.bookingManagement.editModal.roomType')} htmlFor="edit-room-type">
+              <Select
+                id="edit-room-type"
+                value={roomTypeId}
+                onChange={(e) => setRoomTypeId(e.target.value)}
+              >
+                {roomTypes.map((rt) => (
+                  <option key={rt.id} value={rt.id}>
+                    {rt.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+          </div>
+
+          {/* Original Booking Notes (Read-only) */}
+          {booking.notes && (
+            <div className="space-y-1.5">
+              <p className="text-caption font-semibold text-ink">
+                {t('admin.booking.bookingManagement.editModal.originalNotes')}
+              </p>
+              <div className="rounded-lg bg-surface-sunken p-3 text-caption text-ink-muted">
+                {booking.notes}
+              </div>
+            </div>
+          )}
+
+          {/* Admin Notes (Editable) */}
+          <FormField label={t('admin.booking.bookingManagement.editModal.adminNotes')} htmlFor="edit-admin-notes">
+            <Textarea
+              id="edit-admin-notes"
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              placeholder={t('admin.booking.bookingManagement.editModal.adminNotesPlaceholder')}
+              rows={3}
+            />
+          </FormField>
+        </div>
+      )}
+
+      {/* Payment Tab */}
+      {activeTab === 'payment' && (
+        <div className="space-y-6">
+          {/* Current Payment Info */}
+          <Card surface="sunken">
+            <h3 className="mb-3 text-caption font-semibold text-ink">
+              {t('admin.booking.bookingManagement.editModal.currentPayment')}
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-caption">
+              <div>
+                <span className="text-ink-muted">
+                  {t('admin.booking.bookingManagement.editModal.paymentType')}:
+                </span>
+                <span className="ml-2 font-semibold text-ink">
+                  {booking.paymentType === 'full'
+                    ? t('admin.booking.bookingManagement.paymentType.full')
+                    : t('admin.booking.bookingManagement.paymentType.deposit')}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-muted">
+                  {t('admin.booking.bookingManagement.editModal.paymentAmount')}:
+                </span>
+                <span className="ml-2 font-semibold text-ink">
+                  {booking.paymentAmount !== null
+                    ? `${booking.paymentAmount.toLocaleString()} THB`
+                    : '-'}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Total Price (Editable) */}
           <div>
-            <h2 className="text-xl font-semibold text-stone-900">
-              {t('admin.booking.bookingManagement.editModal.title')}
-            </h2>
-            <p className="text-sm text-stone-600 mt-1">
-              {t('admin.booking.bookingManagement.editModal.bookingId')}: {booking.id.substring(0, 8)}...
+            <FormField label={t('admin.booking.bookingManagement.editModal.totalPrice')} htmlFor="edit-total-price">
+              <Input
+                id="edit-total-price"
+                type="number"
+                value={totalPrice}
+                onChange={(e) => setTotalPrice(parseFloat(e.target.value) || 0)}
+                min={0}
+                step={0.01}
+                trailingSlot={<span className="pr-3 text-caption text-ink-muted">THB</span>}
+              />
+            </FormField>
+            <p className="mt-1 text-fine text-ink-muted">
+              {t('admin.booking.bookingManagement.editModal.calculatedPayment')}:{' '}
+              {calculatePaymentAmount(totalPrice).toLocaleString()} THB
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600"
-          >
-            <FiX className="w-6 h-6" />
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div className="border-b border-stone-200">
-          <nav className="flex -mb-px">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'details'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              }`}
-            >
-              <FiCalendar className="w-4 h-4 inline-block mr-2" />
-              {t('admin.booking.bookingManagement.editModal.tabs.details')}
-            </button>
-            <button
-              onClick={() => setActiveTab('payment')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'payment'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              }`}
-            >
-              <FiDollarSign className="w-4 h-4 inline-block mr-2" />
-              {t('admin.booking.bookingManagement.editModal.tabs.payment')}
-            </button>
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'audit'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              }`}
-            >
-              <FiClock className="w-4 h-4 inline-block mr-2" />
-              {t('admin.booking.bookingManagement.editModal.tabs.audit')}
-            </button>
-            <button
-              onClick={() => setActiveTab('cancel')}
-              disabled={isBookingCancelled}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'cancel'
-                  ? 'border-red-500 text-red-600'
-                  : isBookingCancelled
-                    ? 'border-transparent text-stone-300 cursor-not-allowed'
-                    : 'border-transparent text-stone-500 hover:text-red-600 hover:border-red-300'
-              }`}
-            >
-              <FiAlertTriangle className="w-4 h-4 inline-block mr-2" />
-              {t('admin.booking.bookingManagement.editModal.tabs.cancel')}
-            </button>
-          </nav>
-        </div>
+          {/* Current Discount */}
+          {booking.discountAmount && booking.discountAmount > 0 && (
+            <Card className="border-success-200 bg-success-50">
+              <h4 className="mb-2 flex items-center gap-2 text-caption font-semibold text-success-700">
+                <FiPercent className="h-4 w-4" aria-hidden="true" />
+                {t('admin.booking.bookingManagement.editModal.currentDiscount')}
+              </h4>
+              <p className="text-title text-success-700">
+                -{booking.discountAmount.toLocaleString()} THB
+              </p>
+              {booking.discountReason && (
+                <p className="mt-1 text-caption text-success-600">
+                  {t('admin.booking.bookingManagement.editModal.reason')}: {booking.discountReason}
+                </p>
+              )}
+            </Card>
+          )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Details Tab */}
-          {activeTab === 'details' && (
-            <div className="space-y-6">
-              {/* User Info (Read-only) */}
-              <div className="bg-stone-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-stone-700 mb-3 flex items-center gap-2">
-                  <FiUser className="w-4 h-4" />
+          {/* Apply Discount Section */}
+          {!showDiscountForm ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full border-dashed"
+              onClick={() => setShowDiscountForm(true)}
+            >
+              <FiPercent className="h-4 w-4" aria-hidden="true" />
+              {t('admin.booking.bookingManagement.editModal.applyDiscount')}
+            </Button>
+          ) : (
+            <Card className="space-y-4">
+              <h4 className="text-caption font-semibold text-ink">
+                {t('admin.booking.bookingManagement.editModal.applyDiscount')}
+              </h4>
+              <FormField label={t('admin.booking.bookingManagement.editModal.discountAmount')} htmlFor="edit-discount-amount">
+                <Input
+                  id="edit-discount-amount"
+                  type="number"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                  min={0}
+                  max={totalPrice}
+                  step={0.01}
+                  trailingSlot={<span className="pr-3 text-caption text-ink-muted">THB</span>}
+                />
+              </FormField>
+              <FormField
+                label={t('admin.booking.bookingManagement.editModal.discountReason')}
+                htmlFor="edit-discount-reason"
+                required
+              >
+                <Input
+                  id="edit-discount-reason"
+                  type="text"
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  placeholder={t('admin.booking.bookingManagement.editModal.discountReasonPlaceholder')}
+                />
+              </FormField>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowDiscountForm(false);
+                    setDiscountAmount(booking.discountAmount ?? 0);
+                    setDiscountReason(booking.discountReason ?? '');
+                  }}
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 bg-success-600 hover:bg-success-700"
+                  onClick={handleApplyDiscount}
+                  disabled={!discountReason.trim()}
+                  loading={applyDiscountMutation.isPending}
+                >
+                  {t('admin.booking.bookingManagement.editModal.applyDiscountBtn')}
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Audit History Tab */}
+      {activeTab === 'audit' && (
+        <div className="space-y-4">
+          {booking.auditHistory && booking.auditHistory.length > 0 ? (
+            <div className="space-y-4">
+              {booking.auditHistory.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-r-lg border-l-4 border-brand-500 bg-surface-sunken py-3 pl-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-semibold text-ink">
+                        {formatAuditAction(entry.action)}
+                      </p>
+                      <p className="text-caption text-ink-muted">
+                        {entry.adminName}
+                      </p>
+                    </div>
+                    <span className="flex items-center gap-1 text-fine text-ink-muted">
+                      <FiClock className="h-3 w-3" aria-hidden="true" />
+                      {formatDateTimeToEuropean(entry.createdAt)}
+                    </span>
+                  </div>
+                  {(entry.oldValue ?? entry.newValue) && (
+                    <div className="mt-2 space-y-1 text-caption">
+                      {entry.oldValue && (
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-error-50 px-2 py-0.5 text-fine text-error-700">
+                            {t('admin.booking.bookingManagement.editModal.auditOld')}
+                          </span>
+                          <span className="text-ink-muted">{entry.oldValue}</span>
+                        </div>
+                      )}
+                      {entry.newValue && (
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-success-50 px-2 py-0.5 text-fine text-success-700">
+                            {t('admin.booking.bookingManagement.editModal.auditNew')}
+                          </span>
+                          <span className="text-ink-muted">{entry.newValue}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {entry.notes && (
+                    <p className="mt-2 border-l-2 border-hairline-strong pl-2 text-caption italic text-ink-muted">
+                      &quot;{entry.notes}&quot;
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-ink-muted">
+              <FiClock className="mx-auto mb-4 h-12 w-12 opacity-50" aria-hidden="true" />
+              <p>{t('admin.booking.bookingManagement.editModal.noAuditHistory')}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cancel Tab */}
+      {activeTab === 'cancel' && (
+        <div className="space-y-6">
+          {isBookingCancelled ? (
+            /* Already Cancelled State */
+            <Card surface="sunken" className="p-6 text-center">
+              <FiAlertTriangle className="mx-auto mb-4 h-12 w-12 text-ink-faint" aria-hidden="true" />
+              <p className="text-caption text-ink-muted">{t('admin.booking.cancel.alreadyCancelled')}</p>
+            </Card>
+          ) : (
+            <>
+              {/* Warning Alert */}
+              <Card className="border-error-200 bg-error-50">
+                <div className="flex items-start gap-3">
+                  <FiAlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-error-600" aria-hidden="true" />
+                  <div>
+                    <h4 className="text-caption font-semibold text-error-700">
+                      {t('admin.booking.cancel.title')}
+                    </h4>
+                    <p className="mt-1 text-caption text-error-600">
+                      {t('admin.booking.cancel.warning')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Booking Summary */}
+              <Card surface="sunken">
+                <h3 className="mb-3 flex items-center gap-2 text-caption font-semibold text-ink">
+                  <FiUser className="h-4 w-4" aria-hidden="true" />
                   {t('admin.booking.bookingManagement.editModal.userInfo')}
                 </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-caption">
                   <div>
-                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
-                    <span className="ml-2 text-stone-900">
+                    <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.name')}:</span>
+                    <span className="ml-2 text-ink">
                       {booking.user.firstName && booking.user.lastName
                         ? `${booking.user.firstName} ${booking.user.lastName}`
                         : booking.user.email}
                     </span>
                   </div>
                   <div>
-                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.email')}:</span>
-                    <span className="ml-2 text-stone-900">{booking.user.email}</span>
-                  </div>
-                  <div>
-                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.membershipId')}:</span>
-                    <span className="ml-2 text-stone-900 font-mono">
-                      {booking.user.membershipId ?? '-'}
+                    <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.checkInDate')}:</span>
+                    <span className="ml-2 text-ink">
+                      {new Date(booking.checkInDate).toLocaleDateString()}
                     </span>
                   </div>
                   <div>
-                    <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.phone')}:</span>
-                    <span className="ml-2 text-stone-900">{booking.user.phone ?? '-'}</span>
+                    <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.checkOutDate')}:</span>
+                    <span className="ml-2 text-ink">
+                      {new Date(booking.checkOutDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('admin.booking.bookingManagement.editModal.totalPrice')}:</span>
+                    <span className="ml-2 font-semibold text-ink">
+                      {booking.totalPrice.toLocaleString()} THB
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Editable Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.booking.bookingManagement.editModal.checkInDate')}
-                  </label>
-                  <input
-                    type="date"
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.booking.bookingManagement.editModal.checkOutDate')}
-                  </label>
-                  <input
-                    type="date"
-                    value={checkOutDate}
-                    onChange={(e) => setCheckOutDate(e.target.value)}
-                    min={checkInDate}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.booking.bookingManagement.editModal.numberOfGuests')}
-                  </label>
-                  <input
-                    type="number"
-                    value={numberOfGuests}
-                    onChange={(e) => setNumberOfGuests(parseInt(e.target.value) || 1)}
-                    min={1}
-                    max={10}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.booking.bookingManagement.editModal.roomType')}
-                  </label>
-                  <select
-                    value={roomTypeId}
-                    onChange={(e) => setRoomTypeId(e.target.value)}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  >
-                    {roomTypes.map((rt) => (
-                      <option key={rt.id} value={rt.id}>
-                        {rt.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Original Booking Notes (Read-only) */}
-              {booking.notes && (
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.booking.bookingManagement.editModal.originalNotes')}
-                  </label>
-                  <div className="bg-stone-50 rounded-md p-3 text-sm text-stone-600">
-                    {booking.notes}
-                  </div>
-                </div>
-              )}
-
-              {/* Admin Notes (Editable) */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  {t('admin.booking.bookingManagement.editModal.adminNotes')}
-                </label>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder={t('admin.booking.bookingManagement.editModal.adminNotesPlaceholder')}
+              {/* Cancellation Reason */}
+              <FormField label={t('admin.booking.cancel.reasonLabel')} htmlFor="cancel-reason">
+                <Textarea
+                  id="cancel-reason"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder={t('admin.booking.cancel.reasonPlaceholder')}
                   rows={3}
-                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="focus:border-error-600 focus:ring-error-600"
                 />
-              </div>
-            </div>
-          )}
+              </FormField>
 
-          {/* Payment Tab */}
-          {activeTab === 'payment' && (
-            <div className="space-y-6">
-              {/* Current Payment Info */}
-              <div className="bg-stone-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-stone-700 mb-3">
-                  {t('admin.booking.bookingManagement.editModal.currentPayment')}
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-stone-500">
-                      {t('admin.booking.bookingManagement.editModal.paymentType')}:
-                    </span>
-                    <span className="ml-2 text-stone-900 font-medium">
-                      {booking.paymentType === 'full'
-                        ? t('admin.booking.bookingManagement.paymentType.full')
-                        : t('admin.booking.bookingManagement.paymentType.deposit')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-stone-500">
-                      {t('admin.booking.bookingManagement.editModal.paymentAmount')}:
-                    </span>
-                    <span className="ml-2 text-stone-900 font-medium">
-                      {booking.paymentAmount !== null
-                        ? `${booking.paymentAmount.toLocaleString()} THB`
-                        : '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {/* Confirmation Checkbox */}
+              <label htmlFor="confirmCancel" className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="confirmCancel"
+                  checked={confirmCancel}
+                  onChange={(e) => setConfirmCancel(e.target.checked)}
+                  className="h-4 w-4 rounded border-hairline-strong text-error-600 focus:ring-error-600"
+                />
+                <span className="text-caption text-ink">
+                  {t('admin.booking.cancel.confirmCheckbox')}
+                </span>
+              </label>
 
-              {/* Total Price (Editable) */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  {t('admin.booking.bookingManagement.editModal.totalPrice')}
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={totalPrice}
-                    onChange={(e) => setTotalPrice(parseFloat(e.target.value) || 0)}
-                    min={0}
-                    step={0.01}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500">
-                    THB
-                  </span>
-                </div>
-                <p className="text-xs text-stone-500 mt-1">
-                  {t('admin.booking.bookingManagement.editModal.calculatedPayment')}:{' '}
-                  {calculatePaymentAmount(totalPrice).toLocaleString()} THB
-                </p>
-              </div>
-
-              {/* Current Discount */}
-              {booking.discountAmount && booking.discountAmount > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center gap-2">
-                    <FiPercent className="w-4 h-4" />
-                    {t('admin.booking.bookingManagement.editModal.currentDiscount')}
-                  </h4>
-                  <p className="text-lg font-semibold text-green-700">
-                    -{booking.discountAmount.toLocaleString()} THB
-                  </p>
-                  {booking.discountReason && (
-                    <p className="text-sm text-green-600 mt-1">
-                      {t('admin.booking.bookingManagement.editModal.reason')}: {booking.discountReason}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Apply Discount Section */}
-              {!showDiscountForm ? (
-                <button
-                  onClick={() => setShowDiscountForm(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-dashed border-stone-300 rounded-md text-stone-600 hover:border-brand-500 hover:text-brand-600"
-                >
-                  <FiPercent className="w-4 h-4" />
-                  {t('admin.booking.bookingManagement.editModal.applyDiscount')}
-                </button>
-              ) : (
-                <div className="border border-stone-200 rounded-lg p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-stone-700">
-                    {t('admin.booking.bookingManagement.editModal.applyDiscount')}
-                  </h4>
-                  <div>
-                    <label className="block text-sm text-stone-600 mb-1">
-                      {t('admin.booking.bookingManagement.editModal.discountAmount')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={discountAmount}
-                        onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
-                        min={0}
-                        max={totalPrice}
-                        step={0.01}
-                        className="w-full border border-stone-300 rounded-md px-3 py-2 pr-12 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500">
-                        THB
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-stone-600 mb-1">
-                      {t('admin.booking.bookingManagement.editModal.discountReason')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={discountReason}
-                      onChange={(e) => setDiscountReason(e.target.value)}
-                      placeholder={t('admin.booking.bookingManagement.editModal.discountReasonPlaceholder')}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setShowDiscountForm(false);
-                        setDiscountAmount(booking.discountAmount ?? 0);
-                        setDiscountReason(booking.discountReason ?? '');
-                      }}
-                      className="flex-1 px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <button
-                      onClick={handleApplyDiscount}
-                      disabled={applyDiscountMutation.isPending || !discountReason.trim()}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {applyDiscountMutation.isPending
-                        ? t('common.processing')
-                        : t('admin.booking.bookingManagement.editModal.applyDiscountBtn')}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Audit History Tab */}
-          {activeTab === 'audit' && (
-            <div className="space-y-4">
-              {booking.auditHistory && booking.auditHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {booking.auditHistory.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="border-l-4 border-brand-500 pl-4 py-3 bg-stone-50 rounded-r-lg"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-stone-900">
-                            {formatAuditAction(entry.action)}
-                          </p>
-                          <p className="text-sm text-stone-600">
-                            {entry.adminName}
-                          </p>
-                        </div>
-                        <span className="text-xs text-stone-500 flex items-center gap-1">
-                          <FiClock className="w-3 h-3" />
-                          {formatDateTimeToEuropean(entry.createdAt)}
-                        </span>
-                      </div>
-                      {(entry.oldValue ?? entry.newValue) && (
-                        <div className="mt-2 text-sm space-y-1">
-                          {entry.oldValue && (
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">
-                                {t('admin.booking.bookingManagement.editModal.auditOld')}
-                              </span>
-                              <span className="text-stone-600">{entry.oldValue}</span>
-                            </div>
-                          )}
-                          {entry.newValue && (
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
-                                {t('admin.booking.bookingManagement.editModal.auditNew')}
-                              </span>
-                              <span className="text-stone-600">{entry.newValue}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {entry.notes && (
-                        <p className="mt-2 text-sm text-stone-500 italic border-l-2 border-stone-300 pl-2">
-                          &quot;{entry.notes}&quot;
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-stone-500">
-                  <FiClock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>{t('admin.booking.bookingManagement.editModal.noAuditHistory')}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Cancel Tab */}
-          {activeTab === 'cancel' && (
-            <div className="space-y-6">
-              {isBookingCancelled ? (
-                /* Already Cancelled State */
-                <div className="bg-stone-50 rounded-lg p-6 text-center">
-                  <FiAlertTriangle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
-                  <p className="text-stone-600">{t('admin.booking.cancel.alreadyCancelled')}</p>
-                </div>
-              ) : (
-                <>
-                  {/* Warning Alert */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <FiAlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800">
-                          {t('admin.booking.cancel.title')}
-                        </h4>
-                        <p className="text-sm text-red-700 mt-1">
-                          {t('admin.booking.cancel.warning')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Booking Summary */}
-                  <div className="bg-stone-50 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-stone-700 mb-3 flex items-center gap-2">
-                      <FiUser className="w-4 h-4" />
-                      {t('admin.booking.bookingManagement.editModal.userInfo')}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.name')}:</span>
-                        <span className="ml-2 text-stone-900">
-                          {booking.user.firstName && booking.user.lastName
-                            ? `${booking.user.firstName} ${booking.user.lastName}`
-                            : booking.user.email}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.checkInDate')}:</span>
-                        <span className="ml-2 text-stone-900">
-                          {new Date(booking.checkInDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.checkOutDate')}:</span>
-                        <span className="ml-2 text-stone-900">
-                          {new Date(booking.checkOutDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-stone-500">{t('admin.booking.bookingManagement.editModal.totalPrice')}:</span>
-                        <span className="ml-2 text-stone-900 font-medium">
-                          {booking.totalPrice.toLocaleString()} THB
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cancellation Reason */}
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.booking.cancel.reasonLabel')}
-                    </label>
-                    <textarea
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                      placeholder={t('admin.booking.cancel.reasonPlaceholder')}
-                      rows={3}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-
-                  {/* Confirmation Checkbox */}
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="confirmCancel"
-                      checked={confirmCancel}
-                      onChange={(e) => setConfirmCancel(e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-stone-300 rounded focus:ring-red-500"
-                    />
-                    <label htmlFor="confirmCancel" className="text-sm text-stone-700">
-                      {t('admin.booking.cancel.confirmCheckbox')}
-                    </label>
-                  </div>
-
-                  {/* Cancel Button */}
-                  <button
-                    onClick={handleCancelBooking}
-                    disabled={!cancelReason.trim() || !confirmCancel || isCancelling}
-                    className="w-full px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {isCancelling
-                      ? t('admin.booking.cancel.cancelling')
-                      : t('admin.booking.cancel.button')}
-                  </button>
-                </>
-              )}
-            </div>
+              {/* Cancel Button */}
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full"
+                onClick={handleCancelBooking}
+                disabled={!cancelReason.trim() || !confirmCancel}
+                loading={isCancelling}
+              >
+                {isCancelling
+                  ? t('admin.booking.cancel.cancelling')
+                  : t('admin.booking.cancel.button')}
+              </Button>
+            </>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-stone-200 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-          >
-            {t('common.cancel')}
-          </button>
-          {activeTab !== 'audit' && activeTab !== 'cancel' && (
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
-            >
-              {isSaving ? t('common.saving') : t('common.save')}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 };
 

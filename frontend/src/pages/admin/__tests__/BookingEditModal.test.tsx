@@ -307,7 +307,8 @@ describe('BookingEditModal - Cancel Tab', () => {
   });
 
   describe('Already cancelled booking', () => {
-    it('should show disabled state with message for already cancelled booking', () => {
+    it('should keep the Cancel tab unreachable for an already cancelled booking', async () => {
+      const user = userEvent.setup();
       render(
         <BookingEditModal
           booking={mockCancelledBooking}
@@ -318,16 +319,18 @@ describe('BookingEditModal - Cancel Tab', () => {
         { wrapper }
       );
 
-      // Cancel tab should be disabled
-      const allButtons = screen.getAllByRole('button');
-      const cancelTabButton = allButtons.find(btn => btn.textContent?.includes('Cancel'));
+      // TabNav has no per-item disabled state, so the old disabled <button>
+      // is now a guard in the tab-change handler — clicking the Cancel tab
+      // while the booking is already cancelled must not activate it.
+      const cancelTabButton = screen.getByRole('tab', { name: /Cancel/ });
+      await user.click(cancelTabButton);
 
-      if (cancelTabButton) {
-        expect(cancelTabButton).toBeDisabled();
-      }
+      expect(cancelTabButton).toHaveAttribute('aria-selected', 'false');
+      expect(screen.queryByPlaceholderText('Enter the reason for cancellation...')).not.toBeInTheDocument();
     });
 
     it('should display already cancelled message when viewing cancel tab for cancelled booking', async () => {
+      const user = userEvent.setup();
       render(
         <BookingEditModal
           booking={mockCancelledBooking}
@@ -338,14 +341,13 @@ describe('BookingEditModal - Cancel Tab', () => {
         { wrapper }
       );
 
-      // The cancel tab should be disabled for cancelled bookings
-      const tabs = screen.getAllByRole('button');
-      const cancelTab = tabs.find(tab => tab.textContent?.includes('Cancel') && tab.classList.contains('border-b-2'));
+      // The cancel tab stays unreachable for cancelled bookings, so the
+      // "already cancelled" panel behind it never renders either.
+      const cancelTabButton = screen.getByRole('tab', { name: /Cancel/ });
+      await user.click(cancelTabButton);
 
-      // Verify the tab is in a disabled state (has disabled styling)
-      if (cancelTab) {
-        expect(cancelTab).toHaveClass('cursor-not-allowed');
-      }
+      expect(cancelTabButton).toHaveAttribute('aria-selected', 'false');
+      expect(screen.queryByText('This booking has already been cancelled')).not.toBeInTheDocument();
     });
   });
 

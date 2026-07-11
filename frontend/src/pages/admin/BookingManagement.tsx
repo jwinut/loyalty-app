@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import {
-  FiCalendar,
   FiSearch,
   FiCheck,
   FiX,
   FiAlertTriangle,
+  FiCalendar,
   FiClock,
   FiRefreshCw,
   FiChevronUp,
   FiChevronDown
 } from 'react-icons/fi';
-import DashboardButton from '../../components/navigation/DashboardButton';
+import AppShell from '../../components/layout/AppShell';
+import { Badge, Button, EmptyState, Input, Table, TabNav } from '../../components/ui';
+import type { BadgeTone, TableColumn, TabItem } from '../../components/ui';
 import SlipViewerSidebar from '../../components/admin/SlipViewerSidebar';
 import BookingEditModal from './BookingEditModal';
 import { formatDateToDDMMYYYY, formatDateTimeToEuropean } from '../../utils/dateFormatter';
@@ -91,6 +92,31 @@ interface StatusCounts {
   cancelled: number;
   completed: number;
 }
+
+// Semantic tone lookups — kept in sync with the guest-facing booking page
+// (src/pages/MyBookingsPage.tsx) so the same status reads the same color
+// on both sides of a booking's lifecycle.
+const BOOKING_STATUS_TONE: Record<string, BadgeTone> = {
+  confirmed: 'success',
+  cancelled: 'error',
+  completed: 'brand',
+};
+
+const SLIP_OK_STATUS_TONE: Record<string, BadgeTone> = {
+  verified: 'success',
+  failed: 'error',
+  pending: 'warning',
+  quota_exceeded: 'warning',
+};
+
+const ADMIN_STATUS_TONE: Record<string, BadgeTone> = {
+  verified: 'success',
+  needs_action: 'error',
+  pending: 'warning',
+};
+
+const ROW_ACTION_BUTTON_CLASSES =
+  'flex h-11 w-11 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40';
 
 const BookingManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -235,10 +261,6 @@ const BookingManagement: React.FC = () => {
     }
   };
 
-  const handleRowClick = (booking: Booking) => {
-    setSelectedBooking(booking);
-  };
-
   const handleVerifySlip = async (bookingId: string) => {
     await verifySlipMutation.mutateAsync({ bookingId });
   };
@@ -262,472 +284,371 @@ const BookingManagement: React.FC = () => {
   };
 
   // Status badge components
-  const SlipOkStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-    const badges: Record<string, { icon: React.ReactNode; text: string; className: string }> = {
-      verified: {
-        icon: <FiCheck className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.slipStatus.verified'),
-        className: 'bg-green-100 text-green-800'
-      },
-      failed: {
-        icon: <FiAlertTriangle className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.slipStatus.failed'),
-        className: 'bg-red-100 text-red-800'
-      },
-      pending: {
-        icon: <FiClock className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.slipStatus.pending'),
-        className: 'bg-yellow-100 text-yellow-800'
-      },
-      quota_exceeded: {
-        icon: <FiAlertTriangle className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.slipStatus.quotaExceeded'),
-        className: 'bg-orange-100 text-orange-800'
-      }
+  const BookingStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const icons: Record<string, React.ReactNode> = {
+      confirmed: <FiCheck className="h-3 w-3" aria-hidden="true" />,
+      cancelled: <FiX className="h-3 w-3" aria-hidden="true" />,
+      completed: <FiCheck className="h-3 w-3" aria-hidden="true" />,
+    };
+    const labels: Record<string, string> = {
+      confirmed: t('booking.status.confirmed'),
+      cancelled: t('booking.status.cancelled'),
+      completed: t('booking.status.completed'),
     };
 
-    const badge = badges[status] ?? badges.pending;
+    return (
+      <Badge tone={BOOKING_STATUS_TONE[status] ?? 'success'}>
+        {icons[status] ?? icons.confirmed}
+        {labels[status] ?? labels.confirmed}
+      </Badge>
+    );
+  };
+
+  const SlipOkStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const icons: Record<string, React.ReactNode> = {
+      verified: <FiCheck className="h-3 w-3" aria-hidden="true" />,
+      failed: <FiAlertTriangle className="h-3 w-3" aria-hidden="true" />,
+      pending: <FiClock className="h-3 w-3" aria-hidden="true" />,
+      quota_exceeded: <FiAlertTriangle className="h-3 w-3" aria-hidden="true" />,
+    };
+    const labels: Record<string, string> = {
+      verified: t('admin.booking.bookingManagement.slipStatus.verified'),
+      failed: t('admin.booking.bookingManagement.slipStatus.failed'),
+      pending: t('admin.booking.bookingManagement.slipStatus.pending'),
+      quota_exceeded: t('admin.booking.bookingManagement.slipStatus.quotaExceeded'),
+    };
 
     return (
-      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
-        {badge?.icon}
-        {badge?.text}
-      </span>
+      <Badge tone={SLIP_OK_STATUS_TONE[status] ?? 'warning'}>
+        {icons[status] ?? icons.pending}
+        {labels[status] ?? labels.pending}
+      </Badge>
     );
   };
 
   const AdminStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-    const badges: Record<string, { icon: React.ReactNode; text: string; className: string }> = {
-      verified: {
-        icon: <FiCheck className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.adminStatus.verified'),
-        className: 'bg-green-100 text-green-800'
-      },
-      needs_action: {
-        icon: <FiAlertTriangle className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.adminStatus.needsAction'),
-        className: 'bg-orange-100 text-orange-800'
-      },
-      pending: {
-        icon: <FiClock className="w-3 h-3" />,
-        text: t('admin.booking.bookingManagement.adminStatus.pending'),
-        className: 'bg-yellow-100 text-yellow-800'
-      }
+    const icons: Record<string, React.ReactNode> = {
+      verified: <FiCheck className="h-3 w-3" aria-hidden="true" />,
+      needs_action: <FiAlertTriangle className="h-3 w-3" aria-hidden="true" />,
+      pending: <FiClock className="h-3 w-3" aria-hidden="true" />,
+    };
+    const labels: Record<string, string> = {
+      verified: t('admin.booking.bookingManagement.adminStatus.verified'),
+      needs_action: t('admin.booking.bookingManagement.adminStatus.needsAction'),
+      pending: t('admin.booking.bookingManagement.adminStatus.pending'),
     };
 
-    const badge = badges[status] ?? badges.pending;
-
     return (
-      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
-        {badge?.icon}
-        {badge?.text}
-      </span>
-    );
-  };
-
-  const BookingStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-    const badges: Record<string, { icon: React.ReactNode; text: string; className: string }> = {
-      confirmed: {
-        icon: <FiCheck className="w-3 h-3" />,
-        text: t('booking.status.confirmed'),
-        className: 'bg-green-100 text-green-800'
-      },
-      cancelled: {
-        icon: <FiX className="w-3 h-3" />,
-        text: t('booking.status.cancelled'),
-        className: 'bg-red-100 text-red-800'
-      },
-      completed: {
-        icon: <FiCheck className="w-3 h-3" />,
-        text: t('booking.status.completed'),
-        className: 'bg-brand-100 text-brand-800'
-      }
-    };
-
-    const badge = badges[status] ?? badges.confirmed;
-
-    return (
-      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full', badge?.className)}>
-        {badge?.icon}
-        {badge?.text}
-      </span>
+      <Badge tone={ADMIN_STATUS_TONE[status] ?? 'warning'}>
+        {icons[status] ?? icons.pending}
+        {labels[status] ?? labels.pending}
+      </Badge>
     );
   };
 
   const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
     if (sortField !== field) {return null;}
     return sortDirection === 'asc' ? (
-      <FiChevronUp className="w-4 h-4" />
+      <FiChevronUp className="h-4 w-4" aria-hidden="true" />
     ) : (
-      <FiChevronDown className="w-4 h-4" />
+      <FiChevronDown className="h-4 w-4" aria-hidden="true" />
     );
   };
+
+  const SortableHeader: React.FC<{ field: SortField; label: string }> = ({ field, label }) => (
+    <button
+      type="button"
+      onClick={() => handleSort(field)}
+      className="flex items-center gap-1 hover:text-ink"
+    >
+      {label}
+      <SortIcon field={field} />
+    </button>
+  );
+
+  const guestDisplayName = (booking: Booking) =>
+    booking.user.firstName && booking.user.lastName
+      ? `${booking.user.firstName} ${booking.user.lastName}`
+      : booking.user.email;
+
+  const rowActionButtons = (booking: Booking) => (
+    <div className="flex gap-1">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          if (booking.slip) {handleVerifySlip(booking.id);}
+        }}
+        disabled={!booking.slip || verifySlipMutation.isPending}
+        className={`${ROW_ACTION_BUTTON_CLASSES} text-success-600 hover:bg-success-50`}
+        title={t('admin.booking.bookingManagement.actions.verify')}
+      >
+        <FiCheck className="h-4 w-4" aria-hidden="true" />
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          if (booking.slip) {
+            const notes = prompt(t('admin.booking.bookingManagement.actions.enterNotes'));
+            if (notes) {handleNeedsAction(booking.id, notes);}
+          }
+        }}
+        disabled={!booking.slip || markNeedsActionMutation.isPending}
+        className={`${ROW_ACTION_BUTTON_CLASSES} text-warning-600 hover:bg-warning-50`}
+        title={t('admin.booking.bookingManagement.actions.needsAction')}
+      >
+        <FiAlertTriangle className="h-4 w-4" aria-hidden="true" />
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditBooking(booking);
+        }}
+        className={`${ROW_ACTION_BUTTON_CLASSES} text-brand-600 hover:bg-brand-50`}
+        title={t('admin.booking.bookingManagement.actions.edit')}
+      >
+        <FiCalendar className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+
+  const columns: TableColumn<Booking>[] = [
+    {
+      key: 'created',
+      header: <SortableHeader field="created_at" label={t('admin.booking.bookingManagement.table.created')} />,
+      cell: (booking) => formatDateTimeToEuropean(booking.createdAt),
+    },
+    {
+      key: 'user',
+      header: <SortableHeader field="user_name" label={t('admin.booking.bookingManagement.table.user')} />,
+      cell: (booking) => (
+        <div>
+          <p className="text-body font-semibold text-ink">{guestDisplayName(booking)}</p>
+          <p className="font-mono text-fine text-ink-muted">{booking.user.membershipId ?? '-'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'roomType',
+      header: <SortableHeader field="room_type" label={t('admin.booking.bookingManagement.table.roomType')} />,
+      cell: (booking) => booking.roomType.name,
+    },
+    {
+      key: 'dates',
+      header: <SortableHeader field="check_in_date" label={t('admin.booking.bookingManagement.table.dates')} />,
+      cell: (booking) => (
+        <div>
+          <div>{formatDateToDDMMYYYY(booking.checkInDate)}</div>
+          <div className="text-ink-muted">- {formatDateToDDMMYYYY(booking.checkOutDate)}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: <SortableHeader field="status" label={t('admin.booking.bookingManagement.table.status')} />,
+      cell: (booking) => <BookingStatusBadge status={booking.status} />,
+    },
+    {
+      key: 'payment',
+      header: <SortableHeader field="total_price" label={t('admin.booking.bookingManagement.table.payment')} />,
+      cell: (booking) => (
+        <div>
+          <p>
+            {booking.paymentType === 'full'
+              ? t('admin.booking.bookingManagement.paymentType.full')
+              : t('admin.booking.bookingManagement.paymentType.deposit')}
+          </p>
+          <p className="font-semibold text-ink">
+            {booking.paymentAmount !== null ? `${booking.paymentAmount.toLocaleString()} THB` : '-'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'slipStatus',
+      header: t('admin.booking.bookingManagement.table.slipStatus'),
+      cell: (booking) =>
+        booking.slip ? (
+          <SlipOkStatusBadge status={booking.slip.slipokStatus} />
+        ) : (
+          <span className="text-fine text-ink-faint">{t('admin.booking.bookingManagement.noSlip')}</span>
+        ),
+      hideOnMobile: true,
+    },
+    {
+      key: 'adminStatus',
+      header: t('admin.booking.bookingManagement.table.adminStatus'),
+      cell: (booking) => (booking.slip ? <AdminStatusBadge status={booking.slip.adminStatus} /> : '-'),
+      hideOnMobile: true,
+    },
+    {
+      key: 'actions',
+      header: t('admin.booking.bookingManagement.table.actions'),
+      cell: rowActionButtons,
+    },
+  ];
+
+  const statusTabItems: TabItem[] = [
+    { value: '', label: t('admin.booking.bookingManagement.allStatuses'), count: statusCounts.all },
+    { value: 'confirmed', label: t('booking.status.confirmed'), count: statusCounts.confirmed },
+    { value: 'cancelled', label: t('booking.status.cancelled'), count: statusCounts.cancelled },
+    { value: 'completed', label: t('booking.status.completed'), count: statusCounts.completed },
+  ];
 
   // Loading state
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-stone-50 p-4">
-        <div className="max-w-full mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-stone-300 rounded w-64 mb-6" />
-            <div className="h-12 bg-stone-300 rounded mb-6" />
-            <div className="bg-white rounded-lg shadow p-6">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-16 bg-stone-200 rounded mb-4" />
-              ))}
-            </div>
+      <AppShell variant="admin" title={t('admin.booking.bookingManagement.title')}>
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-64 rounded-lg bg-surface-sunken" />
+          <div className="h-12 rounded-lg bg-surface-sunken" />
+          <div className="space-y-4 rounded-card border border-hairline bg-surface-card p-6">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-16 rounded-lg bg-surface-sunken" />
+            ))}
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-full mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <FiCalendar className="h-8 w-8 text-brand-600 mr-3" />
-              <div>
-                <h1 className="text-2xl font-bold text-stone-900">
-                  {t('admin.booking.bookingManagement.title')}
-                </h1>
-                <p className="text-sm text-stone-600">
-                  {t('admin.booking.bookingManagement.subtitle')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => bookingsQuery.refetch()}
-                disabled={bookingsQuery.isRefetching}
-                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
-              >
-                <FiRefreshCw className={clsx('w-4 h-4 mr-2', bookingsQuery.isRefetching && 'animate-spin')} />
-                {t('common.refresh')}
-              </button>
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
-      </header>
+    <AppShell variant="admin" title={t('admin.booking.bookingManagement.title')}>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <p className="text-caption text-ink-muted">{t('admin.booking.bookingManagement.subtitle')}</p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => bookingsQuery.refetch()}
+          disabled={bookingsQuery.isRefetching}
+        >
+          <FiRefreshCw className={`h-4 w-4 ${bookingsQuery.isRefetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+          {t('common.refresh')}
+        </Button>
+      </div>
 
-      {/* Main Content */}
-      <div className="max-w-full mx-auto p-4">
-        <div className="flex gap-6">
-          {/* Left: Table Section (70%) */}
-          <div className="w-[70%]">
-            {/* Status Tabs */}
-            <div className="bg-white rounded-lg shadow mb-6">
-              <div className="border-b border-stone-200">
-                <nav className="-mb-px flex">
-                  <button
-                    onClick={() => setStatusFilter('')}
-                    className={clsx(
-                      'py-4 px-6 border-b-2 font-medium text-sm',
-                      statusFilter === ''
-                        ? 'border-brand-500 text-brand-600'
-                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                    )}
-                  >
-                    {t('admin.booking.bookingManagement.allStatuses')} ({statusCounts.all})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('confirmed')}
-                    className={clsx(
-                      'py-4 px-6 border-b-2 font-medium text-sm',
-                      statusFilter === 'confirmed'
-                        ? 'border-brand-500 text-brand-600'
-                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                    )}
-                  >
-                    {t('booking.status.confirmed')} ({statusCounts.confirmed})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('cancelled')}
-                    className={clsx(
-                      'py-4 px-6 border-b-2 font-medium text-sm',
-                      statusFilter === 'cancelled'
-                        ? 'border-brand-500 text-brand-600'
-                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                    )}
-                  >
-                    {t('booking.status.cancelled')} ({statusCounts.cancelled})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('completed')}
-                    className={clsx(
-                      'py-4 px-6 border-b-2 font-medium text-sm',
-                      statusFilter === 'completed'
-                        ? 'border-brand-500 text-brand-600'
-                        : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                    )}
-                  >
-                    {t('booking.status.completed')} ({statusCounts.completed})
-                  </button>
-                </nav>
-              </div>
-            </div>
+      <div className="flex flex-col gap-6 lg:flex-row">
+        {/* Left: Table Section */}
+        <div className="min-w-0 lg:w-[70%]">
+          {/* Status Tabs */}
+          <TabNav
+            aria-label={t('admin.booking.bookingManagement.title')}
+            items={statusTabItems}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as typeof statusFilter)}
+            className="mb-6"
+          />
 
-            {/* Search Bar */}
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400" />
-                  <input
-                    type="text"
-                    placeholder={t('admin.booking.bookingManagement.searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  />
-                  {isSearching && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin h-4 w-4 border-2 border-brand-500 border-t-transparent rounded-full" />
-                    </div>
-                  )}
-                </div>
-              </form>
-              <p className="text-xs text-stone-500 mt-2">
-                {t('admin.booking.bookingManagement.searchHint')}
-              </p>
-            </div>
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="mb-6">
+            <Input
+              type="text"
+              placeholder={t('admin.booking.bookingManagement.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              leadingIcon={<FiSearch aria-hidden="true" />}
+              trailingSlot={
+                isSearching ? (
+                  <span className="pr-3">
+                    <span className="block h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                  </span>
+                ) : undefined
+              }
+            />
+            <p className="mt-2 text-fine text-ink-muted">
+              {t('admin.booking.bookingManagement.searchHint')}
+            </p>
+          </form>
 
-            {/* Bookings Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden relative">
-              {isSearching && (
-                <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-                  <div className="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full" />
-                </div>
-              )}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-stone-200">
-                  <thead className="bg-stone-50">
-                    <tr>
-                      <th
-                        onClick={() => handleSort('created_at')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.created')}
-                          <SortIcon field="created_at" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('user_name')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.user')}
-                          <SortIcon field="user_name" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('room_type')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.roomType')}
-                          <SortIcon field="room_type" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('check_in_date')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.dates')}
-                          <SortIcon field="check_in_date" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('status')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.status')}
-                          <SortIcon field="status" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('total_price')}
-                        className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                      >
-                        <div className="flex items-center gap-1">
-                          {t('admin.booking.bookingManagement.table.payment')}
-                          <SortIcon field="total_price" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.booking.bookingManagement.table.slipStatus')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.booking.bookingManagement.table.adminStatus')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.booking.bookingManagement.table.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-stone-200">
-                    {bookings.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-stone-500">
-                          {t('admin.booking.bookingManagement.noBookings')}
-                        </td>
-                      </tr>
-                    ) : (
-                      bookings.map((booking) => (
-                        <tr
-                          key={booking.id}
-                          onClick={() => handleRowClick(booking)}
-                          onDoubleClick={() => handleEditBooking(booking)}
-                          className={clsx(
-                            'hover:bg-stone-50 cursor-pointer',
-                            selectedBooking?.id === booking.id && 'bg-brand-50'
-                          )}
-                        >
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
-                            {formatDateTimeToEuropean(booking.createdAt)}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-stone-900">
-                              {booking.user.firstName && booking.user.lastName
-                                ? `${booking.user.firstName} ${booking.user.lastName}`
-                                : booking.user.email}
-                            </div>
-                            <div className="text-xs text-stone-500 font-mono">
-                              {booking.user.membershipId ?? '-'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
-                            {booking.roomType.name}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-stone-900">
-                            <div>{formatDateToDDMMYYYY(booking.checkInDate)}</div>
-                            <div className="text-stone-500">
-                              - {formatDateToDDMMYYYY(booking.checkOutDate)}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <BookingStatusBadge status={booking.status} />
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm text-stone-900">
-                              {booking.paymentType === 'full'
-                                ? t('admin.booking.bookingManagement.paymentType.full')
-                                : t('admin.booking.bookingManagement.paymentType.deposit')}
-                            </div>
-                            <div className="text-sm font-medium text-stone-900">
-                              {booking.paymentAmount !== null
-                                ? `${booking.paymentAmount.toLocaleString()} THB`
-                                : '-'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {booking.slip ? (
-                              <SlipOkStatusBadge status={booking.slip.slipokStatus} />
-                            ) : (
-                              <span className="text-xs text-stone-400">
-                                {t('admin.booking.bookingManagement.noSlip')}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {booking.slip ? (
-                              <AdminStatusBadge status={booking.slip.adminStatus} />
-                            ) : (
-                              <span className="text-xs text-stone-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (booking.slip) {handleVerifySlip(booking.id);}
-                                }}
-                                disabled={!booking.slip || verifySlipMutation.isPending}
-                                className="p-1 text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={t('admin.booking.bookingManagement.actions.verify')}
-                              >
-                                <FiCheck className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (booking.slip) {
-                                    const notes = prompt(t('admin.booking.bookingManagement.actions.enterNotes'));
-                                    if (notes) {handleNeedsAction(booking.id, notes);}
-                                  }
-                                }}
-                                disabled={!booking.slip || markNeedsActionMutation.isPending}
-                                className="p-1 text-orange-600 hover:text-orange-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={t('admin.booking.bookingManagement.actions.needsAction')}
-                              >
-                                <FiAlertTriangle className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditBooking(booking);
-                                }}
-                                className="p-1 text-brand-600 hover:text-brand-900"
-                                title={t('admin.booking.bookingManagement.actions.edit')}
-                              >
-                                <FiCalendar className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-6">
-                <div className="text-sm text-stone-700">
-                  {t('admin.booking.bookingManagement.pagination', {
-                    current: currentPage,
-                    total: totalPages
-                  })}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t('common.previous')}
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t('common.next')}
-                  </button>
-                </div>
+          {/* Bookings Table */}
+          <div className="relative">
+            {isSearching && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-card bg-surface-card/60 backdrop-blur-sm">
+                <span className="block h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
               </div>
             )}
-          </div>
-
-          {/* Right: Slip Viewer Sidebar (30%) */}
-          <div className="w-[30%]">
-            <SlipViewerSidebar
-              booking={selectedBooking}
-              onVerify={handleVerifySlip}
-              onNeedsAction={handleNeedsAction}
-              onEdit={handleEditBooking}
-              onRefresh={() => bookingsQuery.refetch()}
+            <Table<Booking>
+              aria-label={t('admin.booking.bookingManagement.title')}
+              columns={columns}
+              rows={bookings}
+              rowKey={(booking) => booking.id}
+              onRowClick={handleEditBooking}
+              empty={<EmptyState title={t('admin.booking.bookingManagement.noBookings')} />}
+              mobileCard={(booking) => (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-body font-semibold text-ink">{guestDisplayName(booking)}</p>
+                      <p className="text-caption text-ink-muted">
+                        {formatDateToDDMMYYYY(booking.checkInDate)} - {formatDateToDDMMYYYY(booking.checkOutDate)}
+                      </p>
+                    </div>
+                    <BookingStatusBadge status={booking.status} />
+                  </div>
+                  <div className="flex items-center justify-between text-caption text-ink-muted">
+                    <span>{booking.roomType.name}</span>
+                    <span>{formatDateTimeToEuropean(booking.createdAt)}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {booking.slip ? (
+                      <>
+                        <SlipOkStatusBadge status={booking.slip.slipokStatus} />
+                        <AdminStatusBadge status={booking.slip.adminStatus} />
+                      </>
+                    ) : (
+                      <span className="text-fine text-ink-faint">{t('admin.booking.bookingManagement.noSlip')}</span>
+                    )}
+                    <span className="ml-auto text-caption font-semibold text-ink">
+                      {booking.paymentAmount !== null ? `${booking.paymentAmount.toLocaleString()} THB` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-end gap-1 pt-1">{rowActionButtons(booking)}</div>
+                </div>
+              )}
             />
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-caption text-ink-muted">
+                {t('admin.booking.bookingManagement.pagination', {
+                  current: currentPage,
+                  total: totalPages
+                })}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  {t('common.previous')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  {t('common.next')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Slip Viewer Sidebar */}
+        <div className="min-w-0 lg:w-[30%]">
+          <SlipViewerSidebar
+            booking={selectedBooking}
+            onVerify={handleVerifySlip}
+            onNeedsAction={handleNeedsAction}
+            onEdit={handleEditBooking}
+            onRefresh={() => bookingsQuery.refetch()}
+          />
         </div>
       </div>
 
@@ -740,7 +661,7 @@ const BookingManagement: React.FC = () => {
           onSave={handleEditSave}
         />
       )}
-    </div>
+    </AppShell>
   );
 };
 
