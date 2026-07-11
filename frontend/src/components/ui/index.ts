@@ -31,3 +31,4 @@ export { PageHeader, type PageHeaderProps, type PageHeaderDensity } from './Page
 export { Section, type SectionProps, type SectionSurface, type SectionWidth, type SectionSpacing, type SectionElement } from './Section';
 export { TabNav, type TabNavProps, type TabItem, type TabLinkItem } from './TabNav';
 export { EmptyState, type EmptyStateProps, type EmptyStateIcon } from './EmptyState';
+export { Table, type TableProps, type TableColumn, type TableColumnAlign } from './Table';
