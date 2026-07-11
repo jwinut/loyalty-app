@@ -1648,6 +1648,7 @@
     "uploadSlip": "Upload Transfer Slip",
     "uploadSlipDescription": "After payment, upload your transfer slip for verification",
     "dragDropSlip": "Drag and drop your slip here, or click to browse",
+    "browseFiles": "Browse files",
     "slipUploaded": "Slip Uploaded",
     "slipPreview": "Transfer Slip",
     "awaitingVerification": "Awaiting Verification",

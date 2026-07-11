@@ -5,7 +5,8 @@ import { FiCalendar, FiUsers, FiCheck, FiUpload, FiX, FiCheckCircle, FiClock, Fi
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import clsx from 'clsx';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
+import { Button, Card, Badge, Input, Select, FormField } from '../components/ui';
 import { bookingService } from '../services/bookingService';
 import {
   channelBookingService,
@@ -32,6 +33,12 @@ interface BookingStep {
 }
 
 type SlipStatus = 'pending' | 'uploaded' | 'verified' | 'failed';
+
+// Fixed action bar pinned above the guest tab bar's space (hidden via
+// AppShell's `hideTabBar` on this flow) so the primary action always sits in
+// the LIFF webview's thumb zone.
+const STICKY_CTA_CLASSES =
+  'fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 border-t border-hairline bg-surface-card/85 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md';
 
 function formatCountdown(msLeft: number): string {
   const totalSeconds = Math.max(0, Math.floor(msLeft / 1000));
@@ -288,135 +295,128 @@ export default function BookingPage() {
   ];
 
   return (
-    <MainLayout title={t('booking.title')}>
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-center">
-          {steps.map((step, index) => (
-            <div key={step.number} className="flex items-center">
-              <div
-                className={clsx('flex items-center justify-center w-10 h-10 rounded-full', {
-                  'bg-brand-600 text-white': currentStep === step.number,
-                  'bg-green-500 text-white': currentStep !== step.number && step.completed,
-                  'bg-stone-200 text-stone-600': currentStep !== step.number && !step.completed,
-                })}
+    <AppShell variant="guest" title={t('booking.title')} hideTabBar>
+      {/* Progress Steps — compact numbered pills connected by hairlines */}
+      <ol className="mb-8 flex items-center justify-center" aria-label={t('booking.title')}>
+        {steps.map((step, index) => {
+          const isCurrent = currentStep === step.number;
+          const isDone = !isCurrent && step.completed;
+          return (
+            <li key={step.number} className="flex items-center">
+              <span
+                aria-current={isCurrent ? 'step' : undefined}
+                aria-label={step.title}
+                className={clsx(
+                  'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-caption font-semibold',
+                  isCurrent && 'bg-brand-600 text-white',
+                  isDone && 'bg-brand-50 text-brand-700',
+                  !isCurrent && !isDone && 'bg-surface-sunken text-ink-muted',
+                )}
               >
-                {step.completed ? <FiCheck className="w-5 h-5" /> : step.number}
-              </div>
-              <span className={clsx('ml-2', currentStep === step.number ? 'font-semibold' : 'text-stone-500')}>
-                {step.title}
+                {isDone ? <FiCheck className="h-4 w-4" aria-hidden="true" /> : step.number}
               </span>
               {index < steps.length - 1 && (
-                <div className={clsx('w-16 h-1 mx-4', step.completed ? 'bg-green-500' : 'bg-stone-200')} />
+                <span
+                  aria-hidden="true"
+                  className={clsx('mx-2 h-px w-8', isDone ? 'bg-brand-600' : 'bg-hairline')}
+                />
               )}
-            </div>
-          ))}
-        </div>
-      </div>
+            </li>
+          );
+        })}
+      </ol>
 
       {/* Step 1: Property, dates, guests */}
       {currentStep === 1 && (
-        <div className="bg-white rounded-lg shadow p-6 max-w-md mx-auto">
-          <h2 className="text-xl font-semibold mb-6 flex items-center">
-            <FiCalendar className="mr-2" />
-            {t('booking.selectDates')}
-          </h2>
+        <div className="pb-28">
+          <Card className="mx-auto max-w-md">
+            <h2 className="mb-6 flex items-center gap-2 text-title text-ink">
+              <FiCalendar className="h-5 w-5" aria-hidden="true" />
+              {t('booking.selectDates')}
+            </h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                {t('booking.selectProperty')}
-              </label>
-              <div className="grid grid-cols-1 gap-3">
-                {PROPERTIES.map((p) => (
-                  <label
-                    key={p}
-                    className={clsx('flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors',
-                      property === p ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="property"
-                      value={p}
-                      checked={property === p}
-                      onChange={() => setProperty(p)}
-                      className="h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
-                      data-testid={`property-${p}`}
-                    />
-                    <FiMapPin className="ml-3 mr-2 text-brand-600 flex-shrink-0" />
-                    <span className="font-medium">{t(`property.${p}`)}</span>
-                  </label>
-                ))}
+            <div className="space-y-4">
+              <div>
+                <span className="mb-2 block text-caption font-semibold text-ink">
+                  {t('booking.selectProperty')}
+                </span>
+                <div className="grid grid-cols-1 gap-3">
+                  {PROPERTIES.map((p) => (
+                    <label
+                      key={p}
+                      className={clsx('flex min-h-11 cursor-pointer items-center gap-3 rounded-card border p-4 transition-colors',
+                        property === p ? 'border-brand-600 ring-1 ring-brand-600 bg-brand-50' : 'border-hairline hover:border-hairline-strong'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="property"
+                        value={p}
+                        checked={property === p}
+                        onChange={() => setProperty(p)}
+                        className="sr-only"
+                        data-testid={`property-${p}`}
+                      />
+                      <FiMapPin className="h-5 w-5 flex-shrink-0 text-brand-600" aria-hidden="true" />
+                      <span className="text-body font-semibold text-ink">{t(`property.${p}`)}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
+
+              <FormField label={t('booking.checkIn')} htmlFor="check-in-date">
+                <Input
+                  type="date"
+                  value={checkIn}
+                  min={today}
+                  onChange={(e) => {
+                    setCheckIn(e.target.value);
+                    if (checkOut && e.target.value >= checkOut) {
+                      setCheckOut('');
+                    }
+                  }}
+                  data-testid="check-in-date"
+                />
+              </FormField>
+
+              <FormField label={t('booking.checkOut')} htmlFor="check-out-date">
+                <Input
+                  type="date"
+                  value={checkOut}
+                  min={minCheckOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  disabled={!checkIn}
+                  data-testid="check-out-date"
+                />
+              </FormField>
+
+              <FormField label={t('booking.numberOfGuests')} htmlFor="num-guests">
+                <Select
+                  value={numGuests}
+                  onChange={(e) => setNumGuests(parseInt(e.target.value))}
+                  data-testid="num-guests"
+                >
+                  {[1, 2, 3, 4].map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? t('booking.guest') : t('booking.guests')}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
             </div>
+          </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('booking.checkIn')}
-              </label>
-              <input
-                type="date"
-                value={checkIn}
-                min={today}
-                onChange={(e) => {
-                  setCheckIn(e.target.value);
-                  if (checkOut && e.target.value >= checkOut) {
-                    setCheckOut('');
-                  }
-                }}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
-                data-testid="check-in-date"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('booking.checkOut')}
-              </label>
-              <input
-                type="date"
-                value={checkOut}
-                min={minCheckOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                disabled={!checkIn}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500 disabled:bg-stone-100"
-                data-testid="check-out-date"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('booking.numberOfGuests')}
-              </label>
-              <select
-                value={numGuests}
-                onChange={(e) => setNumGuests(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
-                data-testid="num-guests"
-              >
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>
-                    {n} {n === 1 ? t('booking.guest') : t('booking.guests')}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {nights > 0 && (
-              <p className="text-sm text-stone-600">
-                {t('booking.nightsSelected', { count: nights })}
-              </p>
-            )}
-
-            <button
+          <div className={STICKY_CTA_CLASSES}>
+            <span className="text-body font-semibold text-ink">
+              {nights > 0 ? t('booking.nightsSelected', { count: nights }) : null}
+            </span>
+            <Button
               onClick={handleDateSubmit}
               disabled={!property || !checkIn || !checkOut || nights <= 0}
-              className="w-full py-2 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed"
               data-testid="continue-to-rooms"
             >
               {t('common.continue')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -424,20 +424,21 @@ export default function BookingPage() {
       {/* Step 2: Select Room Type */}
       {currentStep === 2 && (
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-title text-ink">
               {t('booking.availableRooms')}
             </h2>
             <button
+              type="button"
               onClick={() => setCurrentStep(1)}
-              className="text-brand-600 hover:underline"
+              className="text-caption font-semibold text-brand-700 hover:underline"
             >
               {t('booking.changeDates')}
             </button>
           </div>
 
-          <p className="text-stone-600 mb-4">
-            {property && <span className="font-medium">{t(`property.${property}`)} · </span>}
+          <p className="mb-4 text-caption text-ink-muted">
+            {property && <span className="font-semibold text-ink">{t(`property.${property}`)} · </span>}
             {t('booking.stayDates', {
               checkIn: new Date(checkIn).toLocaleDateString(),
               checkOut: new Date(checkOut).toLocaleDateString(),
@@ -447,73 +448,89 @@ export default function BookingPage() {
 
           {isLoadingRoomTypes ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
+              <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-600" />
             </div>
           ) : roomTypes?.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-              <p className="text-yellow-800">{t('booking.noRoomsAvailable')}</p>
-            </div>
+            <Card surface="sunken" className="text-center">
+              <p className="text-warning-700">{t('booking.noRoomsAvailable')}</p>
+            </Card>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {roomTypes?.map((roomType) => (
-                <div
-                  key={roomType.room_type_id}
-                  className={clsx('bg-white rounded-lg shadow overflow-hidden',
-                    roomType.available_count === 0 ? 'opacity-50' : 'hover:shadow-lg cursor-pointer'
-                  )}
-                  onClick={() => roomType.available_count > 0 && handleRoomTypeSelect(roomType.room_type_id)}
-                  data-testid={`room-type-${roomType.room_type_id}`}
-                >
-                  {/* Room Image */}
-                  {roomType.photo_url ? (
-                    <img
-                      src={roomType.photo_url}
-                      alt={roomType.name}
-                      className="w-full h-48 object-cover"
+              {roomTypes?.map((roomType) => {
+                const isSoldOut = roomType.available_count === 0;
+                const isSelected = selectedRoomTypeId === roomType.room_type_id;
+                return (
+                  <label
+                    key={roomType.room_type_id}
+                    className={clsx(
+                      'flex flex-col overflow-hidden rounded-card border bg-surface-card transition-colors',
+                      isSoldOut
+                        ? 'cursor-not-allowed border-hairline opacity-50'
+                        : clsx(
+                            'cursor-pointer',
+                            isSelected ? 'border-brand-600 ring-1 ring-brand-600 bg-brand-50' : 'border-hairline hover:border-hairline-strong'
+                          )
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="roomType"
+                      value={roomType.room_type_id}
+                      checked={isSelected}
+                      disabled={isSoldOut}
+                      onChange={() => handleRoomTypeSelect(roomType.room_type_id)}
+                      className="sr-only"
+                      data-testid={`room-type-${roomType.room_type_id}`}
                     />
-                  ) : (
-                    <div className="w-full h-48 bg-stone-200 flex items-center justify-center">
-                      <span className="text-stone-400">{t('booking.noImage')}</span>
-                    </div>
-                  )}
 
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold">{roomType.name}</h3>
-                    {roomType.description && (
-                      <p className="text-stone-600 text-sm mt-1 line-clamp-2">{roomType.description}</p>
+                    {/* Room Image */}
+                    {roomType.photo_url ? (
+                      <img
+                        src={roomType.photo_url}
+                        alt={roomType.name}
+                        className="h-48 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-48 w-full items-center justify-center bg-surface-sunken">
+                        <span className="text-caption text-ink-faint">{t('booking.noImage')}</span>
+                      </div>
                     )}
 
-                    {/* Price and Availability */}
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-2xl font-bold text-brand-600">
-                            ฿{roomType.nightly_price.toLocaleString()}
-                          </span>
-                          <span className="text-stone-500 text-sm">/{t('booking.night')}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
-                            ฿{(roomType.nightly_price * nights).toLocaleString()}
-                          </div>
-                          <div className="text-sm text-stone-500">
-                            {t('booking.totalForNights', { nights })}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={clsx('mt-2 text-sm',
-                        roomType.available_count === 0 ? 'text-red-600' : 'text-green-600'
+                    <div className="p-4">
+                      <h3 className="text-title text-ink">{roomType.name}</h3>
+                      {roomType.description && (
+                        <p className="mt-1 line-clamp-2 text-caption text-ink-muted">{roomType.description}</p>
                       )}
-                      >
-                        {roomType.available_count === 0
-                          ? t('booking.soldOut')
-                          : t('booking.roomsLeft', { count: roomType.available_count })}
+
+                      {/* Price and Availability */}
+                      <div className="mt-4 border-t border-hairline pt-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-title text-ink">
+                              ฿{roomType.nightly_price.toLocaleString()}
+                            </span>
+                            <span className="text-caption text-ink-muted">/{t('booking.night')}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-body font-semibold text-ink">
+                              ฿{(roomType.nightly_price * nights).toLocaleString()}
+                            </div>
+                            <div className="text-fine text-ink-muted">
+                              {t('booking.totalForNights', { nights })}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Badge tone={isSoldOut ? 'error' : 'success'} size="sm" className="mt-2">
+                          {isSoldOut
+                            ? t('booking.soldOut')
+                            : t('booking.roomsLeft', { count: roomType.available_count })}
+                        </Badge>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>
@@ -521,209 +538,196 @@ export default function BookingPage() {
 
       {/* Step 3: Confirm Booking */}
       {currentStep === 3 && selectedRoomType && (
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">{t('booking.confirmBooking')}</h2>
-            <button
-              onClick={() => setCurrentStep(2)}
-              className="text-brand-600 hover:underline"
-            >
-              {t('booking.changeRoom')}
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 space-y-6">
-            {/* Booking Summary */}
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-4">{t('booking.bookingSummary')}</h3>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-stone-500">{t('booking.property')}:</span>
-                  <span className="ml-2 font-medium">{property ? t(`property.${property}`) : ''}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500">{t('booking.roomType')}:</span>
-                  <span className="ml-2 font-medium">{selectedRoomType.name}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500">{t('booking.checkIn')}:</span>
-                  <span className="ml-2 font-medium">{new Date(checkIn).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500">{t('booking.checkOut')}:</span>
-                  <span className="ml-2 font-medium">{new Date(checkOut).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500">{t('booking.nights')}:</span>
-                  <span className="ml-2 font-medium">{nights}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500">{t('booking.numberOfGuests')}:</span>
-                  <span className="ml-2 font-medium">{numGuests}</span>
-                </div>
-              </div>
+        <div className="pb-28">
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-title text-ink">{t('booking.confirmBooking')}</h2>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="text-caption font-semibold text-brand-700 hover:underline"
+              >
+                {t('booking.changeRoom')}
+              </button>
             </div>
 
-            {/* Guest Details */}
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-4 flex items-center">
-                <FiUsers className="mr-2" />
-                {t('booking.guestDetails')}
-              </h3>
+            <Card className="space-y-6">
+              {/* Booking Summary */}
+              <div className="border-b border-hairline pb-6">
+                <h3 className="mb-4 text-title text-ink">{t('booking.bookingSummary')}</h3>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('booking.guestName')}
-                  </label>
-                  <input
-                    type="text"
+                <div className="grid grid-cols-2 gap-4 text-caption">
+                  <div>
+                    <span className="text-ink-muted">{t('booking.property')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{property ? t(`property.${property}`) : ''}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('booking.roomType')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{selectedRoomType.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('booking.checkIn')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{new Date(checkIn).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('booking.checkOut')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{new Date(checkOut).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('booking.nights')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{nights}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted">{t('booking.numberOfGuests')}:</span>
+                    <span className="ml-2 font-semibold text-ink">{numGuests}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest Details */}
+              <div className="space-y-4 border-b border-hairline pb-6">
+                <h3 className="flex items-center gap-2 text-title text-ink">
+                  <FiUsers className="h-5 w-5" aria-hidden="true" />
+                  {t('booking.guestDetails')}
+                </h3>
+
+                <FormField label={t('booking.guestName')} htmlFor="guest-name">
+                  <Input
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                     data-testid="guest-name"
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('booking.guestPhone')}
-                  </label>
-                  <input
+                <FormField label={t('booking.guestPhone')} htmlFor="guest-phone">
+                  <Input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder={t('booking.guestPhonePlaceholder')}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
                     data-testid="guest-phone"
                   />
-                </div>
+                </FormField>
               </div>
-            </div>
 
-            {/* Payment option (50% deposit or full) */}
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-4">{t('payment.selectPaymentType')}</h3>
+              {/* Payment option (50% deposit or full) */}
+              <div className="border-b border-hairline pb-6">
+                <h3 className="mb-4 text-title text-ink">{t('payment.selectPaymentType')}</h3>
 
-              <div className="space-y-3">
-                <label
-                  className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                    paymentOption === 'deposit50' ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="paymentOption"
-                    value="deposit50"
-                    checked={paymentOption === 'deposit50'}
-                    onChange={() => setPaymentOption('deposit50')}
-                    className="mt-1 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
-                  />
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{t('payment.deposit')}</span>
-                      <span className="text-lg font-bold text-brand-600">
-                        ฿{depositAmount.toLocaleString('th-TH')}
-                      </span>
+                <div className="space-y-3">
+                  <label
+                    className={clsx('flex min-h-11 cursor-pointer items-start gap-3 rounded-card border p-4 transition-colors',
+                      paymentOption === 'deposit50' ? 'border-brand-600 ring-1 ring-brand-600 bg-brand-50' : 'border-hairline hover:border-hairline-strong'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      value="deposit50"
+                      checked={paymentOption === 'deposit50'}
+                      onChange={() => setPaymentOption('deposit50')}
+                      className="sr-only"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-body font-semibold text-ink">{t('payment.deposit')}</span>
+                        <span className="text-title text-brand-600">
+                          ฿{depositAmount.toLocaleString('th-TH')}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-caption text-ink-muted">{t('payment.depositDescription')}</p>
                     </div>
-                    <p className="text-sm text-stone-500 mt-1">{t('payment.depositDescription')}</p>
-                  </div>
-                </label>
+                  </label>
 
-                <label
-                  className={clsx('flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors',
-                    paymentOption === 'full' ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="paymentOption"
-                    value="full"
-                    checked={paymentOption === 'full'}
-                    onChange={() => setPaymentOption('full')}
-                    className="mt-1 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
-                  />
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{t('payment.payInFull')}</span>
-                      <span className="text-lg font-bold text-brand-600">
-                        ฿{totalPrice.toLocaleString('th-TH')}
-                      </span>
+                  <label
+                    className={clsx('flex min-h-11 cursor-pointer items-start gap-3 rounded-card border p-4 transition-colors',
+                      paymentOption === 'full' ? 'border-brand-600 ring-1 ring-brand-600 bg-brand-50' : 'border-hairline hover:border-hairline-strong'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      value="full"
+                      checked={paymentOption === 'full'}
+                      onChange={() => setPaymentOption('full')}
+                      className="sr-only"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-body font-semibold text-ink">{t('payment.payInFull')}</span>
+                        <span className="text-title text-brand-600">
+                          ฿{totalPrice.toLocaleString('th-TH')}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-caption text-ink-muted">{t('payment.payInFullDescription')}</p>
                     </div>
-                    <p className="text-sm text-stone-500 mt-1">{t('payment.payInFullDescription')}</p>
+                  </label>
+                </div>
+              </div>
+
+              {/* Price Details */}
+              <div>
+                <h3 className="mb-4 text-title text-ink">{t('booking.priceDetails')}</h3>
+
+                <div className="space-y-2 text-caption">
+                  <div className="flex justify-between text-ink-muted">
+                    <span>
+                      ฿{selectedRoomType.nightly_price.toLocaleString()} x {nights} {nights === 1 ? t('booking.night') : t('booking.nights')}
+                    </span>
+                    <span>฿{totalPrice.toLocaleString()}</span>
                   </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Price Details */}
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-4">{t('booking.priceDetails')}</h3>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>
-                    ฿{selectedRoomType.nightly_price.toLocaleString()} x {nights} {nights === 1 ? t('booking.night') : t('booking.nights')}
-                  </span>
-                  <span>฿{totalPrice.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-lg pt-2 border-t">
-                  <span>{t('booking.total')}</span>
-                  <span className="text-brand-600">฿{totalPrice.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm text-stone-600">
-                  <span>{t('payment.amountToPay')}</span>
-                  <span>฿{amountDueNow.toLocaleString()}</span>
+                  <div className="flex justify-between border-t border-hairline pt-2 text-body font-semibold text-ink">
+                    <span>{t('booking.total')}</span>
+                    <span className="text-brand-600">฿{totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-ink-muted">
+                    <span>{t('payment.amountToPay')}</span>
+                    <span>฿{amountDueNow.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Card>
+          </div>
 
-            {/* Submit Button */}
-            <button
+          <div className={STICKY_CTA_CLASSES}>
+            <span className="text-body font-semibold text-ink">฿{totalPrice.toLocaleString()}</span>
+            <Button
               onClick={handleBookingSubmit}
-              disabled={createBookingMutation.isPending || !guestName.trim() || !guestPhone.trim()}
-              className="w-full py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
+              loading={createBookingMutation.isPending}
+              disabled={!guestName.trim() || !guestPhone.trim()}
               data-testid="confirm-booking"
             >
-              {createBookingMutation.isPending ? (
-                <span className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                  {t('booking.processing')}
-                </span>
-              ) : (
-                t('booking.confirmAndBook')
-              )}
-            </button>
+              {t('booking.confirmAndBook')}
+            </Button>
           </div>
         </div>
       )}
 
       {/* Step 4: Payment */}
       {currentStep === 4 && createdBooking && (
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">{t('payment.title')}</h2>
+        <div className={clsx('mx-auto max-w-2xl', !holdExpired && 'pb-28')}>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-title text-ink">{t('payment.title')}</h2>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6 space-y-6">
+          <Card className="space-y-6">
             {/* Amount summary */}
-            <div className="p-4 bg-brand-50 border-2 border-brand-200 rounded-lg space-y-2">
-              <div className="flex justify-between items-center">
+            <div className="space-y-2 rounded-lg border border-brand-200 bg-brand-50 p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">
+                  <p className="font-semibold text-ink">
                     {paymentOption === 'deposit50' ? t('payment.deposit') : t('payment.payInFull')}
                   </p>
-                  <p className="text-sm text-stone-500">{t('payment.amountToPay')}</p>
+                  <p className="text-caption text-ink-muted">{t('payment.amountToPay')}</p>
                 </div>
-                <p className="text-2xl font-bold text-brand-600" data-testid="amount-due-now">
+                <p className="text-display text-brand-600" data-testid="amount-due-now">
                   ฿{createdBooking.amount_due_now.toLocaleString('th-TH')}
                 </p>
               </div>
               {createdBooking.balance_due_at_checkin > 0 && (
-                <div className="flex justify-between items-center text-sm border-t border-brand-200 pt-2">
-                  <span className="text-stone-600">{t('payment.balanceDueAtCheckin')}</span>
-                  <span className="font-semibold" data-testid="balance-due">
+                <div className="flex items-center justify-between border-t border-brand-200 pt-2 text-caption">
+                  <span className="text-ink-muted">{t('payment.balanceDueAtCheckin')}</span>
+                  <span className="font-semibold text-ink" data-testid="balance-due">
                     ฿{createdBooking.balance_due_at_checkin.toLocaleString('th-TH')}
                   </span>
                 </div>
@@ -732,74 +736,79 @@ export default function BookingPage() {
 
             {/* Hold expiry countdown */}
             {holdMsLeft !== null && !holdExpired && slipStatus === 'pending' && (
-              <div className="flex items-center justify-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3" data-testid="hold-countdown">
-                <FiClock className="w-4 h-4" />
+              <Badge
+                tone="warning"
+                size="md"
+                className="w-full justify-center gap-2 py-3"
+                data-testid="hold-countdown"
+              >
+                <FiClock className="h-4 w-4" aria-hidden="true" />
                 <span>{t('payment.holdExpiresIn', { time: formatCountdown(holdMsLeft) })}</span>
-              </div>
+              </Badge>
             )}
 
             {holdExpired ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-4" data-testid="hold-expired">
-                <FiAlertCircle className="w-8 h-8 text-red-500 mx-auto" />
-                <p className="font-medium text-red-800">{t('payment.holdExpired')}</p>
-                <button
-                  onClick={restartBooking}
-                  className="py-2 px-6 bg-brand-600 text-white rounded-md hover:bg-brand-700"
-                >
-                  {t('payment.startOver')}
-                </button>
+              <div
+                className="space-y-4 rounded-card border border-error-600 bg-error-50 p-6 text-center"
+                data-testid="hold-expired"
+              >
+                <FiAlertCircle className="mx-auto h-8 w-8 text-error-600" aria-hidden="true" />
+                <p className="font-semibold text-error-700">{t('payment.holdExpired')}</p>
+                <Button onClick={restartBooking}>{t('payment.startOver')}</Button>
               </div>
             ) : (
               <>
-                {/* Per-property PromptPay QR */}
-                <div className="border-b pb-6">
-                  <h3 className="font-semibold text-lg mb-4">{t('payment.scanQRCode')}</h3>
+                {/* Per-property PromptPay QR — pure white panel, imagery elevation */}
+                <div className="border-b border-hairline pb-6">
+                  <h3 className="mb-4 text-title text-ink">{t('payment.scanQRCode')}</h3>
 
-                  <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm space-y-4">
+                  <div className="space-y-4 rounded-lg bg-white p-4 shadow-soft">
                     {qrDataUrl ? (
                       <img
                         src={qrDataUrl}
                         alt="PromptPay QR Code"
-                        className="w-full max-w-xs mx-auto"
+                        className="mx-auto w-full max-w-xs"
                         data-testid="promptpay-qr"
                       />
                     ) : (
                       <div
-                        className="flex items-center justify-center h-48"
+                        className="flex h-48 items-center justify-center"
                         data-testid="qr-loading"
                       >
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600" />
+                        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-brand-600" />
                       </div>
                     )}
 
-                    <p className="text-sm text-stone-600 text-center">
+                    <p className="text-center text-caption text-ink-muted">
                       {t('payment.scanInstructions')}
                     </p>
-                    <p className="text-xs text-stone-500 text-center">
+                    <p className="text-center text-fine text-ink-faint">
                       {t('payment.propertyAccount', { property: t(`property.${availability?.property ?? 'hf'}`) })}
                     </p>
                   </div>
                 </div>
 
                 {/* Slip Upload Section */}
-                <div className="pb-6">
-                  <h3 className="font-semibold text-lg mb-4">{t('payment.uploadSlip')}</h3>
-                  <p className="text-sm text-stone-600 mb-4">{t('payment.uploadSlipDescription')}</p>
+                <div>
+                  <h3 className="mb-4 text-title text-ink">{t('payment.uploadSlip')}</h3>
+                  <p className="mb-4 text-caption text-ink-muted">{t('payment.uploadSlipDescription')}</p>
 
                   {slipStatus === 'pending' && !slipPreview && (
                     <div
-                      className={clsx('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-                        isDragging ? 'border-brand-500 bg-brand-50' : 'border-stone-300 hover:border-brand-400'
+                      className={clsx('rounded-card border-2 border-dashed bg-surface-sunken p-8 text-center transition-colors',
+                        isDragging ? 'border-brand-600' : 'border-hairline-strong hover:border-brand-600'
                       )}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
                       data-testid="slip-dropzone"
                     >
-                      <FiUpload className="w-12 h-12 text-stone-400 mx-auto mb-3" />
-                      <p className="text-stone-600 mb-2">{t('payment.dragDropSlip')}</p>
-                      <p className="text-xs text-stone-400">JPG, PNG (max 10MB)</p>
+                      <FiUpload className="mx-auto mb-3 h-12 w-12 text-ink-faint" aria-hidden="true" />
+                      <p className="mb-2 text-body text-ink-muted">{t('payment.dragDropSlip')}</p>
+                      <p className="mb-4 text-fine text-ink-faint">JPG, PNG (max 10MB)</p>
+                      <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
+                        {t('payment.browseFiles')}
+                      </Button>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -812,113 +821,104 @@ export default function BookingPage() {
                   )}
 
                   {slipPreview && slipStatus === 'pending' && (
-                    <div className="relative border rounded-lg overflow-hidden">
+                    <div className="relative overflow-hidden rounded-card border border-hairline">
                       <img
                         src={slipPreview}
                         alt="Transfer slip preview"
-                        className="w-full max-h-64 object-contain bg-stone-100"
+                        className="max-h-64 w-full bg-surface-sunken object-contain"
                       />
-                      <button
+                      <Button
+                        variant="destructive"
+                        size="icon"
                         onClick={removeSlip}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        className="absolute right-2 top-2"
                         data-testid="remove-slip"
+                        aria-label={t('common.close', 'Close')}
                       >
-                        <FiX className="w-4 h-4" />
-                      </button>
+                        <FiX className="h-4 w-4" aria-hidden="true" />
+                      </Button>
                     </div>
                   )}
 
                   {slipStatus === 'uploaded' && (
                     <div className="space-y-4">
                       {slipPreview && (
-                        <div className="relative border rounded-lg overflow-hidden">
+                        <div className="overflow-hidden rounded-card border border-hairline">
                           <img
                             src={slipPreview}
                             alt="Uploaded slip"
-                            className="w-full max-h-64 object-contain bg-stone-100"
+                            className="max-h-64 w-full bg-surface-sunken object-contain"
                           />
                         </div>
                       )}
 
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
-                        <FiClock className="w-6 h-6 text-yellow-500 mr-3" />
-                        <div>
-                          <p className="font-medium text-yellow-800">{t('payment.slipUploaded')}</p>
-                          <p className="text-sm text-yellow-600">{t('payment.awaitingVerification')}</p>
-                        </div>
-                      </div>
+                      <Badge tone="warning" size="md" className="w-full gap-3 py-4">
+                        <FiClock className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
+                        <span className="flex flex-col text-left">
+                          <span className="font-semibold">{t('payment.slipUploaded')}</span>
+                          <span className="font-normal">{t('payment.awaitingVerification')}</span>
+                        </span>
+                      </Badge>
 
-                      <button
+                      <Button
+                        variant="secondary"
+                        className="w-full"
                         onClick={() => navigate(`/my-bookings?openBooking=${createdBooking.booking_id}&tab=payment`)}
-                        className="w-full py-2 text-brand-600 border border-brand-300 rounded-lg hover:bg-brand-50 transition-colors"
                       >
                         {t('payment.changeSlip')}
-                      </button>
+                      </Button>
                     </div>
                   )}
 
                   {slipStatus === 'verified' && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-                      <FiCheckCircle className="w-6 h-6 text-green-500 mr-3" />
-                      <div>
-                        <p className="font-medium text-green-800">{t('payment.verified')}</p>
-                      </div>
-                    </div>
+                    <Badge tone="success" size="md" className="w-full gap-3 py-4">
+                      <FiCheckCircle className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
+                      <span className="font-semibold">{t('payment.verified')}</span>
+                    </Badge>
                   )}
 
                   {slipStatus === 'failed' && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-                      <FiAlertCircle className="w-6 h-6 text-red-500 mr-3" />
-                      <div>
-                        <p className="font-medium text-red-800">{t('payment.verificationFailed')}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleSkipPayment}
-                    className="flex-1 py-3 px-4 border border-stone-300 text-stone-700 rounded-md hover:bg-stone-50"
-                    data-testid="skip-payment"
-                  >
-                    {t('payment.payLater')}
-                  </button>
-
-                  {slipPreview && slipStatus === 'pending' && (
-                    <button
-                      onClick={handleSlipUpload}
-                      disabled={isUploading}
-                      className="flex-1 py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed font-semibold"
-                      data-testid="submit-slip"
-                    >
-                      {isUploading ? (
-                        <span className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                          {t('common.processing')}
-                        </span>
-                      ) : (
-                        t('payment.submitSlip')
-                      )}
-                    </button>
-                  )}
-
-                  {(slipStatus === 'uploaded' || slipStatus === 'verified') && (
-                    <button
-                      onClick={() => navigate('/my-bookings')}
-                      className="flex-1 py-3 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 font-semibold"
-                      data-testid="view-bookings"
-                    >
-                      {t('booking.myBookings')}
-                    </button>
+                    <Badge tone="error" size="md" className="w-full gap-3 py-4">
+                      <FiAlertCircle className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
+                      <span className="font-semibold">{t('payment.verificationFailed')}</span>
+                    </Badge>
                   )}
                 </div>
               </>
             )}
+          </Card>
+        </div>
+      )}
+
+      {/* Step 4 action bar — thumb-zone, mirrors steps 1 & 3 */}
+      {currentStep === 4 && createdBooking && !holdExpired && (
+        <div className={STICKY_CTA_CLASSES}>
+          <span className="text-body font-semibold text-ink">
+            ฿{createdBooking.amount_due_now.toLocaleString('th-TH')}
+          </span>
+          <div className="flex items-center gap-3">
+            <Button variant="secondary" onClick={handleSkipPayment} data-testid="skip-payment">
+              {t('payment.payLater')}
+            </Button>
+
+            {slipPreview && slipStatus === 'pending' && (
+              <Button
+                loading={isUploading}
+                onClick={handleSlipUpload}
+                data-testid="submit-slip"
+              >
+                {t('payment.submitSlip')}
+              </Button>
+            )}
+
+            {(slipStatus === 'uploaded' || slipStatus === 'verified') && (
+              <Button onClick={() => navigate('/my-bookings')} data-testid="view-bookings">
+                {t('booking.myBookings')}
+              </Button>
+            )}
           </div>
         </div>
       )}
-    </MainLayout>
+    </AppShell>
   );
 }
