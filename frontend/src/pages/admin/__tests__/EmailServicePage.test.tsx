@@ -32,9 +32,15 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock DashboardButton
-vi.mock('../../../components/navigation/DashboardButton', () => ({
-  default: () => <div data-testid="dashboard-button">Dashboard</div>,
+// Mock AppShell — its own AdminTopBar/AdminNavRail behavior is covered by
+// AppShell's/AdminTopBar's dedicated test suites.
+vi.mock('../../../components/layout/AppShell', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-testid="app-shell">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
 }));
 
 // Import component after mocks
@@ -62,12 +68,6 @@ describe('EmailServicePage', () => {
       render(<EmailServicePage />, { wrapper });
 
       expect(screen.getByRole('button', { name: /emailService.test.button/i })).toBeInTheDocument();
-    });
-
-    it('should render dashboard button', () => {
-      render(<EmailServicePage />, { wrapper });
-
-      expect(screen.getByTestId('dashboard-button')).toBeInTheDocument();
     });
   });
 

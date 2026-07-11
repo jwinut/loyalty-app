@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 // Mock data for testing
 const mockCouponWithAllData = {
@@ -114,9 +114,15 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock DashboardButton
-vi.mock('../../../components/navigation/DashboardButton', () => ({
-  default: () => <div data-testid="dashboard-button">Dashboard</div>,
+// Mock AppShell — its own AdminTopBar/AdminNavRail behavior is covered by
+// AppShell's/AdminTopBar's dedicated test suites.
+vi.mock('../../../components/layout/AppShell', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-testid="app-shell">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
 }));
 
 // Mock CouponAssignmentsModal
@@ -126,6 +132,11 @@ vi.mock('../../../components/admin/CouponAssignmentsModal', () => ({
 
 // Import component after mocks
 import CouponManagement from '../CouponManagement';
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to `screen.findByRole('table')` to avoid ambiguous duplicate
+// matches against the mobile card list.
 
 // Helper function to create coupon API response
 const createCouponResponse = (coupons: typeof mockCouponWithAllData[] = []) => ({
@@ -163,31 +174,32 @@ describe('CouponManagement', () => {
     it('should render the page title', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('Coupon Management')).toBeInTheDocument();
+      expect((await screen.findAllByText('Coupon Management')).length).toBeGreaterThan(0);
     });
 
     it('should render without crashing', async () => {
       const { container } = render(<CouponManagement />);
 
-      await screen.findByText('Coupon Management');
+      await screen.findAllByText('Coupon Management');
       expect(container).toBeTruthy();
     });
 
     it('should render create coupon button', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('Create Coupon')).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Create Coupon' })).toBeInTheDocument();
     });
 
     it('should render table headers', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('Coupon')).toBeInTheDocument();
-      expect(await screen.findByText('Type & Value')).toBeInTheDocument();
-      expect(await screen.findByText('Usage')).toBeInTheDocument();
-      expect(await screen.findByText('Validity')).toBeInTheDocument();
-      expect(await screen.findByText('Status')).toBeInTheDocument();
-      expect(await screen.findByText('Actions')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Coupon')).toBeInTheDocument();
+      expect(within(table).getByText('Type & Value')).toBeInTheDocument();
+      expect(within(table).getByText('Usage')).toBeInTheDocument();
+      expect(within(table).getByText('Validity')).toBeInTheDocument();
+      expect(within(table).getByText('Status')).toBeInTheDocument();
+      expect(within(table).getByText('Actions')).toBeInTheDocument();
     });
   });
 
@@ -206,7 +218,8 @@ describe('CouponManagement', () => {
 
       const { container } = render(<CouponManagement />);
 
-      expect(await screen.findByText('Summer Sale 20%')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Summer Sale 20%')).toBeInTheDocument();
       expect(container).toBeTruthy();
     });
 
@@ -225,7 +238,8 @@ describe('CouponManagement', () => {
       const { container } = render(<CouponManagement />);
 
       // Should not crash and should render without min spend text
-      expect(await screen.findByText('20% off')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('20% off')).toBeInTheDocument();
       expect(container).toBeTruthy();
     });
 
@@ -243,7 +257,8 @@ describe('CouponManagement', () => {
 
       const { container } = render(<CouponManagement />);
 
-      expect(await screen.findByText('Summer Sale 20%')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Summer Sale 20%')).toBeInTheDocument();
       expect(container).toBeTruthy();
     });
 
@@ -261,7 +276,8 @@ describe('CouponManagement', () => {
 
       render(<CouponManagement />);
 
-      expect(await screen.findByText(/No end date/)).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText(/No end date/)).toBeInTheDocument();
     });
 
     it('renders coupon gracefully when value is null/undefined', async () => {
@@ -279,7 +295,8 @@ describe('CouponManagement', () => {
 
       const { container } = render(<CouponManagement />);
 
-      expect(await screen.findByText('Summer Sale 20%')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Summer Sale 20%')).toBeInTheDocument();
       expect(container).toBeTruthy();
     });
 
@@ -303,9 +320,10 @@ describe('CouponManagement', () => {
 
       const { container } = render(<CouponManagement />);
 
-      expect(await screen.findByText('Summer Sale 20%')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Summer Sale 20%')).toBeInTheDocument();
       expect(container).toBeTruthy();
-      expect(screen.getByText(/SUMMER20/)).toBeInTheDocument();
+      expect(within(table).getByText(/SUMMER20/)).toBeInTheDocument();
     });
 
     it('renders users in assign modal with null firstName showing email', async () => {
@@ -322,7 +340,7 @@ describe('CouponManagement', () => {
       });
 
       const { container } = render(<CouponManagement />);
-      await screen.findByText('Coupon Management');
+      await screen.findAllByText('Coupon Management');
 
       // User search results handle null names with empty strings
       expect(container).toBeTruthy();
@@ -343,7 +361,7 @@ describe('CouponManagement', () => {
       });
 
       const { container } = render(<CouponManagement />);
-      await screen.findByText('Coupon Management');
+      await screen.findAllByText('Coupon Management');
 
       // formatCurrency(0) should not crash
       expect(container).toBeTruthy();
@@ -354,41 +372,44 @@ describe('CouponManagement', () => {
     it('renders coupon name and code', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('Summer Sale 20%')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Summer Sale 20%')).toBeInTheDocument();
       // Code appears combined with description in a single text node
-      expect(screen.getByText(/SUMMER20/)).toBeInTheDocument();
+      expect(within(table).getByText(/SUMMER20/)).toBeInTheDocument();
     });
 
     it('renders percentage discount value', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('20% off')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('20% off')).toBeInTheDocument();
     });
 
     it('renders usage count', async () => {
       render(<CouponManagement />);
 
-      expect(await screen.findByText('25 / 100')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('25 / 100')).toBeInTheDocument();
     });
 
     it('renders active status badge', async () => {
       render(<CouponManagement />);
 
       // Wait for the coupon data to load first
-      await screen.findByText('Summer Sale 20%');
-      expect(screen.getByText('Active')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      await within(table).findByText('Summer Sale 20%');
+      expect(within(table).getByText('Active')).toBeInTheDocument();
     });
 
     it('renders action buttons', async () => {
       render(<CouponManagement />);
 
       // Wait for coupon data to load first
-      await screen.findByText('Summer Sale 20%');
-      // Actions may appear multiple times due to component rendering pattern
-      const assignButtons = screen.getAllByText('Assign');
-      expect(assignButtons.length).toBeGreaterThan(0);
-      const viewButtons = screen.getAllByText('View');
-      expect(viewButtons.length).toBeGreaterThan(0);
+      const table = await screen.findByRole('table');
+      await within(table).findByText('Summer Sale 20%');
+      // Actions appear once per row in the desktop table
+      expect(within(table).getByRole('button', { name: 'Assign' })).toBeInTheDocument();
+      expect(within(table).getByRole('button', { name: 'View' })).toBeInTheDocument();
     });
   });
 
@@ -399,8 +420,8 @@ describe('CouponManagement', () => {
 
       render(<CouponManagement />);
 
-      expect(await screen.findByText('No coupons found')).toBeInTheDocument();
-      expect(screen.getByText('Create your first coupon to get started')).toBeInTheDocument();
+      expect((await screen.findAllByText('No coupons found')).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Create your first coupon to get started').length).toBeGreaterThan(0);
     });
   });
 
@@ -419,7 +440,7 @@ describe('CouponManagement', () => {
       });
 
       const { container } = render(<CouponManagement />);
-      await screen.findByText('Coupon Management');
+      await screen.findAllByText('Coupon Management');
 
       // Component should not crash when handling users with null membershipId
       expect(container).toBeTruthy();
@@ -440,7 +461,7 @@ describe('CouponManagement', () => {
       });
 
       const { container } = render(<CouponManagement />);
-      await screen.findByText('Coupon Management');
+      await screen.findAllByText('Coupon Management');
 
       expect(container).toBeTruthy();
     });

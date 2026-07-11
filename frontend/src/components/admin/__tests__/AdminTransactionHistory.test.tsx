@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- Test file uses non-null assertions for DOM element access */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import AdminTransactionHistory from '../AdminTransactionHistory';
 import { loyaltyService, AdminTransaction } from '../../../services/loyaltyService';
 import { logger } from '../../../utils/logger';
@@ -55,6 +55,13 @@ vi.mock('../../../utils/dateFormatter', () => ({
     return `${day}/${month}/${year}`;
   }),
 }));
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to the desktop table to avoid ambiguous duplicate matches.
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
 
 describe('AdminTransactionHistory', () => {
   const mockTransactions: AdminTransaction[] = [
@@ -149,37 +156,13 @@ describe('AdminTransactionHistory', () => {
   });
 
   describe('Loading State', () => {
-    it('should display loading skeleton initially', async () => {
-      render(<AdminTransactionHistory />);
+    it('should mark the table as loading initially and clear it once data arrives', async () => {
+      const { container } = render(<AdminTransactionHistory />);
 
-      expect(screen.getByText('Transaction History')).toBeInTheDocument();
-      const skeletonElements = document.querySelectorAll('.animate-pulse');
-      expect(skeletonElements.length).toBeGreaterThan(0);
-
-      // Wait for async operations to complete to avoid act() warning
-      await waitFor(() => {
-        expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
-      });
-    });
-
-    it('should display 5 skeleton items while loading', async () => {
-      render(<AdminTransactionHistory />);
-
-      const skeletonElements = document.querySelectorAll('.animate-pulse');
-      expect(skeletonElements).toHaveLength(5);
-
-      // Wait for async operations to complete to avoid act() warning
-      await waitFor(() => {
-        expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
-      });
-    });
-
-    it('should hide loading skeleton after data loads', async () => {
-      render(<AdminTransactionHistory />);
+      expect(container.querySelector('[data-loading="true"]')).toBeInTheDocument();
 
       await waitFor(() => {
-        const skeletonElements = document.querySelectorAll('.animate-pulse');
-        expect(skeletonElements).toHaveLength(0);
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
     });
 
@@ -197,9 +180,10 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('+500 pts')).toBeInTheDocument();
-        expect(screen.getByText('-200 pts')).toBeInTheDocument();
-        expect(screen.getByText('+1000 pts')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('+500 pts')).toBeInTheDocument();
+        expect(within(table).getByText('-200 pts')).toBeInTheDocument();
+        expect(within(table).getByText('+1000 pts')).toBeInTheDocument();
       });
     });
 
@@ -207,27 +191,28 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('earned_stay')).toBeInTheDocument();
-        expect(screen.getByText('redeemed')).toBeInTheDocument();
-        expect(screen.getByText('admin_award')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('earned_stay')).toBeInTheDocument();
+        expect(within(table).getByText('redeemed')).toBeInTheDocument();
+        expect(within(table).getByText('admin_award')).toBeInTheDocument();
       });
     });
 
-    it('should format positive points with plus sign and green color', async () => {
+    it('should tag positive points with a success tone', async () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const positivePoints = screen.getByText('+500 pts');
-        expect(positivePoints).toHaveClass('text-green-600');
+        const positivePoints = within(getDesktopTable()).getByText('+500 pts');
+        expect(positivePoints).toHaveAttribute('data-tone', 'success');
       });
     });
 
-    it('should format negative points with red color', async () => {
+    it('should tag negative points with an error tone', async () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const negativePoints = screen.getByText('-200 pts');
-        expect(negativePoints).toHaveClass('text-red-600');
+        const negativePoints = within(getDesktopTable()).getByText('-200 pts');
+        expect(negativePoints).toHaveAttribute('data-tone', 'error');
       });
     });
 
@@ -235,9 +220,10 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText(/15\/01\/2024/)).toBeInTheDocument();
-        expect(screen.getByText(/10\/01\/2024/)).toBeInTheDocument();
-        expect(screen.getByText(/05\/01\/2024/)).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText(/15\/01\/2024/)).toBeInTheDocument();
+        expect(within(table).getByText(/10\/01\/2024/)).toBeInTheDocument();
+        expect(within(table).getByText(/05\/01\/2024/)).toBeInTheDocument();
       });
     });
 
@@ -245,9 +231,10 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
-        expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-        expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('John Doe')).toBeInTheDocument();
+        expect(within(table).getByText('Jane Smith')).toBeInTheDocument();
+        expect(within(table).getByText('Bob Johnson')).toBeInTheDocument();
       });
     });
 
@@ -281,16 +268,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('user1@example.com')).toBeInTheDocument();
-      });
-    });
-
-    it('should display user icons', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const userIcons = screen.getAllByTestId('user-icon');
-        expect(userIcons.length).toBeGreaterThan(0);
+        expect(within(getDesktopTable()).getByText('user1@example.com')).toBeInTheDocument();
       });
     });
   });
@@ -300,7 +278,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Admin: admin@example.com/)).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText(/Admin: admin@example.com/)).toBeInTheDocument();
       });
     });
 
@@ -308,7 +286,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('Loyalty bonus for frequent guest')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('Loyalty bonus for frequent guest')).toBeInTheDocument();
       });
     });
 
@@ -316,8 +294,9 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.queryByText(/Admin:/)).toBeInTheDocument();
-        const adminEmails = screen.getAllByText(/Admin:/);
+        const table = getDesktopTable();
+        expect(within(table).queryByText(/Admin:/)).toBeInTheDocument();
+        const adminEmails = within(table).getAllByText(/Admin:/);
         expect(adminEmails).toHaveLength(1); // Only one admin transaction
       });
     });
@@ -390,12 +369,12 @@ describe('AdminTransactionHistory', () => {
       });
     });
 
-    it('should style admin email with blue color', async () => {
+    it('should style admin email with the brand tone', async () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const adminEmail = screen.getByText(/Admin: admin@example.com/);
-        expect(adminEmail).toHaveClass('text-brand-600');
+        const adminEmail = within(getDesktopTable()).getByText(/Admin: admin@example.com/);
+        expect(adminEmail.closest('div')).toHaveClass('text-brand-600');
       });
     });
 
@@ -403,7 +382,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const adminReason = screen.getByText('Loyalty bonus for frequent guest');
+        const adminReason = within(getDesktopTable()).getByText('Loyalty bonus for frequent guest');
         expect(adminReason).toHaveClass('italic');
       });
     });
@@ -419,21 +398,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('No transactions yet')).toBeInTheDocument();
-      });
-    });
-
-    it('should center empty state text', async () => {
-      vi.mocked(loyaltyService.getAdminTransactions).mockResolvedValueOnce({
-        transactions: [],
-        total: 0,
-      });
-
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const emptyState = screen.getByText('No transactions yet');
-        expect(emptyState).toHaveClass('text-center');
+        expect(screen.getAllByText('No transactions yet').length).toBeGreaterThan(0);
       });
     });
 
@@ -513,51 +478,10 @@ describe('AdminTransactionHistory', () => {
     it('should stop loading state on error', async () => {
       vi.mocked(loyaltyService.getAdminTransactions).mockRejectedValueOnce(new Error('Network error'));
 
-      render(<AdminTransactionHistory />);
+      const { container } = render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const skeletonElements = document.querySelectorAll('.animate-pulse');
-        expect(skeletonElements).toHaveLength(0);
-      });
-    });
-  });
-
-  describe('Scrollable Container', () => {
-    it('should have max height constraint', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const scrollableDiv = document.querySelector('.max-h-64');
-        expect(scrollableDiv).toBeInTheDocument();
-      });
-    });
-
-    it('should have overflow-y-auto for scrolling', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const scrollableDiv = document.querySelector('.overflow-y-auto');
-        expect(scrollableDiv).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Transaction Type Badge', () => {
-    it('should display type badge for each transaction', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const badges = document.querySelectorAll('.bg-stone-100');
-        expect(badges.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('should style type badge correctly', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const badge = screen.getByText('earned_stay').closest('div');
-        expect(badge).toHaveClass('bg-stone-100', 'px-2', 'py-1', 'rounded');
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
     });
   });
@@ -593,8 +517,8 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const points = screen.getByText('+0 pts');
-        expect(points).toHaveClass('text-green-600');
+        const points = within(getDesktopTable()).getByText('+0 pts');
+        expect(points).toHaveAttribute('data-tone', 'success');
       });
     });
 
@@ -603,7 +527,7 @@ describe('AdminTransactionHistory', () => {
 
       await waitFor(() => {
         // Should display both date and time
-        expect(screen.getByText(/15\/01\/2024, \d{2}:\d{2}/)).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText(/15\/01\/2024, \d{2}:\d{2}/)).toBeInTheDocument();
       });
     });
 
@@ -637,7 +561,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('John')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('John')).toBeInTheDocument();
       });
     });
   });
@@ -685,12 +609,11 @@ describe('AdminTransactionHistory', () => {
       });
     });
 
-    it('should have readable text sizes', async () => {
+    it('should expose the transaction list as an accessible table', async () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        const textElements = document.querySelectorAll('.text-sm');
-        expect(textElements.length).toBeGreaterThan(0);
+        expect(screen.getByRole('table', { name: 'Transaction History' })).toBeInTheDocument();
       });
     });
   });
@@ -725,7 +648,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('minimal@example.com')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('minimal@example.com')).toBeInTheDocument();
       });
     });
 
@@ -759,17 +682,7 @@ describe('AdminTransactionHistory', () => {
       render(<AdminTransactionHistory />);
 
       await waitFor(() => {
-        expect(screen.getByText('+999999 pts')).toBeInTheDocument();
-      });
-    });
-
-    it('should remove last border from last transaction', async () => {
-      render(<AdminTransactionHistory />);
-
-      await waitFor(() => {
-        const transactions = document.querySelectorAll('.border-b');
-        const lastTransaction = transactions[transactions.length - 1];
-        expect(lastTransaction).toHaveClass('last:border-b-0');
+        expect(within(getDesktopTable()).getByText('+999999 pts')).toBeInTheDocument();
       });
     });
   });

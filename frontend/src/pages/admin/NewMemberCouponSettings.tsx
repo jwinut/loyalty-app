@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { FiGift, FiCheck, FiX, FiInfo, FiAlertTriangle, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import MainLayout from '../../components/layout/MainLayout';
+import AppShell from '../../components/layout/AppShell';
+import { Card, Button, Select } from '../../components/ui';
 import { adminService, CouponStatusForAdmin } from '../../services/adminService';
 import { couponService } from '../../services/couponService';
 import type { Coupon } from '../../types/coupon';
@@ -16,6 +17,29 @@ interface NewMemberCouponSettings {
   pointsAmount: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="relative inline-flex items-center cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={label}
+        className="sr-only peer"
+      />
+      <div className="w-11 h-6 bg-surface-sunken peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600" />
+    </label>
+  );
 }
 
 export default function NewMemberCouponSettings() {
@@ -104,7 +128,7 @@ export default function NewMemberCouponSettings() {
 
   const handleSave = async () => {
     if (!hasChanged) {return;}
-    
+
     setIsSaving(true);
     try {
       const updateData = {
@@ -113,7 +137,7 @@ export default function NewMemberCouponSettings() {
         pointsEnabled,
         pointsAmount: pointsAmount ? parseInt(pointsAmount) : null
       };
-      
+
       const updatedSettings = await adminService.updateNewMemberCouponSettings(updateData);
       setSettings(updatedSettings);
       setHasChanged(false);
@@ -139,291 +163,238 @@ export default function NewMemberCouponSettings() {
     }
   };
 
+  const selectedCoupon = availableCoupons.find((c) => c.id === selectedCouponId);
+  const isSaveDisabled =
+    !hasChanged ||
+    isSaving ||
+    (isEnabled && !selectedCouponId) ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    (isEnabled && couponStatus?.isExpired) ||
+    (pointsEnabled && (!pointsAmount || (parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000)));
+
   if (isLoading) {
     return (
-      <MainLayout title={t('admin.newMemberCoupons.title')} showProfileBanner={false}>
+      <AppShell variant="admin" title={t('admin.newMemberCoupons.title')}>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
-            <p className="mt-4 text-stone-600">{t('admin.newMemberCoupons.loading')}</p>
+            <p className="mt-4 text-caption text-ink-muted">{t('admin.newMemberCoupons.loading')}</p>
           </div>
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   return (
-    <MainLayout title={t('admin.newMemberCoupons.title')} showProfileBanner={false}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-brand-100 rounded-lg">
-              <FiGift className="h-6 w-6 text-brand-600" />
-            </div>
-            <div>
-              <p className="text-stone-600">{t('admin.newMemberCoupons.description')}</p>
-            </div>
+    <AppShell variant="admin" title={t('admin.newMemberCoupons.title')}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-brand-50 rounded-lg">
+            <FiGift className="h-6 w-6 text-brand-600" aria-hidden="true" />
           </div>
-          
-          {/* Info Banner */}
-          <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <FiInfo className="h-5 w-5 text-brand-600 mt-0.5" />
-              <div className="text-sm text-brand-800">
-                <p className="font-medium mb-1">{t('admin.newMemberCoupons.howItWorks')}</p>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li>{t('admin.newMemberCoupons.howItWorksItems.banner')}</li>
-                  <li>{t('admin.newMemberCoupons.howItWorksItems.rewards')}</li>
-                  <li>{t('admin.newMemberCoupons.howItWorksItems.options')}</li>
-                  <li>{t('admin.newMemberCoupons.howItWorksItems.once')}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <p className="text-caption text-ink-muted">{t('admin.newMemberCoupons.description')}</p>
         </div>
 
-        {/* Simplified Settings Form */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="p-6 space-y-6">
-            {/* Enable/Disable Toggle */}
-            <div className="flex items-center justify-between py-4 border-b border-stone-200">
-              <div>
-                <h3 className="text-lg font-medium text-stone-900">{t('admin.newMemberCoupons.enableCoupons')}</h3>
-                <p className="text-sm text-stone-500">{t('admin.newMemberCoupons.enableCouponsDescription')}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isEnabled}
-                  onChange={(e) => setIsEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600" />
-              </label>
+        {/* Info Banner */}
+        <div className="rounded-lg border border-info-600 bg-info-50 p-4">
+          <div className="flex items-start gap-3">
+            <FiInfo className="h-5 w-5 text-info-700 mt-0.5" aria-hidden="true" />
+            <div className="text-caption text-info-700">
+              <p className="font-semibold mb-1">{t('admin.newMemberCoupons.howItWorks')}</p>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>{t('admin.newMemberCoupons.howItWorksItems.banner')}</li>
+                <li>{t('admin.newMemberCoupons.howItWorksItems.rewards')}</li>
+                <li>{t('admin.newMemberCoupons.howItWorksItems.options')}</li>
+                <li>{t('admin.newMemberCoupons.howItWorksItems.once')}</li>
+              </ul>
             </div>
-
-            {/* Coupon Selection */}
-            <div>
-              <label htmlFor="couponSelect" className="block text-sm font-medium text-stone-700 mb-2">
-                {t('admin.newMemberCoupons.selectCoupon')} *
-              </label>
-              <select
-                id="couponSelect"
-                value={selectedCouponId}
-                onChange={(e) => setSelectedCouponId(e.target.value)}
-                className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                disabled={!isEnabled}
-              >
-                <option value="">{t('admin.newMemberCoupons.selectCouponPlaceholder')}</option>
-                {availableCoupons.map((coupon) => (
-                  <option key={coupon.id} value={coupon.id}>
-                    {coupon.code} - {coupon.name} ({coupon.type === 'percentage' ? `${coupon.value}%` : `$${coupon.value}`} {t('admin.newMemberCoupons.off')})
-                    {coupon.validUntil && ` - ${t('coupons.expiresOn')} ${new Date(coupon.validUntil).toLocaleDateString()}`}
-                  </option>
-                ))}
-              </select>
-              {isEnabled && !selectedCouponId && (
-                <p className="mt-1 text-sm text-red-600">{t('admin.newMemberCoupons.selectCouponRequired')}</p>
-              )}
-              {availableCoupons.length === 0 && !isLoading && (
-                <p className="mt-1 text-sm text-stone-500">{t('admin.newMemberCoupons.noCouponsAvailable')}</p>
-              )}
-
-              {/* Coupon Status Warnings */}
-              {couponStatus && couponStatus.warningLevel !== 'none' && (
-                <div className={`mt-2 p-3 rounded-md border ${
-                  couponStatus.warningLevel === 'danger' 
-                    ? 'bg-red-50 border-red-200' 
-                    : 'bg-yellow-50 border-yellow-200'
-                }`}
-                >
-                  <div className="flex items-start space-x-2">
-                    {couponStatus.warningLevel === 'danger' ? (
-                      <FiAlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                    ) : (
-                      <FiAlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${
-                        couponStatus.warningLevel === 'danger' ? 'text-red-800' : 'text-yellow-800'
-                      }`}
-                      >
-                        {couponStatus.isExpired ? t('admin.newMemberCoupons.couponExpired') : t('admin.newMemberCoupons.couponExpiringSoon')}
-                      </p>
-                      <p className={`text-sm mt-1 ${
-                        couponStatus.warningLevel === 'danger' ? 'text-red-700' : 'text-yellow-700'
-                      }`}
-                      >
-                        {couponStatus.isExpired
-                          ? t('admin.newMemberCoupons.expiredMessage', { date: couponStatus.validUntil ? new Date(couponStatus.validUntil).toLocaleDateString() : '' })
-                          : t('admin.newMemberCoupons.expiringSoonMessage', { days: couponStatus.daysUntilExpiry, date: couponStatus.validUntil ? new Date(couponStatus.validUntil).toLocaleDateString() : '' })
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Selected Coupon Details */}
-            {selectedCouponId && (
-              <div className="bg-stone-50 rounded-lg p-4">
-                <h4 className="font-medium text-stone-900 mb-2">{t('admin.newMemberCoupons.selectedCouponDetails')}</h4>
-                {(() => {
-                  const selectedCoupon = availableCoupons.find(c => c.id === selectedCouponId);
-                  if (!selectedCoupon) {return null;}
-                  return (
-                    <div className="space-y-1 text-sm text-stone-600">
-                      <p><span className="font-medium">{t('admin.newMemberCoupons.code')}:</span> {selectedCoupon.code}</p>
-                      <p><span className="font-medium">{t('admin.newMemberCoupons.name')}:</span> {selectedCoupon.name}</p>
-                      <p><span className="font-medium">{t('admin.newMemberCoupons.type')}:</span> {selectedCoupon.type === 'percentage' ? t('admin.newMemberCoupons.typePercentage') : t('admin.newMemberCoupons.typeFixed')}</p>
-                      <p><span className="font-medium">{t('admin.newMemberCoupons.value')}:</span> {selectedCoupon.type === 'percentage' ? `${selectedCoupon.value}%` : `$${selectedCoupon.value}`}</p>
-                      {selectedCoupon.description && (
-                        <p><span className="font-medium">{t('admin.newMemberCoupons.description_field')}:</span> {selectedCoupon.description}</p>
-                      )}
-                      <p><span className="font-medium">{t('admin.newMemberCoupons.status')}:</span> <span className="capitalize">{selectedCoupon.status}</span></p>
-                      
-                      {/* Enhanced Expiry Information */}
-                      {couponStatus && (
-                        <>
-                          {couponStatus.validFrom && (
-                            <p><span className="font-medium">{t('admin.newMemberCoupons.validFrom')}:</span> {new Date(couponStatus.validFrom).toLocaleDateString()}</p>
-                          )}
-                          {couponStatus.validUntil && (
-                            <p>
-                              <span className="font-medium">{t('admin.newMemberCoupons.validUntil')}:</span>{' '}
-                              <span className={
-                                couponStatus.warningLevel === 'danger' ? 'text-red-600 font-medium' :
-                                couponStatus.warningLevel === 'warning' ? 'text-yellow-600 font-medium' :
-                                'text-stone-600'
-                              }
-                              >
-                                {new Date(couponStatus.validUntil).toLocaleDateString()}
-                                {couponStatus.isExpired && ` (${t('admin.newMemberCoupons.expired')})`}
-                                {!couponStatus.isExpired && couponStatus.daysUntilExpiry !== null && couponStatus.daysUntilExpiry <= 7 &&
-                                  ` (${t('admin.newMemberCoupons.daysRemaining', { count: couponStatus.daysUntilExpiry })})`
-                                }
-                              </span>
-                            </p>
-                          )}
-                          {!couponStatus.validUntil && (
-                            <p><span className="font-medium">{t('admin.newMemberCoupons.validUntil')}:</span> <span className="text-green-600">{t('admin.newMemberCoupons.noExpiry')}</span></p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* Points Configuration */}
-            <div className="border-t border-stone-200 pt-6">
-              <div className="flex items-center justify-between py-4 border-b border-stone-200">
-                <div>
-                  <h3 className="text-lg font-medium text-stone-900">{t('admin.newMemberCoupons.enablePoints')}</h3>
-                  <p className="text-sm text-stone-500">{t('admin.newMemberCoupons.enablePointsDescription')}</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pointsEnabled}
-                    onChange={(e) => setPointsEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600" />
-                </label>
-              </div>
-
-              {/* Points Amount Input */}
-              <div className="mt-4">
-                <label htmlFor="pointsAmount" className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('admin.newMemberCoupons.pointsToAward')} *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    id="pointsAmount"
-                    value={pointsAmount}
-                    onChange={(e) => setPointsAmount(e.target.value)}
-                    className="block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                    placeholder={t('admin.newMemberCoupons.pointsPlaceholder')}
-                    min="1"
-                    max="10000"
-                    disabled={!pointsEnabled}
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <span className="text-stone-500 text-sm">{t('admin.newMemberCoupons.points')}</span>
-                  </div>
-                </div>
-                {pointsEnabled && !pointsAmount && (
-                  <p className="mt-1 text-sm text-red-600">{t('admin.newMemberCoupons.pointsRequired')}</p>
-                )}
-                {pointsEnabled && pointsAmount && (parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000) && (
-                  <p className="mt-1 text-sm text-red-600">{t('admin.newMemberCoupons.pointsRange')}</p>
-                )}
-                {pointsEnabled && pointsAmount && parseInt(pointsAmount) >= 1 && parseInt(pointsAmount) <= 10000 && (
-                  <p className="mt-1 text-sm text-green-600">
-                    {t('admin.newMemberCoupons.pointsSuccess', { count: parseInt(pointsAmount) })}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={!hasChanged || isSaving}
-                className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiX className="mr-2 h-4 w-4" />
-                {t('admin.newMemberCoupons.reset')}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={
-                  !hasChanged ||
-                  isSaving ||
-                  (isEnabled && !selectedCouponId) ||
-                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-                  (isEnabled && couponStatus?.isExpired) ||
-                  (pointsEnabled && (!pointsAmount || (parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000)))
-                }
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    {t('admin.newMemberCoupons.saving')}
-                  </>
-                ) : (
-                  <>
-                    <FiCheck className="mr-2 h-4 w-4" />
-                    {t('admin.newMemberCoupons.saveSettings')}
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Save Button Help Text */}
-            {isEnabled && couponStatus?.isExpired && (
-              <p className="mt-2 text-sm text-red-600">
-                {t('admin.newMemberCoupons.expiredCouponError')}
-              </p>
-            )}
-            {pointsEnabled && (!pointsAmount || parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000) && (
-              <p className="mt-2 text-sm text-red-600">
-                {t('admin.newMemberCoupons.invalidPointsError')}
-              </p>
-            )}
           </div>
         </div>
       </div>
-    </MainLayout>
+
+      {/* Settings Form */}
+      <Card>
+        <div className="space-y-6">
+          {/* Enable/Disable Toggle */}
+          <div className="flex items-center justify-between py-4 border-b border-hairline">
+            <div>
+              <h3 className="text-body font-semibold text-ink">{t('admin.newMemberCoupons.enableCoupons')}</h3>
+              <p className="text-caption text-ink-muted">{t('admin.newMemberCoupons.enableCouponsDescription')}</p>
+            </div>
+            <ToggleSwitch checked={isEnabled} onChange={setIsEnabled} label={t('admin.newMemberCoupons.enableCoupons')} />
+          </div>
+
+          {/* Coupon Selection */}
+          <div>
+            <label htmlFor="couponSelect" className="block text-caption font-semibold text-ink mb-2">
+              {t('admin.newMemberCoupons.selectCoupon')} *
+            </label>
+            <Select
+              id="couponSelect"
+              value={selectedCouponId}
+              onChange={(e) => setSelectedCouponId(e.target.value)}
+              disabled={!isEnabled}
+            >
+              <option value="">{t('admin.newMemberCoupons.selectCouponPlaceholder')}</option>
+              {availableCoupons.map((coupon) => (
+                <option key={coupon.id} value={coupon.id}>
+                  {coupon.code} - {coupon.name} ({coupon.type === 'percentage' ? `${coupon.value}%` : `$${coupon.value}`} {t('admin.newMemberCoupons.off')})
+                  {coupon.validUntil && ` - ${t('coupons.expiresOn')} ${new Date(coupon.validUntil).toLocaleDateString()}`}
+                </option>
+              ))}
+            </Select>
+            {isEnabled && !selectedCouponId && (
+              <p className="mt-1 text-caption text-error-600">{t('admin.newMemberCoupons.selectCouponRequired')}</p>
+            )}
+            {availableCoupons.length === 0 && !isLoading && (
+              <p className="mt-1 text-caption text-ink-muted">{t('admin.newMemberCoupons.noCouponsAvailable')}</p>
+            )}
+
+            {/* Coupon Status Warnings */}
+            {couponStatus && couponStatus.warningLevel !== 'none' && (
+              <div
+                className={`mt-2 rounded-lg border p-3 ${couponStatus.warningLevel === 'danger' ? 'border-error-600 bg-error-50' : 'border-warning-600 bg-warning-50'}`}
+              >
+                <div className="flex items-start gap-2">
+                  {couponStatus.warningLevel === 'danger' ? (
+                    <FiAlertCircle className="h-5 w-5 text-error-700 mt-0.5" aria-hidden="true" />
+                  ) : (
+                    <FiAlertTriangle className="h-5 w-5 text-warning-700 mt-0.5" aria-hidden="true" />
+                  )}
+                  <div className="flex-1">
+                    <p className={`text-caption font-semibold ${couponStatus.warningLevel === 'danger' ? 'text-error-700' : 'text-warning-700'}`}>
+                      {couponStatus.isExpired ? t('admin.newMemberCoupons.couponExpired') : t('admin.newMemberCoupons.couponExpiringSoon')}
+                    </p>
+                    <p className={`text-caption mt-1 ${couponStatus.warningLevel === 'danger' ? 'text-error-700' : 'text-warning-700'}`}>
+                      {couponStatus.isExpired
+                        ? t('admin.newMemberCoupons.expiredMessage', { date: couponStatus.validUntil ? new Date(couponStatus.validUntil).toLocaleDateString() : '' })
+                        : t('admin.newMemberCoupons.expiringSoonMessage', { days: couponStatus.daysUntilExpiry, date: couponStatus.validUntil ? new Date(couponStatus.validUntil).toLocaleDateString() : '' })
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Selected Coupon Details */}
+          {selectedCouponId && selectedCoupon && (
+            <Card surface="sunken" padding="md">
+              <h4 className="font-semibold text-ink mb-2">{t('admin.newMemberCoupons.selectedCouponDetails')}</h4>
+              <div className="space-y-1 text-caption text-ink-muted">
+                <p><span className="font-semibold">{t('admin.newMemberCoupons.code')}:</span> {selectedCoupon.code}</p>
+                <p><span className="font-semibold">{t('admin.newMemberCoupons.name')}:</span> {selectedCoupon.name}</p>
+                <p><span className="font-semibold">{t('admin.newMemberCoupons.type')}:</span> {selectedCoupon.type === 'percentage' ? t('admin.newMemberCoupons.typePercentage') : t('admin.newMemberCoupons.typeFixed')}</p>
+                <p><span className="font-semibold">{t('admin.newMemberCoupons.value')}:</span> {selectedCoupon.type === 'percentage' ? `${selectedCoupon.value}%` : `$${selectedCoupon.value}`}</p>
+                {selectedCoupon.description && (
+                  <p><span className="font-semibold">{t('admin.newMemberCoupons.description_field')}:</span> {selectedCoupon.description}</p>
+                )}
+                <p><span className="font-semibold">{t('admin.newMemberCoupons.status')}:</span> <span className="capitalize">{selectedCoupon.status}</span></p>
+
+                {/* Enhanced Expiry Information */}
+                {couponStatus && (
+                  <>
+                    {couponStatus.validFrom && (
+                      <p><span className="font-semibold">{t('admin.newMemberCoupons.validFrom')}:</span> {new Date(couponStatus.validFrom).toLocaleDateString()}</p>
+                    )}
+                    {couponStatus.validUntil && (
+                      <p>
+                        <span className="font-semibold">{t('admin.newMemberCoupons.validUntil')}:</span>{' '}
+                        <span className={
+                          couponStatus.warningLevel === 'danger' ? 'text-error-600 font-semibold' :
+                          couponStatus.warningLevel === 'warning' ? 'text-warning-600 font-semibold' :
+                          'text-ink-muted'
+                        }
+                        >
+                          {new Date(couponStatus.validUntil).toLocaleDateString()}
+                          {couponStatus.isExpired && ` (${t('admin.newMemberCoupons.expired')})`}
+                          {!couponStatus.isExpired && couponStatus.daysUntilExpiry !== null && couponStatus.daysUntilExpiry <= 7 &&
+                            ` (${t('admin.newMemberCoupons.daysRemaining', { count: couponStatus.daysUntilExpiry })})`
+                          }
+                        </span>
+                      </p>
+                    )}
+                    {!couponStatus.validUntil && (
+                      <p><span className="font-semibold">{t('admin.newMemberCoupons.validUntil')}:</span> <span className="text-success-600">{t('admin.newMemberCoupons.noExpiry')}</span></p>
+                    )}
+                  </>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Points Configuration */}
+          <div className="border-t border-hairline pt-6">
+            <div className="flex items-center justify-between py-4 border-b border-hairline">
+              <div>
+                <h3 className="text-body font-semibold text-ink">{t('admin.newMemberCoupons.enablePoints')}</h3>
+                <p className="text-caption text-ink-muted">{t('admin.newMemberCoupons.enablePointsDescription')}</p>
+              </div>
+              <ToggleSwitch checked={pointsEnabled} onChange={setPointsEnabled} label={t('admin.newMemberCoupons.enablePoints')} />
+            </div>
+
+            {/* Points Amount Input */}
+            <div className="mt-4">
+              <label htmlFor="pointsAmount" className="block text-caption font-semibold text-ink mb-2">
+                {t('admin.newMemberCoupons.pointsToAward')} *
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  id="pointsAmount"
+                  value={pointsAmount}
+                  onChange={(e) => setPointsAmount(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-hairline-strong bg-surface-card px-3 pr-16 text-body text-ink transition focus:outline-none focus:ring-2 focus:border-brand-600 focus:ring-brand-600 disabled:opacity-50 disabled:pointer-events-none"
+                  placeholder={t('admin.newMemberCoupons.pointsPlaceholder')}
+                  min="1"
+                  max="10000"
+                  disabled={!pointsEnabled}
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-caption text-ink-muted">{t('admin.newMemberCoupons.points')}</span>
+                </div>
+              </div>
+              {pointsEnabled && !pointsAmount && (
+                <p className="mt-1 text-caption text-error-600">{t('admin.newMemberCoupons.pointsRequired')}</p>
+              )}
+              {pointsEnabled && pointsAmount && (parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000) && (
+                <p className="mt-1 text-caption text-error-600">{t('admin.newMemberCoupons.pointsRange')}</p>
+              )}
+              {pointsEnabled && pointsAmount && parseInt(pointsAmount) >= 1 && parseInt(pointsAmount) <= 10000 && (
+                <p className="mt-1 text-caption text-success-600">
+                  {t('admin.newMemberCoupons.pointsSuccess', { count: parseInt(pointsAmount) })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-hairline">
+            <Button type="button" variant="secondary" onClick={handleReset} disabled={!hasChanged || isSaving}>
+              <FiX className="h-4 w-4" aria-hidden="true" />
+              {t('admin.newMemberCoupons.reset')}
+            </Button>
+
+            <Button type="button" onClick={handleSave} disabled={isSaveDisabled} loading={isSaving}>
+              <FiCheck className="h-4 w-4" aria-hidden="true" />
+              {isSaving ? t('admin.newMemberCoupons.saving') : t('admin.newMemberCoupons.saveSettings')}
+            </Button>
+          </div>
+
+          {/* Save Button Help Text */}
+          {isEnabled && couponStatus?.isExpired && (
+            <p className="mt-2 text-caption text-error-600">
+              {t('admin.newMemberCoupons.expiredCouponError')}
+            </p>
+          )}
+          {pointsEnabled && (!pointsAmount || parseInt(pointsAmount) < 1 || parseInt(pointsAmount) > 10000) && (
+            <p className="mt-2 text-caption text-error-600">
+              {t('admin.newMemberCoupons.invalidPointsError')}
+            </p>
+          )}
+        </div>
+      </Card>
+    </AppShell>
   );
 }

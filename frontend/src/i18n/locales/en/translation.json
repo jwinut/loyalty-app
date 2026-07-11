@@ -453,6 +453,7 @@
       "table": {
         "user": "User",
         "tier": "Tier",
+        "nights": "Nights",
         "points": "Points",
         "actions": "Actions"
       },

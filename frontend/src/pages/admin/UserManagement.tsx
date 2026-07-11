@@ -1,11 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { FiUser, FiUsers, FiUserCheck, FiUserX, FiSearch, FiTrash2, FiEye } from 'react-icons/fi';
 import { userManagementService, User, UserStats } from '../../services/userManagementService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import AppShell from '../../components/layout/AppShell';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { Card, Table, type TableColumn, Input, Select, Badge, Button, Modal, Skeleton } from '../../components/ui';
+
+type RoleBadgeTone = 'error' | 'info' | 'brand';
+
+const ROLE_BADGE_TONE: Record<string, RoleBadgeTone> = {
+  super_admin: 'error',
+  admin: 'info',
+};
+
+function getRoleBadgeTone(role: string): RoleBadgeTone {
+  return ROLE_BADGE_TONE[role] ?? 'brand';
+}
+
+function getUserDisplayName(user: Pick<User, 'firstName' | 'lastName'>, fallback: string): string {
+  return user.firstName ?? user.lastName ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : fallback;
+}
+
+function StatCard({ icon: Icon, iconClassName, label, value }: { icon: React.ComponentType<{ className?: string }>; iconClassName: string; label: string; value: number }) {
+  return (
+    <Card>
+      <div className="flex items-center">
+        <Icon className={`h-8 w-8 mr-3 ${iconClassName}`} aria-hidden="true" />
+        <div>
+          <p className="text-caption text-ink-muted">{label}</p>
+          <p className="text-title text-ink">{value}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 const UserManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -81,11 +111,6 @@ const UserManagement: React.FC = () => {
     }
   }, [debouncedSearchTerm, initialLoading]);
 
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    // Search is now automatic via debounce, but keep form submit for accessibility
-  }, []);
-
   const handleStatusToggle = useCallback(async (user: User) => {
     try {
       await userManagementService.updateUserStatus(user.userId, !user.isActive);
@@ -139,382 +164,269 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return 'bg-red-100 text-red-800';
-      case 'admin':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-brand-100 text-brand-800';
-    }
-  };
+  const roleLabel = (role: string) =>
+    role === 'super_admin' ? t('userManagement.superAdmin') : role === 'admin' ? t('userManagement.admin') : t('userManagement.customer');
 
-  const getStatusBadgeColor = (isActive: boolean) => {
-    return isActive 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-stone-100 text-stone-800';
-  };
+  const columns: TableColumn<User>[] = [
+    {
+      key: 'user',
+      header: t('userManagement.user'),
+      cell: (user) => (
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10">
+            {user.avatarUrl ? (
+              <img className="h-10 w-10 rounded-full" src={user.avatarUrl} alt="" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-surface-sunken flex items-center justify-center">
+                <FiUser className="h-6 w-6 text-ink-muted" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+          <div className="ml-4 text-body font-semibold text-ink">
+            {getUserDisplayName(user, t('userManagement.noNameProvided'))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'membershipId',
+      header: t('profile.membershipId'),
+      cell: (user) => <span className="font-mono">{user.membershipId ?? '-'}</span>,
+    },
+    { key: 'email', header: t('userManagement.email'), cell: (user) => user.email },
+    { key: 'phone', header: t('userManagement.phone'), cell: (user) => user.phone ?? '-' },
+    {
+      key: 'role',
+      header: t('userManagement.role'),
+      cell: (user) => (
+        <Select
+          value={user.role}
+          onChange={(e) => handleRoleChange(user, e.target.value)}
+          className="h-9 w-auto"
+          aria-label={t('userManagement.role')}
+        >
+          <option value="customer">{t('userManagement.customer')}</option>
+          <option value="admin">{t('userManagement.admin')}</option>
+          <option value="super_admin">{t('userManagement.superAdmin')}</option>
+        </Select>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('userManagement.status'),
+      cell: (user) => (
+        <Badge tone={user.isActive ? 'success' : 'neutral'}>
+          {user.isActive ? t('userManagement.active') : t('userManagement.inactive')}
+        </Badge>
+      ),
+    },
+    { key: 'joined', header: t('userManagement.joined'), cell: (user) => formatDateToDDMMYYYY(user.createdAt) },
+    {
+      key: 'actions',
+      header: t('userManagement.actions'),
+      align: 'right',
+      cell: (user) => (
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon" onClick={() => viewUserDetails(user)} aria-label={t('userManagement.viewDetails')}>
+            <FiEye className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleStatusToggle(user)}
+            aria-label={user.isActive ? t('userManagement.deactivate') : t('userManagement.activate')}
+            className={user.isActive ? 'text-error-600 hover:text-error-700' : 'text-success-600 hover:text-success-700'}
+          >
+            {user.isActive ? <FiUserX className="h-4 w-4" aria-hidden="true" /> : <FiUserCheck className="h-4 w-4" aria-hidden="true" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => confirmDelete(user)}
+            aria-label={t('userManagement.deleteUser')}
+            className="text-error-600 hover:text-error-700"
+          >
+            <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-stone-50 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-stone-300 rounded w-64 mb-6" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="bg-white p-6 rounded-lg shadow">
-                  <div className="h-4 bg-stone-300 rounded w-20 mb-2" />
-                  <div className="h-8 bg-stone-300 rounded w-12" />
-                </div>
-              ))}
-            </div>
+      <AppShell variant="admin" title={t('userManagement.title')}>
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-12" />
+              </Card>
+            ))}
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <FiUsers className="h-8 w-8 text-brand-600 mr-3" />
-              <h1 className="text-3xl font-bold text-stone-900">{t('userManagement.title')}</h1>
+    <AppShell variant="admin" title={t('userManagement.title')}>
+      {/* Statistics Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <StatCard icon={FiUsers} iconClassName="text-brand-600" label={t('userManagement.totalUsers')} value={stats.total} />
+          <StatCard icon={FiUserCheck} iconClassName="text-success-700" label={t('userManagement.activeUsers')} value={stats.active} />
+          <StatCard icon={FiUser} iconClassName="text-info-700" label={t('userManagement.administrators')} value={stats.admins} />
+          <StatCard icon={FiUserCheck} iconClassName="text-warning-700" label={t('userManagement.recentJoins')} value={stats.recentlyJoined} />
+        </div>
+      )}
+
+      {/* Search Bar */}
+      <Card className="mb-8">
+        <Input
+          type="text"
+          placeholder={t('userManagement.searchPlaceholder')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          leadingIcon={<FiSearch aria-hidden="true" />}
+          trailingSlot={isSearching ? <div className="mr-3 h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" /> : undefined}
+          aria-label={t('userManagement.searchPlaceholder')}
+        />
+        <p className="text-fine text-ink-muted mt-2">{t('userManagement.searchHint', 'Search by name, email, phone, or membership ID')}</p>
+      </Card>
+
+      {/* Users Table */}
+      <Table
+        columns={columns}
+        rows={users}
+        rowKey={(user) => user.userId}
+        loading={isSearching}
+        aria-label={t('userManagement.title')}
+        mobileCard={(user) => (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-body font-semibold text-ink">{getUserDisplayName(user, t('userManagement.noNameProvided'))}</p>
+              <Badge tone={user.isActive ? 'success' : 'neutral'} size="sm">
+                {user.isActive ? t('userManagement.active') : t('userManagement.inactive')}
+              </Badge>
             </div>
-            <div className="flex items-center space-x-4">
-              <DashboardButton variant="outline" size="md" />
+            <div className="text-caption text-ink-muted">{user.email}</div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-fine text-ink-muted">{t('profile.membershipId')}</span>
+              <span className="text-caption text-ink text-right font-mono">{user.membershipId ?? '-'}</span>
             </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-fine text-ink-muted">{t('userManagement.joined')}</span>
+              <span className="text-caption text-ink text-right">{formatDateToDDMMYYYY(user.createdAt)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Badge tone={getRoleBadgeTone(user.role)} size="sm">{roleLabel(user.role)}</Badge>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" onClick={() => viewUserDetails(user)} aria-label={t('userManagement.viewDetails')}>
+                  <FiEye className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleStatusToggle(user)}
+                  aria-label={user.isActive ? t('userManagement.deactivate') : t('userManagement.activate')}
+                  className={user.isActive ? 'text-error-600 hover:text-error-700' : 'text-success-600 hover:text-success-700'}
+                >
+                  {user.isActive ? <FiUserX className="h-4 w-4" aria-hidden="true" /> : <FiUserCheck className="h-4 w-4" aria-hidden="true" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => confirmDelete(user)}
+                  aria-label={t('userManagement.deleteUser')}
+                  className="text-error-600 hover:text-error-700"
+                >
+                  <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-6">
+          <div className="text-caption text-ink-muted">
+            {t('userManagement.pagination', { current: currentPage, total: totalPages })}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+              {t('userManagement.previous')}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+              {t('userManagement.next')}
+            </Button>
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto p-4">
-
-        {/* Statistics Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <FiUsers className="h-8 w-8 text-brand-600 mr-3" />
-                <div>
-                  <p className="text-sm text-stone-600">{t('userManagement.totalUsers')}</p>
-                  <p className="text-2xl font-bold text-stone-900">{stats.total}</p>
-                </div>
-              </div>
+      {/* User Details Modal */}
+      <Modal open={showUserModal && Boolean(selectedUser)} onClose={() => setShowUserModal(false)} title={t('userManagement.userDetails')} size="sm">
+        {selectedUser && (
+          <div className="space-y-3">
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.name')}: </span>
+              <span className="text-ink">{getUserDisplayName(selectedUser, t('userManagement.notProvided'))}</span>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <FiUserCheck className="h-8 w-8 text-green-600 mr-3" />
-                <div>
-                  <p className="text-sm text-stone-600">{t('userManagement.activeUsers')}</p>
-                  <p className="text-2xl font-bold text-stone-900">{stats.active}</p>
-                </div>
-              </div>
+            <div>
+              <span className="font-semibold text-ink">{t('profile.membershipId')}: </span>
+              <span className="font-mono text-caption text-ink">{selectedUser.membershipId ?? t('admin.coupons.notAssigned')}</span>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <FiUser className="h-8 w-8 text-purple-600 mr-3" />
-                <div>
-                  <p className="text-sm text-stone-600">{t('userManagement.administrators')}</p>
-                  <p className="text-2xl font-bold text-stone-900">{stats.admins}</p>
-                </div>
-              </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.email')}: </span>
+              <span className="text-ink">{selectedUser.email}</span>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <FiUserCheck className="h-8 w-8 text-orange-600 mr-3" />
-                <div>
-                  <p className="text-sm text-stone-600">{t('userManagement.recentJoins')}</p>
-                  <p className="text-2xl font-bold text-stone-900">{stats.recentlyJoined}</p>
-                </div>
-              </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.phone')}: </span>
+              <span className="text-ink">{selectedUser.phone ?? t('userManagement.notProvided')}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.role')}: </span>
+              <Badge tone={getRoleBadgeTone(selectedUser.role)}>{roleLabel(selectedUser.role)}</Badge>
+            </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.status')}: </span>
+              <Badge tone={selectedUser.isActive ? 'success' : 'neutral'}>
+                {selectedUser.isActive ? t('userManagement.active') : t('userManagement.inactive')}
+              </Badge>
+            </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.emailVerified')}: </span>
+              <span className="text-ink">{selectedUser.emailVerified ? t('userManagement.yes') : t('userManagement.no')}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-ink">{t('userManagement.joined')}: </span>
+              <span className="text-ink">{formatDateToDDMMYYYY(selectedUser.createdAt)}</span>
             </div>
           </div>
         )}
+      </Modal>
 
-        {/* Search Bar */}
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="flex-1 relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400" />
-              <input
-                type="text"
-                placeholder={t('userManagement.searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-              {isSearching && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin h-4 w-4 border-2 border-brand-500 border-t-transparent rounded-full" />
-                </div>
-              )}
-            </div>
-          </form>
-          <p className="text-xs text-stone-500 mt-2">{t('userManagement.searchHint', 'Search by name, email, phone, or membership ID')}</p>
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden relative">
-          {isSearching && (
-            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full" />
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-200">
-              <thead className="bg-stone-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.user')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('profile.membershipId')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.email')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.phone')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.role')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.status')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.joined')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('userManagement.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-stone-200">
-                {users.map((user) => (
-                  <tr key={user.userId} className="hover:bg-stone-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          {user.avatarUrl ? (
-                            <img
-                              className="h-10 w-10 rounded-full"
-                              src={user.avatarUrl}
-                              alt=""
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-stone-300 flex items-center justify-center">
-                              <FiUser className="h-6 w-6 text-stone-600" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-stone-900">
-                            {user.firstName ?? user.lastName 
-                              ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-                              : t('userManagement.noNameProvided')
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 font-mono">
-                      {user.membershipId ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                      {user.phone ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user, e.target.value)}
-                        className={clsx('text-xs font-semibold px-2 py-1 rounded-full', getRoleBadgeColor(user.role))}
-                      >
-                        <option value="customer">{t('userManagement.customer')}</option>
-                        <option value="admin">{t('userManagement.admin')}</option>
-                        <option value="super_admin">{t('userManagement.superAdmin')}</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={clsx('inline-flex px-2 py-1 text-xs font-semibold rounded-full', getStatusBadgeColor(user.isActive))}>
-                        {user.isActive ? t('userManagement.active') : t('userManagement.inactive')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                      {formatDateToDDMMYYYY(user.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => viewUserDetails(user)}
-                          className="text-brand-600 hover:text-brand-900 p-1"
-                          title={t('userManagement.viewDetails')}
-                        >
-                          <FiEye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleStatusToggle(user)}
-                          className={clsx(
-                            'p-1',
-                            user.isActive
-                              ? 'text-red-600 hover:text-red-900'
-                              : 'text-green-600 hover:text-green-900'
-                          )}
-                          title={user.isActive ? t('userManagement.deactivate') : t('userManagement.activate')}
-                        >
-                          {user.isActive ? <FiUserX className="h-4 w-4" /> : <FiUserCheck className="h-4 w-4" />}
-                        </button>
-                        <button
-                          onClick={() => confirmDelete(user)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title={t('userManagement.deleteUser')}
-                        >
-                          <FiTrash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-6">
-            <div className="text-sm text-stone-700">
-              {t('userManagement.pagination', { current: currentPage, total: totalPages })}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('userManagement.previous')}
-              </button>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('userManagement.next')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* User Details Modal */}
-        {showUserModal && selectedUser && (
-          <div className="fixed inset-0 bg-stone-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-stone-900 mb-4">{t('userManagement.userDetails')}</h3>
-                <div className="space-y-3">
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.name')}: </span>
-                    <span className="text-stone-900">
-                      {selectedUser.firstName ?? selectedUser.lastName 
-                        ? `${selectedUser.firstName ?? ''} ${selectedUser.lastName ?? ''}`.trim()
-                        : t('userManagement.notProvided')
-                      }
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('profile.membershipId')}: </span>
-                    <span className="text-stone-900 font-mono text-sm">{selectedUser.membershipId ?? t('admin.coupons.notAssigned')}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.email')}: </span>
-                    <span className="text-stone-900">{selectedUser.email}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.phone')}: </span>
-                    <span className="text-stone-900">{selectedUser.phone ?? t('userManagement.notProvided')}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.role')}: </span>
-                    <span className={clsx('px-2 py-1 text-xs font-semibold rounded-full', getRoleBadgeColor(selectedUser.role))}>
-                      {selectedUser.role === 'super_admin' ? t('userManagement.superAdmin') :
-                       selectedUser.role === 'admin' ? t('userManagement.admin') : t('userManagement.customer')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.status')}: </span>
-                    <span className={clsx('px-2 py-1 text-xs font-semibold rounded-full', getStatusBadgeColor(selectedUser.isActive))}>
-                      {selectedUser.isActive ? t('userManagement.active') : t('userManagement.inactive')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.emailVerified')}: </span>
-                    <span className="text-stone-900">{selectedUser.emailVerified ? t('userManagement.yes') : t('userManagement.no')}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-stone-700">{t('userManagement.joined')}: </span>
-                    <span className="text-stone-900">{formatDateToDDMMYYYY(selectedUser.createdAt)}</span>
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <button
-                    onClick={() => setShowUserModal(false)}
-                    className="w-full px-4 py-2 bg-stone-300 text-stone-700 rounded-md hover:bg-stone-400 transition-colors"
-                  >
-                    {t('userManagement.close')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && userToDelete && (
-          <div className="fixed inset-0 bg-stone-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3 text-center">
-                <FiTrash2 className="mx-auto h-16 w-16 text-red-600" />
-                <h3 className="text-lg font-medium text-stone-900 mt-4">{t('userManagement.deleteUser')}</h3>
-                <p className="text-sm text-stone-500 mt-2">
-                  {t('userManagement.confirmDelete', {
-                    name: userToDelete.firstName ?? userToDelete.lastName 
-                      ? `${userToDelete.firstName ?? ''} ${userToDelete.lastName ?? ''}`.trim()
-                      : userToDelete.email
-                  })}
-                </p>
-                <div className="mt-6 flex justify-center space-x-4">
-                  <button
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setUserToDelete(null);
-                    }}
-                    className="px-4 py-2 bg-stone-300 text-stone-700 rounded-md hover:bg-stone-400 transition-colors"
-                  >
-                    {t('userManagement.cancel')}
-                  </button>
-                  <button
-                    onClick={handleDeleteUser}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    {t('userManagement.delete')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm && Boolean(userToDelete)}
+        title={t('userManagement.deleteUser')}
+        message={userToDelete ? t('userManagement.confirmDelete', {
+          name: getUserDisplayName(userToDelete, userToDelete.email),
+        }) : ''}
+        confirmText={t('userManagement.delete')}
+        cancelText={t('userManagement.cancel')}
+        onConfirm={handleDeleteUser}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+        variant="danger"
+      />
+    </AppShell>
   );
 };
 

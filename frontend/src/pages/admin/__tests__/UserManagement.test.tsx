@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 // Mock data for testing
 const mockUserWithAllData = {
@@ -74,6 +74,18 @@ vi.mock('react-i18next', () => ({
         'userManagement.customer': 'Customer',
         'userManagement.admin': 'Admin',
         'userManagement.superAdmin': 'Super Admin',
+        'userManagement.viewDetails': 'View Details',
+        'userManagement.deactivate': 'Deactivate',
+        'userManagement.activate': 'Activate',
+        'userManagement.deleteUser': 'Delete User',
+        'userManagement.delete': 'Delete',
+        'userManagement.cancel': 'Cancel',
+        'userManagement.userDetails': 'User Details',
+        'userManagement.name': 'Name',
+        'userManagement.emailVerified': 'Email Verified',
+        'userManagement.yes': 'Yes',
+        'userManagement.no': 'No',
+        'userManagement.confirmDelete': 'Are you sure you want to delete {{name}}? This action cannot be undone.',
         'profile.membershipId': 'Membership ID',
         'admin.coupons.notAssigned': 'Not assigned',
       };
@@ -82,13 +94,26 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock DashboardButton
-vi.mock('../../../components/navigation/DashboardButton', () => ({
-  default: () => <div data-testid="dashboard-button">Dashboard</div>,
+// Mock AppShell — its own AdminTopBar/AdminNavRail behavior is covered by
+// AppShell's/AdminTopBar's dedicated test suites.
+vi.mock('../../../components/layout/AppShell', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-testid="app-shell">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
 }));
 
 // Import component after mocks
 import UserManagement from '../UserManagement';
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to the desktop table to avoid ambiguous duplicate matches.
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
 
 describe('UserManagement', () => {
   beforeEach(() => {
@@ -142,7 +167,8 @@ describe('UserManagement', () => {
 
       render(<UserManagement />);
 
-      expect(await screen.findByText('No name provided')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('No name provided')).toBeInTheDocument();
     });
 
     it('renders name when only firstName is available', async () => {
@@ -158,7 +184,8 @@ describe('UserManagement', () => {
 
       render(<UserManagement />);
 
-      expect(await screen.findByText('John')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('John')).toBeInTheDocument();
     });
 
     it('renders name when only lastName is available', async () => {
@@ -174,7 +201,8 @@ describe('UserManagement', () => {
 
       render(<UserManagement />);
 
-      expect(await screen.findByText('Doe')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Doe')).toBeInTheDocument();
     });
 
     it('renders "-" when membershipId is null', async () => {
@@ -255,11 +283,11 @@ describe('UserManagement', () => {
 
       // Should not crash
       const { container } = render(<UserManagement />);
-      await screen.findByText('User Management');
+      const table = await screen.findByRole('table');
 
       expect(container).toBeTruthy();
-      expect(screen.getByText('No name provided')).toBeInTheDocument();
-      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+      expect(within(table).getByText('No name provided')).toBeInTheDocument();
+      expect(within(table).getByText('test@example.com')).toBeInTheDocument();
     });
   });
 
@@ -267,13 +295,15 @@ describe('UserManagement', () => {
     it('renders full name when both firstName and lastName are present', async () => {
       render(<UserManagement />);
 
-      expect(await screen.findByText('John Doe')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('John Doe')).toBeInTheDocument();
     });
 
     it('renders email', async () => {
       render(<UserManagement />);
 
-      expect(await screen.findByText('john.doe@example.com')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('john.doe@example.com')).toBeInTheDocument();
     });
 
     it('renders phone when present', async () => {
@@ -285,13 +315,15 @@ describe('UserManagement', () => {
     it('renders membership ID when present', async () => {
       render(<UserManagement />);
 
-      expect(await screen.findByText('MEM001')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('MEM001')).toBeInTheDocument();
     });
 
     it('renders active status badge', async () => {
       render(<UserManagement />);
 
-      expect(await screen.findByText('Active')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Active')).toBeInTheDocument();
     });
   });
 
@@ -307,8 +339,20 @@ describe('UserManagement', () => {
       await screen.findByText('User Management');
       // Table should be empty (no user rows)
       const rows = screen.queryAllByRole('row');
-      // Only header row should exist
+      // Only header row + the empty-state row should exist
       expect(rows.length).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe('Actions', () => {
+    it('should render view/status/delete actions for each user', async () => {
+      render(<UserManagement />);
+
+      await screen.findByRole('table');
+      const table = getDesktopTable();
+      expect(within(table).getByRole('button', { name: 'View Details' })).toBeInTheDocument();
+      expect(within(table).getByRole('button', { name: 'Deactivate' })).toBeInTheDocument();
+      expect(within(table).getByRole('button', { name: 'Delete User' })).toBeInTheDocument();
     });
   });
 });

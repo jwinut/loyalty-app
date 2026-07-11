@@ -418,6 +418,7 @@
       "table": {
         "user": "用户",
         "tier": "等级",
+        "nights": "入住晚数",
         "points": "积分",
         "actions": "操作"
       },

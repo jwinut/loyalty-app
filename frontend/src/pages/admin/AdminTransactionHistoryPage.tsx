@@ -1,9 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import MainLayout from '../../components/layout/MainLayout';
+import AppShell from '../../components/layout/AppShell';
+import { Card, Table, type TableColumn } from '../../components/ui';
 import { loyaltyService, AdminTransaction } from '../../services/loyaltyService';
 import { logger } from '../../utils/logger';
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatName(firstName: string | null | undefined, lastName: string | null | undefined) {
+  const parts = [firstName, lastName].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : '-';
+}
+
+function formatChange(value: number | null | undefined) {
+  if (value === null || value === undefined || value === 0) {return '-';}
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value}`;
+}
+
+function ChangeValue({ value }: { value: number | null | undefined }) {
+  const tone = value && value > 0 ? 'success' : value && value < 0 ? 'error' : 'neutral';
+  const toneClass = tone === 'success' ? 'text-success-700' : tone === 'error' ? 'text-error-700' : 'text-ink-muted';
+  return (
+    <span data-tone={tone} className={toneClass}>
+      {formatChange(value)}
+    </span>
+  );
+}
 
 export default function AdminTransactionHistoryPage() {
   const { t } = useTranslation();
@@ -30,130 +63,96 @@ export default function AdminTransactionHistoryPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatName = (firstName: string | null | undefined, lastName: string | null | undefined) => {
-    const parts = [firstName, lastName].filter(Boolean);
-    return parts.length > 0 ? parts.join(' ') : '-';
-  };
-
-  const formatChange = (value: number | null | undefined) => {
-    if (value === null || value === undefined || value === 0) {return '-';}
-    const sign = value > 0 ? '+' : '';
-    return `${sign}${value}`;
-  };
-
-  if (loading) {
-    return (
-      <MainLayout title={t('admin.loyalty.transactionHistory')}>
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
-            <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
-          </div>
-        </div>
-      </MainLayout>
-    );
-  }
+  const columns: TableColumn<AdminTransaction>[] = [
+    {
+      key: 'userMembershipId',
+      header: 'User Membership ID',
+      cell: (transaction) => transaction.user_membership_id ?? '-',
+    },
+    {
+      key: 'userName',
+      header: 'User Name',
+      cell: (transaction) => formatName(transaction.user_first_name, transaction.user_last_name),
+    },
+    {
+      key: 'userEmail',
+      header: 'User Email',
+      cell: (transaction) => transaction.user_email ?? '-',
+    },
+    {
+      key: 'nightsStayed',
+      header: 'Night Change',
+      align: 'right',
+      cell: (transaction) => <ChangeValue value={transaction.nights_stayed} />,
+    },
+    {
+      key: 'points',
+      header: 'Point Change',
+      align: 'right',
+      cell: (transaction) => <ChangeValue value={transaction.points} />,
+    },
+    {
+      key: 'adminName',
+      header: 'Admin Name',
+      cell: (transaction) => formatName(transaction.admin_first_name, transaction.admin_last_name),
+    },
+    {
+      key: 'adminMembershipId',
+      header: 'Admin Membership ID',
+      cell: (transaction) => transaction.admin_membership_id ?? '-',
+    },
+    {
+      key: 'timestamp',
+      header: 'Timestamp',
+      cell: (transaction) => formatDate(transaction.created_at),
+    },
+  ];
 
   return (
-    <MainLayout title={t('admin.loyalty.transactionHistory')}>
-      <div className="bg-white shadow rounded-lg">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-stone-900">
-              {t('admin.loyalty.transactionHistory')}
-            </h2>
-            <span className="text-sm text-stone-500">
-              {t('common.showing')} {transactions.length} {t('common.of')} {total} {t('admin.loyalty.transactions')}
-            </span>
-          </div>
+    <AppShell variant="admin" title={t('admin.loyalty.transactionHistory')}>
+      <Card padding="none">
+        <div className="flex items-center justify-end px-4 py-3 border-b border-hairline">
+          <span className="text-caption text-ink-muted">
+            {t('common.showing')} {transactions.length} {t('common.of')} {total} {t('admin.loyalty.transactions')}
+          </span>
         </div>
-
-        {/* Transaction Table */}
-        <div className="overflow-x-auto">
-          {transactions.length === 0 ? (
-            <div className="text-center py-12 text-stone-500">
-              {t('admin.loyalty.noTransactions')}
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-stone-200">
-              <thead className="bg-stone-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    User Membership ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    User Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    User Email
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    Night Change
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    Point Change
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    Admin Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    Admin Membership ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-stone-200">
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-stone-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                      {transaction.user_membership_id ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                      {formatName(transaction.user_first_name, transaction.user_last_name)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                      {transaction.user_email ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                      <span className={transaction.nights_stayed && transaction.nights_stayed > 0 ? 'text-green-600 font-medium' : 'text-stone-500'}>
-                        {formatChange(transaction.nights_stayed)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                      <span className={transaction.points > 0 ? 'text-green-600 font-medium' : transaction.points < 0 ? 'text-red-600 font-medium' : 'text-stone-500'}>
-                        {formatChange(transaction.points)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                      {formatName(transaction.admin_first_name, transaction.admin_last_name)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                      {transaction.admin_membership_id ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                      {formatDate(transaction.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="p-4">
+          <Table
+            columns={columns}
+            rows={transactions}
+            rowKey={(transaction) => transaction.id}
+            loading={loading}
+            aria-label={t('admin.loyalty.transactionHistory')}
+            empty={<p className="py-8 text-center text-caption text-ink-muted">{t('admin.loyalty.noTransactions')}</p>}
+            mobileCard={(transaction) => (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-body font-semibold text-ink">
+                    {formatName(transaction.user_first_name, transaction.user_last_name)}
+                  </p>
+                  <span className="text-fine text-ink-muted">{formatDate(transaction.created_at)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-fine text-ink-muted">Email</span>
+                  <span className="text-caption text-ink text-right">{transaction.user_email ?? '-'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-fine text-ink-muted">Admin</span>
+                  <span className="text-caption text-ink text-right">
+                    {formatName(transaction.admin_first_name, transaction.admin_last_name)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-fine text-ink-muted">Night Change</span>
+                  <ChangeValue value={transaction.nights_stayed} />
+                  <span className="text-fine text-ink-muted">Point Change</span>
+                  <ChangeValue value={transaction.points} />
+                </div>
+              </div>
+            )}
+          />
         </div>
-      </div>
-    </MainLayout>
+      </Card>
+    </AppShell>
   );
 }

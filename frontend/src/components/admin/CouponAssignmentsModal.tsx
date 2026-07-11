@@ -4,6 +4,8 @@ import { couponService } from '../../services/couponService';
 import { Coupon } from '../../types/coupon';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { logger } from '../../utils/logger';
+import { ConfirmDialog } from '../common/ConfirmDialog';
+import { Modal, Table, type TableColumn, Badge, Button, type BadgeTone } from '../ui';
 
 interface CouponAssignment {
   userId: string;
@@ -29,9 +31,31 @@ interface CouponAssignmentsModalProps {
   onClose: () => void;
 }
 
+type AssignmentStatus = { label: string; tone: BadgeTone };
+
+function getAssignmentStatus(assignment: CouponAssignment): AssignmentStatus {
+  const { usedCount, availableCount } = assignment;
+  if (availableCount > 0 && usedCount > 0) {
+    return { label: 'Partially Used', tone: 'warning' };
+  }
+  if (usedCount > 0) {
+    return { label: 'All Used', tone: 'neutral' };
+  }
+  return { label: 'Available', tone: 'success' };
+}
+
+function SummaryStat({ label, value, toneClass }: { label: string; value: number; toneClass: string }) {
+  return (
+    <div>
+      <div className={`text-title font-bold ${toneClass}`}>{value}</div>
+      <div className="text-caption text-ink-muted">{label}</div>
+    </div>
+  );
+}
+
 const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
   coupon,
-  isOpen: _isOpen,
+  isOpen,
   onClose
 }) => {
   const { t } = useTranslation();
@@ -95,29 +119,6 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
     loadAssignments(1);
   }, [coupon.id, loadAssignments]);
 
-  const getStatusBadge = (assignment: CouponAssignment) => {
-    const { usedCount, availableCount } = assignment;
-    if (availableCount > 0 && usedCount > 0) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          Partially Used
-        </span>
-      );
-    } else if (usedCount > 0) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-800">
-          All Used
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          Available
-        </span>
-      );
-    }
-  };
-
   const handleRemoveClick = (assignment: CouponAssignment) => {
     setUserToRemove(assignment);
     setShowConfirmation(true);
@@ -129,13 +130,13 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
     try {
       setRemovingUserId(userToRemove.userId);
       setShowConfirmation(false);
-      
+
       await couponService.revokeUserCouponsForCoupon(
-        coupon.id, 
+        coupon.id,
         userToRemove.userId,
         'Removed by admin from assignment management'
       );
-      
+
       // Reload assignments to reflect changes
       await loadAssignments(page);
 
@@ -160,224 +161,154 @@ const CouponAssignmentsModal: React.FC<CouponAssignmentsModalProps> = ({
     setUserToRemove(null);
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-stone-900">
-              Coupon Assignments
-            </h2>
-            <p className="text-sm text-stone-600 mt-1">
-              {coupon.name} ({coupon.code})
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-2xl font-bold"
+  const columns: TableColumn<CouponAssignment>[] = [
+    { key: 'user', header: 'User', cell: (a) => `${a.firstName} ${a.lastName}` },
+    { key: 'email', header: 'Email', cell: (a) => a.email },
+    { key: 'assigned', header: 'Assigned', align: 'right', cell: (a) => <span className="font-semibold text-brand-600">{a.assignedCount}</span> },
+    { key: 'used', header: 'Used', align: 'right', cell: (a) => <span className="font-semibold text-ink-muted">{a.usedCount}</span> },
+    { key: 'available', header: 'Available', align: 'right', cell: (a) => <span className="font-semibold text-warning-700">{a.availableCount}</span> },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (a) => {
+        const status = getAssignmentStatus(a);
+        return <Badge tone={status.tone}>{status.label}</Badge>;
+      },
+    },
+    { key: 'latestAssignment', header: 'Latest Assignment', cell: (a) => formatDateToDDMMYYYY(a.latestAssignment) },
+    {
+      key: 'actions',
+      header: 'Actions',
+      cell: (a) =>
+        a.availableCount > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-0 text-error-700"
+            onClick={() => handleRemoveClick(a)}
+            disabled={removingUserId === a.userId}
           >
-            ×
-          </button>
-        </div>
+            {removingUserId === a.userId ? 'Removing...' : 'Remove'}
+          </Button>
+        ) : (
+          <span className="text-ink-faint">No coupons</span>
+        ),
+    },
+  ];
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
-              <span className="ml-2 text-stone-600">Loading assignments...</span>
-            </div>
-          ) : error ? (
-            <div className="p-6 text-center">
-              <div className="text-red-600 mb-2">⚠️</div>
-              <p className="text-stone-600">{error}</p>
-              <button
-                onClick={() => loadAssignments(page)}
-                className="mt-4 px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : assignments.length === 0 ? (
-            <div className="p-6 text-center">
-              <div className="text-stone-400 mb-2">📋</div>
-              <p className="text-stone-600">No users have been assigned this coupon yet.</p>
-            </div>
-          ) : (
-            <>
-              {/* Summary */}
-              <div className="px-6 py-4 bg-stone-50 border-b border-stone-200">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-brand-600">{summary.totalUsers}</div>
-                    <div className="text-sm text-stone-600">Total Users</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {summary.totalAssigned}
-                    </div>
-                    <div className="text-sm text-stone-600">Total Assigned</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-stone-600">
-                      {summary.totalUsed}
-                    </div>
-                    <div className="text-sm text-stone-600">Used</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {summary.totalAvailable}
-                    </div>
-                    <div className="text-sm text-stone-600">Available</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assignments Table */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-stone-200">
-                  <thead className="bg-stone-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Assigned
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Used
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Available
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Latest Assignment
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-stone-200">
-                    {assignments.map((assignment) => (
-                      <tr key={assignment.userId} className="hover:bg-stone-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-stone-900">
-                            {assignment.firstName} {assignment.lastName}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-stone-500">
-                            {assignment.email}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-brand-600">
-                            {assignment.assignedCount}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-stone-600">
-                            {assignment.usedCount}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-orange-600">
-                            {assignment.availableCount}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(assignment)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                          {formatDateToDDMMYYYY(assignment.latestAssignment)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                          {assignment.availableCount > 0 ? (
-                            <button
-                              onClick={() => handleRemoveClick(assignment)}
-                              disabled={removingUserId === assignment.userId}
-                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {removingUserId === assignment.userId ? 'Removing...' : 'Remove'}
-                            </button>
-                          ) : (
-                            <span className="text-stone-400">No coupons</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Footer with Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-stone-200 bg-stone-50">
+  return (
+    <>
+      <Modal
+        open={isOpen}
+        onClose={onClose}
+        title="Coupon Assignments"
+        size="lg"
+        footer={
+          totalPages > 1 ? (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-stone-700">
+              <div className="text-caption text-ink-muted">
                 Page {page} of {totalPages} ({total} users)
               </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => loadAssignments(page - 1)}
-                  disabled={page <= 1}
-                  className="px-3 py-1 text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => loadAssignments(page - 1)} disabled={page <= 1}>
                   Previous
-                </button>
-                <button
-                  onClick={() => loadAssignments(page + 1)}
-                  disabled={page >= totalPages}
-                  className="px-3 py-1 text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => loadAssignments(page + 1)} disabled={page >= totalPages}>
                   Next
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : undefined
+        }
+      >
+        <p className="text-caption text-ink-muted -mt-2 mb-4">
+          {coupon.name} ({coupon.code})
+        </p>
 
-      {/* Confirmation Dialog */}
-      {showConfirmation && userToRemove && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-stone-900 mb-4">
-              Confirm Coupon Removal
-            </h3>
-            <p className="text-stone-600 mb-6">
-              Are you sure you want to remove all available coupons from {userToRemove.firstName} {userToRemove.lastName}? 
-              This action will revoke {userToRemove.availableCount} coupon{userToRemove.availableCount > 1 ? 's' : ''} and cannot be undone.
-            </p>
-            <div className="flex space-x-3 justify-end">
-              <button
-                onClick={handleCancelRemove}
-                className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmRemove}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Remove Coupons
-              </button>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
+            <span className="ml-2 text-caption text-ink-muted">Loading assignments...</span>
           </div>
-        </div>
-      )}
-    </div>
+        ) : error ? (
+          <div className="p-6 text-center">
+            <p className="text-caption text-ink-muted">{error}</p>
+            <Button className="mt-4" onClick={() => loadAssignments(page)}>
+              Try Again
+            </Button>
+          </div>
+        ) : assignments.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-caption text-ink-muted">No users have been assigned this coupon yet.</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary */}
+            <div data-testid="assignment-summary" className="mb-4 p-4 rounded-lg bg-surface-sunken grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <SummaryStat label="Total Users" value={summary.totalUsers} toneClass="text-brand-600" />
+              <SummaryStat label="Total Assigned" value={summary.totalAssigned} toneClass="text-success-700" />
+              <SummaryStat label="Used" value={summary.totalUsed} toneClass="text-ink-muted" />
+              <SummaryStat label="Available" value={summary.totalAvailable} toneClass="text-warning-700" />
+            </div>
+
+            {/* Assignments Table */}
+            <Table
+              columns={columns}
+              rows={assignments}
+              rowKey={(a) => a.userId}
+              aria-label="Coupon assignments"
+              mobileCard={(a) => {
+                const status = getAssignmentStatus(a);
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-body font-semibold text-ink">{a.firstName} {a.lastName}</p>
+                      <Badge tone={status.tone} size="sm">{status.label}</Badge>
+                    </div>
+                    <div className="text-caption text-ink-muted">{a.email}</div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-fine text-ink-muted">Latest Assignment</span>
+                      <span className="text-caption text-ink text-right">{formatDateToDDMMYYYY(a.latestAssignment)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-fine text-ink-muted">
+                        {a.assignedCount} assigned &middot; {a.usedCount} used &middot; {a.availableCount} available
+                      </span>
+                      {a.availableCount > 0 ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 text-error-700"
+                          onClick={() => handleRemoveClick(a)}
+                          disabled={removingUserId === a.userId}
+                        >
+                          {removingUserId === a.userId ? 'Removing...' : 'Remove'}
+                        </Button>
+                      ) : (
+                        <span className="text-fine text-ink-faint">No coupons</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }}
+            />
+          </>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={showConfirmation && Boolean(userToRemove)}
+        title="Confirm Coupon Removal"
+        message={userToRemove
+          ? `Are you sure you want to remove all available coupons from ${userToRemove.firstName} ${userToRemove.lastName}? This action will revoke ${userToRemove.availableCount} coupon${userToRemove.availableCount > 1 ? 's' : ''} and cannot be undone.`
+          : ''}
+        confirmText="Remove Coupons"
+        cancelText="Cancel"
+        onConfirm={handleConfirmRemove}
+        onCancel={handleCancelRemove}
+        variant="danger"
+      />
+    </>
   );
 };
 
