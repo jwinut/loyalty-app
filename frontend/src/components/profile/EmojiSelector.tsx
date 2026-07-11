@@ -60,7 +60,7 @@ export default function EmojiSelector({
                 w-8 h-8 rounded border flex items-center justify-center
                 text-lg transition-all duration-200 hover:scale-110
                 ${selectedEmoji === emoji 
-                  ? 'border-brand-500 bg-brand-100' 
+                  ? 'border-brand-500 bg-brand-100'
                   : 'border-stone-200 hover:border-stone-300 hover:bg-white'
                 }
               `}
@@ -126,7 +126,7 @@ export function EmojiSelectorInline({
                 w-7 h-7 rounded border flex items-center justify-center
                 text-sm transition-all duration-200 hover:scale-110
                 ${currentEmoji === emoji 
-                  ? 'border-brand-500 bg-brand-100' 
+                  ? 'border-brand-500 bg-brand-100'
                   : 'border-stone-200 hover:border-stone-300 hover:bg-white'
                 }
               `}
