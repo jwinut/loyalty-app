@@ -2,6 +2,7 @@ import { PointsTransaction } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiMinus, FiClock, FiUser } from 'react-icons/fi';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { Card } from '../ui/Card';
 
 interface TransactionListProps {
   transactions: PointsTransaction[];
@@ -11,25 +12,26 @@ interface TransactionListProps {
   showAdminInfo?: boolean; // New prop to control admin info visibility
 }
 
-export default function TransactionList({ 
-  transactions, 
-  isLoading = false, 
-  showLoadMore = false, 
+// earned_stay with 0 points should still count as positive (nights awarded);
+// admin_deduction is always treated as negative even when points are 0.
+function isPositiveDelta(transaction: PointsTransaction): boolean {
+  return transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay');
+}
+
+export default function TransactionList({
+  transactions,
+  isLoading = false,
+  showLoadMore = false,
   onLoadMore,
   showAdminInfo = false // Default to false - don't show admin info unless explicitly requested
 }: TransactionListProps) {
   const { t } = useTranslation();
 
   const getTransactionIcon = (transaction: PointsTransaction) => {
-    // earned_stay with 0 points should still show as positive (nights awarded)
-    // admin_deduction can show as positive if nights were deducted but points weren't
-    if (transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay')) {
-      return <FiPlus className="w-4 h-4 text-green-600" />;
-    } else if (transaction.points < 0 || transaction.type === 'admin_deduction' || transaction.type === 'redeemed') {
-      return <FiMinus className="w-4 h-4 text-red-600" />;
-    } else {
-      return <FiMinus className="w-4 h-4 text-red-600" />;
+    if (isPositiveDelta(transaction)) {
+      return <FiPlus className="w-4 h-4 text-success-700" />;
     }
+    return <FiMinus className="w-4 h-4 text-error-700" />;
   };
 
   const getPointsFocusedDescription = (transaction: PointsTransaction) => {
@@ -39,8 +41,7 @@ export default function TransactionList({
       return `${t('loyalty.transactionTypes.earnedStay')}`; // แอดมินปรับปรุงคะแนนและจำนวนคืน
     }
 
-    // earned_stay with 0 points should still show as positive (nights awarded)
-    if (transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay')) {
+    if (isPositiveDelta(transaction)) {
       // Positive points or nights awarded - focus on earning
       switch (transaction.type) {
         case 'stay_earning':
@@ -78,7 +79,7 @@ export default function TransactionList({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <Card>
         <h3 className="text-lg font-semibold text-stone-900 mb-4">
           {t('loyalty.transactionHistory')}
         </h3>
@@ -96,12 +97,12 @@ export default function TransactionList({
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 flex flex-col h-full">
+    <Card className="flex flex-col h-full">
       <h3 className="text-lg font-semibold text-stone-900 mb-4 flex-shrink-0">
         {t('loyalty.transactionHistory')}
       </h3>
@@ -115,11 +116,11 @@ export default function TransactionList({
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="space-y-4">
             {transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center space-x-4 py-3 border-b border-stone-100 last:border-b-0">
+            <div key={transaction.id} className="flex items-center space-x-4 py-3 border-b border-hairline last:border-b-0">
               {/* Transaction Icon */}
               <div className={`
                 w-10 h-10 rounded-lg flex items-center justify-center
-                ${(transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay')) ? 'bg-green-50' : 'bg-red-50'}
+                ${isPositiveDelta(transaction) ? 'bg-success-50' : 'bg-error-50'}
               `}
               >
                 {getTransactionIcon(transaction)}
@@ -132,8 +133,8 @@ export default function TransactionList({
                     {getPointsFocusedDescription(transaction)}
                   </p>
                   <div className="text-right">
-                    <p className="font-semibold text-stone-900">
-                      {(transaction.points > 0 || (transaction.points === 0 && transaction.type === 'earned_stay')) ? '+' : ''}{transaction.points.toLocaleString()} {t('loyalty.points')}
+                    <p className={`font-semibold ${isPositiveDelta(transaction) ? 'text-success-700' : 'text-error-700'}`}>
+                      {isPositiveDelta(transaction) ? '+' : ''}{transaction.points.toLocaleString()} {t('loyalty.points')}
                     </p>
                     {(transaction.type === 'earned_stay' || transaction.type === 'admin_deduction') && transaction.description && (() => {
                       const nightsMatch = transaction.description.match(/(-?\d+)\s*night/i);
@@ -155,7 +156,7 @@ export default function TransactionList({
                     })()}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-4 mt-1">
                   <p className="text-sm text-stone-600">
                     {formatDate(transaction.created_at)}
@@ -191,6 +192,6 @@ export default function TransactionList({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

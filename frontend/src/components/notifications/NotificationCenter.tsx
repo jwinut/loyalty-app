@@ -1,5 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { FiBell, FiCheck, FiX, FiTrash2 } from 'react-icons/fi';
+import {
+  FiAlertTriangle,
+  FiAward,
+  FiBell,
+  FiCheck,
+  FiClipboard,
+  FiGift,
+  FiInfo,
+  FiSettings,
+  FiStar,
+  FiTag,
+  FiTrash2,
+  FiUser,
+  FiX,
+  FiXCircle,
+} from 'react-icons/fi';
+import type { IconType } from 'react-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { formatDistanceToNow } from 'date-fns';
@@ -7,6 +23,21 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { inAppNotificationService } from '../../services/inAppNotificationService';
 import { logger } from '../../utils/logger';
 import type { Notification, NotificationType } from '../../types/notification';
+
+// One Fi icon per notification type — replaces the earlier emoji glyphs.
+const NOTIFICATION_ICONS: Record<NotificationType, IconType> = {
+  success: FiGift,
+  reward: FiGift,
+  coupon: FiTag,
+  warning: FiAlertTriangle,
+  error: FiXCircle,
+  profile: FiUser,
+  survey: FiClipboard,
+  system: FiSettings,
+  tier_change: FiAward,
+  points: FiStar,
+  info: FiInfo,
+};
 
 export default function NotificationCenter() {
   const { t } = useTranslation();
@@ -101,32 +132,6 @@ export default function NotificationCenter() {
     }
   };
 
-  const getNotificationIcon = (type: NotificationType) => {
-    switch (type) {
-      case 'success':
-      case 'reward':
-        return '🎉';
-      case 'coupon':
-        return '🎫';
-      case 'warning':
-        return '⚠️';
-      case 'error':
-        return '❌';
-      case 'profile':
-        return '👤';
-      case 'survey':
-        return '📝';
-      case 'system':
-        return '⚙️';
-      case 'tier_change':
-        return '⭐';
-      case 'points':
-        return '💰';
-      default:
-        return 'ℹ️';
-    }
-  };
-
   const getNotificationColor = (type: NotificationType) => {
     switch (type) {
       case 'success':
@@ -160,12 +165,12 @@ export default function NotificationCenter() {
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-stone-500 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 rounded-md"
+        className="relative flex h-11 w-11 items-center justify-center text-stone-500 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 rounded-full"
         aria-label="Notifications"
       >
-        <FiBell className="h-6 w-6" />
+        <FiBell className="h-6 w-6" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-xs text-white rounded-full flex items-center justify-center font-semibold">
+          <span className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-xs text-white rounded-full flex items-center justify-center font-semibold">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -173,7 +178,7 @@ export default function NotificationCenter() {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-96 rounded-card border border-hairline bg-surface-card shadow-pop z-50">
           {/* Header */}
           <div className="px-4 py-3 border-b border-stone-200">
             <div className="flex items-center justify-between">
@@ -218,7 +223,9 @@ export default function NotificationCenter() {
               </div>
             ) : (
               <div className="divide-y divide-stone-100">
-                {notifications.map((notification) => (
+                {notifications.map((notification) => {
+                  const NotificationIcon = NOTIFICATION_ICONS[notification.type] ?? FiInfo;
+                  return (
                   <div
                     key={notification.id}
                     className={`px-4 py-3 hover:bg-stone-50 transition-colors ${
@@ -228,8 +235,8 @@ export default function NotificationCenter() {
                     <div className="flex items-start space-x-3">
                       {/* Icon */}
                       <div className="flex-shrink-0 mt-1">
-                        <span className="text-lg" role="img" aria-label={notification.type}>
-                          {getNotificationIcon(notification.type)}
+                        <span role="img" aria-label={notification.type}>
+                          <NotificationIcon className="h-5 w-5" aria-hidden="true" />
                         </span>
                       </div>
 
@@ -284,8 +291,8 @@ export default function NotificationCenter() {
                                 const couponName = (coupon as { name: unknown }).name;
                                 if (typeof couponName === 'string') {
                                   return (
-                                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('coupon')}`}>
-                                      🎫 {couponName}
+                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('coupon')}`}>
+                                      <FiTag className="h-3 w-3" aria-hidden="true" /> {couponName}
                                     </div>
                                   );
                                 }
@@ -296,8 +303,8 @@ export default function NotificationCenter() {
                               const points = notification.data?.pointsAwarded;
                               if (typeof points === 'number') {
                                 return (
-                                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('reward')} ml-2`}>
-                                    ⭐ +{points} points
+                                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getNotificationColor('reward')} ml-2`}>
+                                    <FiStar className="h-3 w-3" aria-hidden="true" /> +{points} points
                                   </div>
                                 );
                               }
@@ -308,7 +315,8 @@ export default function NotificationCenter() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

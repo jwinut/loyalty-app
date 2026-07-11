@@ -1,6 +1,8 @@
 import { UserLoyaltyStatus } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
 import { FiStar } from 'react-icons/fi';
+import { Card } from '../ui/Card';
+import { tierTheme } from '../../utils/tierTheme';
 
 interface PointsBalanceProps {
   loyaltyStatus: UserLoyaltyStatus;
@@ -9,26 +11,24 @@ interface PointsBalanceProps {
   nextExpiryDate?: string | null;
 }
 
-export default function PointsBalance({ 
+export default function PointsBalance({
   loyaltyStatus
 }: PointsBalanceProps) {
   const { t } = useTranslation();
+  const theme = tierTheme(loyaltyStatus.tier_name, loyaltyStatus.tier_color);
 
   return (
-    <div
-      className="bg-white rounded-lg shadow-md p-6 border-l-4"
-      style={{ borderLeftColor: loyaltyStatus.tier_color }}
-    >
+    <Card className="border-l-4" style={{ borderLeftColor: theme.accent }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div
             className="p-2 rounded-lg"
-            style={{ backgroundColor: `${loyaltyStatus.tier_color}20` }}
+            style={{ backgroundColor: theme.tintBg }}
             data-testid="star-icon-container"
           >
             <FiStar
               className="w-6 h-6"
-              style={{ color: loyaltyStatus.tier_color }}
+              style={{ color: theme.accent }}
               data-testid="tier-star-icon"
             />
           </div>
@@ -43,8 +43,8 @@ export default function PointsBalance({
         </div>
         <div className="text-right">
           <div
-            className="text-3xl font-bold"
-            style={{ color: loyaltyStatus.tier_color }}
+            className="text-display"
+            style={{ color: theme.accent }}
             data-testid="loyalty-points"
           >
             {loyaltyStatus.current_points.toLocaleString()}
@@ -74,7 +74,7 @@ export default function PointsBalance({
                 <li key={index} className="flex items-center space-x-1">
                   <span
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: loyaltyStatus.tier_color }}
+                    style={{ backgroundColor: theme.accent }}
                     data-testid={`perk-bullet-${index}`}
                   />
                   <span>{perk}</span>
@@ -89,6 +89,6 @@ export default function PointsBalance({
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

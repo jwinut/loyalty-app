@@ -1,6 +1,8 @@
 import { UserLoyaltyStatus } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
 import { FiStar } from 'react-icons/fi';
+import { Card } from '../ui/Card';
+import { tierTheme } from '../../utils/tierTheme';
 
 interface PointsAndTierCardProps {
   loyaltyStatus: UserLoyaltyStatus;
@@ -8,16 +10,15 @@ interface PointsAndTierCardProps {
 
 export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardProps) {
   const { t } = useTranslation();
+  const theme = tierTheme(loyaltyStatus.tier_name, loyaltyStatus.tier_color);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 h-auto"
-         style={{ borderLeftColor: loyaltyStatus.tier_color }}
-    >
+    <Card className="h-auto border-l-4" style={{ borderLeftColor: theme.accent }}>
       {/* Points Balance Section */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg" style={{ backgroundColor: `${loyaltyStatus.tier_color}20` }}>
-            <FiStar className="w-6 h-6" style={{ color: loyaltyStatus.tier_color }} />
+          <div className="p-2 rounded-lg" style={{ backgroundColor: theme.tintBg }}>
+            <FiStar className="w-6 h-6" style={{ color: theme.accent }} />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-stone-900">
@@ -30,8 +31,8 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
         </div>
         <div className="text-right">
           <div
-            className="text-3xl font-bold"
-            style={{ color: loyaltyStatus.tier_color }}
+            className="text-display"
+            style={{ color: theme.accent }}
             data-testid="loyalty-points"
           >
             {loyaltyStatus.current_points.toLocaleString()}
@@ -52,7 +53,7 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
             {loyaltyStatus.tier_benefits.perks.map((perk, index) => (
               <li key={index} className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                      style={{ backgroundColor: loyaltyStatus.tier_color }}
+                      style={{ backgroundColor: theme.accent }}
                 />
                 <span className="text-sm text-stone-700">{perk}</span>
               </li>
@@ -60,6 +61,6 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
           </ul>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

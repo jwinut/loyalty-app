@@ -8,6 +8,9 @@ import { userService } from '../services/userService';
 import { loyaltyService } from '../services/loyaltyService';
 import { getUserDisplayName } from '../utils/userHelpers';
 import { logger } from '../utils/logger';
+import { Card } from '../components/ui';
+import { BrandLogo } from '../components/brand/BrandLogo';
+import { tierTheme } from '../utils/tierTheme';
 
 /**
  * The member card: a QR code of the membership ID plus the readable ID and
@@ -30,6 +33,7 @@ export default function MemberCardPage() {
   });
 
   const membershipId = user?.membershipId ?? profile?.membershipId ?? null;
+  const theme = tierTheme(loyaltyStatus?.tier_name, loyaltyStatus?.tier_color);
 
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [qrFailed, setQrFailed] = useState(false);
@@ -66,15 +70,16 @@ export default function MemberCardPage() {
 
   return (
     <MainLayout title={t('memberCard.title')}>
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="mx-auto max-w-md">
+        <Card surface="tile" padding="none" className="overflow-hidden shadow-soft">
+          <div className="px-6 py-4">
+            <BrandLogo variant="wordmark" tone="onDark" />
+          </div>
+
           {/* Tier band */}
-          <div
-            className="px-6 py-4"
-            style={{ backgroundColor: loyaltyStatus?.tier_color ?? '#7f1d1d' }}
-          >
-            <p className="text-white text-sm opacity-90">{getUserDisplayName(user)}</p>
-            <p className="text-white text-lg font-bold" data-testid="member-card-tier">
+          <div className="px-6 py-4" style={{ backgroundColor: theme.tintBg, color: theme.onTint }}>
+            <p className="text-caption">{getUserDisplayName(user)}</p>
+            <p className="text-body font-semibold" data-testid="member-card-tier">
               {loyaltyStatus?.tier_name ?? ''}
             </p>
           </div>
@@ -82,40 +87,40 @@ export default function MemberCardPage() {
           <div className="p-6 text-center">
             {membershipId ? (
               <>
-                <div className="bg-white p-4 rounded-lg shadow-inner border-2 border-stone-200 inline-block mb-4">
+                <div className="mb-4 inline-block rounded-lg bg-white p-4">
                   {qrDataUrl ? (
                     <img
                       src={qrDataUrl}
                       alt={t('memberCard.qrAlt')}
-                      className="w-64 h-64 object-contain"
+                      className="h-64 w-64 object-contain"
                       data-testid="member-qr"
                     />
                   ) : (
-                    <div className="w-64 h-64 flex items-center justify-center text-sm text-stone-500">
+                    <div className="flex h-64 w-64 items-center justify-center text-caption text-ink-muted">
                       {qrFailed ? t('memberCard.qrError') : t('memberCard.generating')}
                     </div>
                   )}
                 </div>
 
-                <div className="text-sm text-stone-600 mb-1 font-medium">
+                <div className="mb-1 text-caption font-semibold text-tile-muted">
                   {t('memberCard.membershipId')}
                 </div>
                 <div
-                  className="text-lg font-mono bg-stone-100 px-4 py-2 rounded-lg border inline-block"
+                  className="inline-block rounded-lg bg-tile-raised px-3 py-2 font-mono text-body text-tile-text"
                   data-testid="member-id"
                 >
                   {membershipId}
                 </div>
               </>
             ) : (
-              <p className="text-stone-600 py-12" data-testid="member-id-missing">
+              <p className="py-12 text-body text-tile-muted" data-testid="member-id-missing">
                 {t('memberCard.noMembershipId')}
               </p>
             )}
 
-            <p className="text-sm text-stone-500 mt-6">{t('memberCard.showAtDesk')}</p>
+            <p className="mt-6 text-caption text-tile-muted">{t('memberCard.showAtDesk')}</p>
           </div>
-        </div>
+        </Card>
       </div>
     </MainLayout>
   );

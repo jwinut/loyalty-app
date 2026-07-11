@@ -147,9 +147,8 @@ describe('LoyaltyCarousel', () => {
       const nextButton = screen.getByRole('button', { name: /next slide/i });
       await user.click(nextButton);
 
-      const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-brand-600'));
-      expect(activeDot).toBeDefined();
+      const secondDot = screen.getByRole('button', { name: /go to slide 2/i });
+      expect(secondDot.querySelector('.bg-brand-600')).toBeInTheDocument();
     });
 
     it('should disable next button on last slide', async () => {
@@ -183,9 +182,8 @@ describe('LoyaltyCarousel', () => {
       const prevButton = screen.getByRole('button', { name: /previous slide/i });
       await user.click(prevButton);
 
-      const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-brand-600'));
-      expect(activeDot).toBeDefined();
+      const firstDot = screen.getByRole('button', { name: /go to slide 1/i });
+      expect(firstDot.querySelector('.bg-brand-600')).toBeInTheDocument();
     });
 
     it('should have hidden class on desktop', () => {

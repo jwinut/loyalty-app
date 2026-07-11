@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import TierStatus from '../TierStatus';
 import { UserLoyaltyStatus, Tier } from '../../../services/loyaltyService';
+import { tierTheme } from '../../../utils/tierTheme';
 
 // Mock dependencies
 const mockTranslate = vi.fn((key: string, params?: any) => {
@@ -142,7 +143,7 @@ describe('TierStatus', () => {
       const headerTierName = silverElements.find(el =>
         el.classList.contains('font-medium') && !el.classList.contains('text-stone-900')
       );
-      expect(headerTierName).toHaveStyle({ color: '#C0C0C0' });
+      expect(headerTierName).toHaveStyle({ color: tierTheme('Silver', '#C0C0C0').accent });
     });
 
     it('should display current tier indicator', () => {
@@ -212,7 +213,8 @@ describe('TierStatus', () => {
 
       const progressBars = container.querySelectorAll('.h-2.rounded-full.transition-all');
       expect(progressBars.length).toBeGreaterThan(0);
-      expect(progressBars[0]).toHaveStyle({ backgroundColor: '#FFD700' }); // Gold tier color
+      // Gold is the next tier — its progress fill uses the AA-safe tierTheme accent, not the raw metal hex.
+      expect(progressBars[0]).toHaveStyle({ backgroundColor: tierTheme('Gold', '#FFD700').accent });
     });
   });
 
@@ -327,7 +329,7 @@ describe('TierStatus', () => {
       render(<TierStatus loyaltyStatus={topTierStatus} allTiers={mockTiers} />);
 
       const topTierMessage = screen.getByText(/You've reached the highest tier!/);
-      expect(topTierMessage).toHaveStyle({ color: '#E5E4E2' });
+      expect(topTierMessage).toHaveStyle({ color: tierTheme('Platinum', '#E5E4E2').onTint });
     });
   });
 
