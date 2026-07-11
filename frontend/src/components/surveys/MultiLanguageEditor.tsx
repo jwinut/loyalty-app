@@ -110,7 +110,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-stone-700">
+      <label className="block text-sm font-semibold text-stone-700">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -125,7 +125,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab(lang.code)}
-                  className={`px-3 py-2 text-sm font-medium rounded-t-md flex items-center space-x-2 ${
+                  className={`px-3 py-2 text-sm font-semibold rounded-t-md flex items-center space-x-2 ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-500'
                       : 'text-stone-500 hover:text-stone-700'
@@ -169,7 +169,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
             </button>
 
             {showLanguageSelector && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-md shadow-lg z-20">
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-lg shadow-pop z-20">
                 <div className="p-2">
                   <p className="text-xs text-stone-500 mb-2">Add Language:</p>
                   {availableToAdd.map(lang => (
@@ -212,7 +212,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
             onChange={(e) => handleTextChange(activeTab, e.target.value)}
             placeholder={placeholder ? `${placeholder} (${currentLang.name})` : `Enter text in ${currentLang.name}...`}
             rows={3}
-            className="w-full p-3 border border-stone-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         ) : (
           <input
@@ -220,7 +220,7 @@ const MultiLanguageEditor: React.FC<MultiLanguageEditorProps> = ({
             value={currentText}
             onChange={(e) => handleTextChange(activeTab, e.target.value)}
             placeholder={placeholder ? `${placeholder} (${currentLang.name})` : `Enter text in ${currentLang.name}...`}
-            className="w-full p-3 border border-stone-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         )}
       </div>

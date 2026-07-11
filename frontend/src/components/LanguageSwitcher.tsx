@@ -37,7 +37,7 @@ export default function LanguageSwitcher() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-md transition-colors"
+        className="flex items-center space-x-2 px-3 py-2 text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
         aria-label="Change language"
       >
         <FiGlobe className="h-4 w-4" />
@@ -46,7 +46,7 @@ export default function LanguageSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-pop bg-white ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
             {languages.map((language) => (
               <button
@@ -60,7 +60,7 @@ export default function LanguageSwitcher() {
                   <span>{language.name}</span>
                 </span>
                 {i18n.language === language.code && (
-                  <FiCheck className="h-4 w-4 text-primary-600" />
+                  <FiCheck className="h-4 w-4 text-brand-600" />
                 )}
               </button>
             ))}

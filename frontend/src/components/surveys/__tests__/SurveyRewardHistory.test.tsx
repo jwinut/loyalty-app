@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- Test file uses non-null assertions for DOM element access */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SurveyRewardHistoryComponent from '../SurveyRewardHistory';
 import { surveyService } from '../../../services/surveyService';
@@ -22,6 +23,9 @@ const mockTranslate = vi.fn((key: string) => {
     'surveys.rewardHistory.of': 'of',
     'surveys.rewardHistory.previous': 'Previous',
     'surveys.rewardHistory.next': 'Next',
+    'surveys.rewardHistory.couponColumn': 'Coupon',
+    'surveys.rewardHistory.userColumn': 'User',
+    'surveys.stats.status': 'Status',
     'surveys.couponAssignment.completed': 'Completed',
     'surveys.couponAssignment.loadError': 'Failed to load reward history',
   };
@@ -52,6 +56,14 @@ vi.mock('react-icons/fi', () => ({
   FiCalendar: () => <span data-testid="calendar-icon">Calendar</span>,
   FiSearch: () => <span data-testid="search-icon">Search</span>,
 }));
+
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
+
+function getMobileContainer(container: HTMLElement) {
+  return container.querySelector('[data-view="mobile"]') as HTMLElement;
+}
 
 describe('SurveyRewardHistory', () => {
   const mockRewards: SurveyRewardHistory[] = [
@@ -152,36 +164,34 @@ describe('SurveyRewardHistory', () => {
   });
 
   describe('Loading State', () => {
-    it('should show skeleton on initial load', async () => {
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
+    it('should show a loading skeleton on initial load', () => {
+      const { container } = render(
+        <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
+      );
 
-      const skeletonElements = document.querySelectorAll('.animate-pulse');
-      expect(skeletonElements.length).toBeGreaterThan(0);
-
-      // Wait for async operations to complete
-      await waitFor(() => {
-        expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
-      });
+      expect(container.querySelector('[data-loading="true"]')).toBeInTheDocument();
     });
 
-    it('should display 3 skeleton items while loading', async () => {
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
+    it('should display 3 mobile skeleton cards while loading', async () => {
+      const { container } = render(
+        <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
+      );
 
-      const skeletonItems = document.querySelectorAll('.animate-pulse .h-16');
-      expect(skeletonItems).toHaveLength(3);
+      const mobile = getMobileContainer(container);
+      expect(mobile.querySelectorAll('[data-surface="card"]')).toHaveLength(3);
 
-      // Wait for async operations to complete
       await waitFor(() => {
-        expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
     });
 
     it('should hide loading skeleton after data loads', async () => {
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
+      const { container } = render(
+        <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
+      );
 
       await waitFor(() => {
-        const skeletonElements = document.querySelectorAll('.animate-pulse');
-        expect(skeletonElements).toHaveLength(0);
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
     });
 
@@ -194,12 +204,12 @@ describe('SurveyRewardHistory', () => {
     });
 
     it('should only show skeleton on first page load', async () => {
-      const { rerender } = render(
+      const { container, rerender } = render(
         <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
       );
 
       await waitFor(() => {
-        expect(screen.queryByText('.animate-pulse')).not.toBeInTheDocument();
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
 
       // Trigger page change
@@ -212,8 +222,7 @@ describe('SurveyRewardHistory', () => {
       rerender(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       // Should not show skeleton when changing pages
-      const skeletonElements = document.querySelectorAll('.animate-pulse');
-      expect(skeletonElements).toHaveLength(0);
+      expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
     });
   });
 
@@ -228,7 +237,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('No rewards have been awarded yet')).toBeInTheDocument();
+        expect(screen.getAllByText('No rewards have been awarded yet').length).toBeGreaterThan(0);
       });
     });
 
@@ -242,7 +251,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('Coupons awarded to users will appear here')).toBeInTheDocument();
+        expect(screen.getAllByText('Coupons awarded to users will appear here').length).toBeGreaterThan(0);
       });
     });
 
@@ -256,7 +265,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('gift-icon')).toBeInTheDocument();
+        expect(screen.getAllByTestId('gift-icon').length).toBeGreaterThan(0);
       });
     });
 
@@ -270,7 +279,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        const emptyState = screen.getByText('No rewards have been awarded yet').closest('div');
+        const emptyState = screen.getAllByText('No rewards have been awarded yet')[0]!.closest('div');
         expect(emptyState).toHaveClass('text-center');
       });
     });
@@ -282,14 +291,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'nonexistent@example.com');
 
       await waitFor(() => {
-        expect(screen.getByText('No rewards match your search')).toBeInTheDocument();
+        expect(screen.getAllByText('No rewards match your search').length).toBeGreaterThan(0);
       });
     });
 
@@ -298,14 +307,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'xyz123');
 
       await waitFor(() => {
-        expect(screen.getByText('Try adjusting your search terms')).toBeInTheDocument();
+        expect(screen.getAllByText('Try adjusting your search terms').length).toBeGreaterThan(0);
       });
     });
 
@@ -329,7 +338,7 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         // Pagination should still be visible (it's based on total pages, not filtered results)
         expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
-        expect(screen.getByText('No rewards match your search')).toBeInTheDocument();
+        expect(screen.getAllByText('No rewards match your search').length).toBeGreaterThan(0);
       });
     });
   });
@@ -339,9 +348,9 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
-        expect(screen.getByText('WELCOME50 - 50% Off Next Stay')).toBeInTheDocument();
-        expect(screen.getByText('FREEWIFI - Free WiFi Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('WELCOME50 - 50% Off Next Stay').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('FREEWIFI - Free WiFi Upgrade').length).toBeGreaterThan(0);
       });
     });
 
@@ -349,9 +358,9 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe \(john.doe@example.com\)/)).toBeInTheDocument();
-        expect(screen.getByText(/Jane Smith \(jane.smith@example.com\)/)).toBeInTheDocument();
-        expect(screen.getByText(/Bob Johnson \(bob.johnson@example.com\)/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/jane\.smith@example\.com/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Bob Johnson/).length).toBeGreaterThan(0);
       });
     });
 
@@ -370,7 +379,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Unknown User \(john.doe@example.com\)/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Unknown User/).length).toBeGreaterThan(0);
       });
     });
 
@@ -378,7 +387,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        const awardedTexts = screen.getAllByText(/Awarded:/);
+        const awardedTexts = screen.getAllByText(/Awarded/);
         expect(awardedTexts.length).toBeGreaterThan(0);
       });
     });
@@ -387,8 +396,10 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
+        // One badge per reward per layout (desktop table + mobile card)
         const badges = screen.getAllByText('Completed');
-        expect(badges).toHaveLength(3);
+        expect(badges.length).toBe(6);
+        badges.forEach((badge) => expect(badge).toHaveAttribute('data-tone', 'success'));
       });
     });
 
@@ -426,9 +437,9 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-        expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
-        expect(screen.getByText(/Bob Johnson/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Bob Johnson/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -436,7 +447,7 @@ describe('SurveyRewardHistory', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
-        expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Bob Johnson/)).not.toBeInTheDocument();
       });
     });
@@ -446,14 +457,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'JOHN.DOE@EXAMPLE.COM');
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Jane Smith/)).not.toBeInTheDocument();
       });
     });
@@ -463,7 +474,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -472,7 +483,7 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
         expect(screen.queryByText(/Jane Smith/)).not.toBeInTheDocument();
-        expect(screen.getByText(/Bob Johnson/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Bob Johnson/).length).toBeGreaterThan(0);
       });
     });
   });
@@ -483,7 +494,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -491,7 +502,7 @@ describe('SurveyRewardHistory', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
-        expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Bob Johnson/)).not.toBeInTheDocument();
       });
     });
@@ -501,14 +512,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'john doe');
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Jane Smith/)).not.toBeInTheDocument();
       });
     });
@@ -518,7 +529,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -527,7 +538,7 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
         expect(screen.queryByText(/Jane Smith/)).not.toBeInTheDocument();
-        expect(screen.getByText(/Bob Johnson/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Bob Johnson/).length).toBeGreaterThan(0);
       });
     });
   });
@@ -538,7 +549,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -546,7 +557,7 @@ describe('SurveyRewardHistory', () => {
 
       await waitFor(() => {
         expect(screen.queryByText('SURVEY100 - 100 Baht Discount')).not.toBeInTheDocument();
-        expect(screen.getByText('WELCOME50 - 50% Off Next Stay')).toBeInTheDocument();
+        expect(screen.getAllByText('WELCOME50 - 50% Off Next Stay').length).toBeGreaterThan(0);
         expect(screen.queryByText('FREEWIFI - Free WiFi Upgrade')).not.toBeInTheDocument();
       });
     });
@@ -556,14 +567,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'survey100');
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
         expect(screen.queryByText('WELCOME50 - 50% Off Next Stay')).not.toBeInTheDocument();
       });
     });
@@ -573,7 +584,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('FREEWIFI - Free WiFi Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('FREEWIFI - Free WiFi Upgrade').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -582,7 +593,7 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         expect(screen.queryByText('SURVEY100 - 100 Baht Discount')).not.toBeInTheDocument();
         expect(screen.queryByText('WELCOME50 - 50% Off Next Stay')).not.toBeInTheDocument();
-        expect(screen.getByText('FREEWIFI - Free WiFi Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('FREEWIFI - Free WiFi Upgrade').length).toBeGreaterThan(0);
       });
     });
   });
@@ -593,7 +604,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -601,7 +612,7 @@ describe('SurveyRewardHistory', () => {
 
       await waitFor(() => {
         expect(screen.queryByText('SURVEY100 - 100 Baht Discount')).not.toBeInTheDocument();
-        expect(screen.getByText('WELCOME50 - 50% Off Next Stay')).toBeInTheDocument();
+        expect(screen.getAllByText('WELCOME50 - 50% Off Next Stay').length).toBeGreaterThan(0);
         expect(screen.queryByText('FREEWIFI - Free WiFi Upgrade')).not.toBeInTheDocument();
       });
     });
@@ -611,7 +622,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('FREEWIFI - Free WiFi Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('FREEWIFI - Free WiFi Upgrade').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -620,7 +631,7 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         expect(screen.queryByText('SURVEY100 - 100 Baht Discount')).not.toBeInTheDocument();
         expect(screen.queryByText('WELCOME50 - 50% Off Next Stay')).not.toBeInTheDocument();
-        expect(screen.getByText('FREEWIFI - Free WiFi Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('FREEWIFI - Free WiFi Upgrade').length).toBeGreaterThan(0);
       });
     });
 
@@ -629,14 +640,14 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
       await user.type(searchInput, 'Discount');
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
         expect(screen.queryByText('WELCOME50 - 50% Off Next Stay')).not.toBeInTheDocument();
         expect(screen.queryByText('FREEWIFI - Free WiFi Upgrade')).not.toBeInTheDocument();
       });
@@ -681,21 +692,6 @@ describe('SurveyRewardHistory', () => {
         expect(previousButton).not.toBeDisabled();
       });
     });
-
-    it('should have disabled cursor style on first page', async () => {
-      vi.mocked(surveyService.getSurveyRewardHistory).mockResolvedValue({
-        rewards: mockRewards,
-        total: 25,
-        totalPages: 2,
-      });
-
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
-
-      await waitFor(() => {
-        const previousButton = screen.getByText('Previous');
-        expect(previousButton).toHaveClass('disabled:cursor-not-allowed');
-      });
-    });
   });
 
   describe('Pagination - Next Button', () => {
@@ -735,30 +731,6 @@ describe('SurveyRewardHistory', () => {
       await waitFor(() => {
         const nextButton = screen.getByText('Next');
         expect(nextButton).not.toBeDisabled();
-      });
-    });
-
-    it('should have disabled cursor style on last page', async () => {
-      vi.mocked(surveyService.getSurveyRewardHistory).mockResolvedValue({
-        rewards: mockRewards,
-        total: 25,
-        totalPages: 2,
-      });
-
-      const user = userEvent.setup();
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
-      });
-
-      // Click next to go to page 2
-      const nextButton = screen.getByText('Next');
-      await user.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
-        expect(nextButton).toHaveClass('disabled:cursor-not-allowed');
       });
     });
   });
@@ -855,7 +827,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       // Pagination should not be visible when totalPages is 1
@@ -921,11 +893,12 @@ describe('SurveyRewardHistory', () => {
     it('should stop loading state on error', async () => {
       vi.mocked(surveyService.getSurveyRewardHistory).mockRejectedValueOnce(new Error('Network error'));
 
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
+      const { container } = render(
+        <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
+      );
 
       await waitFor(() => {
-        const skeletonElements = document.querySelectorAll('.animate-pulse');
-        expect(skeletonElements).toHaveLength(0);
+        expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
       });
     });
 
@@ -976,7 +949,7 @@ describe('SurveyRewardHistory', () => {
       await user.click(viewDetailsLink);
 
       await waitFor(() => {
-        const jsonContent = screen.getByText(/"survey_score"/);
+        const jsonContent = screen.getAllByText(/"survey_score"/)[0]!;
         expect(jsonContent).toBeInTheDocument();
       });
     });
@@ -994,7 +967,7 @@ describe('SurveyRewardHistory', () => {
       await user.click(viewDetailsLink);
 
       await waitFor(() => {
-        const jsonContent = screen.getByText(/"survey_score"/);
+        const jsonContent = screen.getAllByText(/"survey_score"/)[0]!;
         const preElement = jsonContent.closest('pre');
         expect(preElement).toBeInTheDocument();
       });
@@ -1015,7 +988,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
+        expect(screen.getAllByText('SURVEY100 - 100 Baht Discount').length).toBeGreaterThan(0);
       });
 
       // Should not display View Details if metadata is null
@@ -1027,8 +1000,8 @@ describe('SurveyRewardHistory', () => {
 
       await waitFor(() => {
         const viewDetailsLinks = screen.getAllByText('View Details');
-        // reward-2 has empty metadata {} but should still show View Details
-        expect(viewDetailsLinks.length).toBe(3);
+        // reward-2 has empty metadata {} but should still show View Details, once per layout (desktop + mobile)
+        expect(viewDetailsLinks.length).toBe(6);
       });
     });
   });
@@ -1055,7 +1028,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -1069,7 +1042,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -1077,15 +1050,15 @@ describe('SurveyRewardHistory', () => {
 
       // Wait for filtering to happen
       expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
-      expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
 
       await user.clear(searchInput);
 
       // Wait for all results to show again
       expect(searchInput).toHaveValue('');
-      expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-      expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
-      expect(screen.getByText(/Bob Johnson/)).toBeInTheDocument();
+      expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Bob Johnson/).length).toBeGreaterThan(0);
     });
   });
 
@@ -1149,7 +1122,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Very Long Name That Exceeds Normal Length/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Very Long Name That Exceeds Normal Length/).length).toBeGreaterThan(0);
       });
     });
 
@@ -1168,7 +1141,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/VERYLONGCOUPONCODE123456789/)).toBeInTheDocument();
+        expect(screen.getAllByText(/VERYLONGCOUPONCODE123456789/).length).toBeGreaterThan(0);
       });
     });
 
@@ -1195,7 +1168,7 @@ describe('SurveyRewardHistory', () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+        expect(screen.getAllByText(/John Doe/).length).toBeGreaterThan(0);
       });
 
       const searchInput = screen.getByPlaceholderText('Search by email, name, coupon code or name...');
@@ -1206,37 +1179,38 @@ describe('SurveyRewardHistory', () => {
       await user.type(searchInput, 'Jane');
 
       expect(searchInput).toHaveValue('Jane');
-      expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Jane Smith/).length).toBeGreaterThan(0);
       expect(screen.queryByText(/John Doe/)).not.toBeInTheDocument();
     });
   });
 
   describe('Styling and Layout', () => {
-    it('should have proper card styling', async () => {
-      render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
+    it('should render its panels on the card surface', async () => {
+      const { container } = render(
+        <SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />
+      );
 
       await waitFor(() => {
-        const cards = document.querySelectorAll('.bg-white.rounded-lg.shadow');
+        const cards = container.querySelectorAll('[data-surface="card"]');
         expect(cards.length).toBeGreaterThan(0);
       });
     });
 
-    it('should have hover effect on reward items', async () => {
+    it('should render reward rows in a table on desktop', async () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
-        const rewardItems = document.querySelectorAll('.hover\\:bg-stone-50');
-        expect(rewardItems.length).toBeGreaterThan(0);
+        expect(within(getDesktopTable()).getByText('SURVEY100 - 100 Baht Discount')).toBeInTheDocument();
       });
     });
 
-    it('should style completed badge correctly', async () => {
+    it('should style the completed badge with the success tone', async () => {
       render(<SurveyRewardHistoryComponent surveyId="survey-1" surveyTitle="Customer Feedback Survey" />);
 
       await waitFor(() => {
         const badges = screen.getAllByText('Completed');
         badges.forEach(badge => {
-          expect(badge).toHaveClass('bg-green-100', 'text-green-800');
+          expect(badge).toHaveAttribute('data-tone', 'success');
         });
       });
     });

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
+import { FiGift, FiAlertTriangle, FiClock, FiCheckCircle, FiCheck } from 'react-icons/fi';
 import { UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import CouponCard from '../../components/coupons/CouponCard';
 import QRCodeModal from '../../components/coupons/QRCodeModal';
 import CouponDetailsModal from '../../components/coupons/CouponDetailsModal';
-import DashboardButton from '../../components/navigation/DashboardButton';
+import AppShell from '../../components/layout/AppShell';
+import { Badge, Button, EmptyState, TabNav } from '../../components/ui';
 
 type CouponFilter = 'active' | 'used' | 'expired';
 
@@ -87,286 +89,225 @@ const CouponWallet: React.FC = () => {
 
   if (isLoading && coupons.length === 0) {
     return (
-      <div className="min-h-screen bg-stone-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-stone-200 rounded w-1/4" />
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-32 bg-stone-200 rounded" />
-                ))}
-              </div>
+      <AppShell variant="guest" title={t('coupons.myCoupons')}>
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-stone-200 rounded w-1/4" />
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-32 bg-stone-200 rounded" />
+              ))}
             </div>
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-stone-900">
-                {t('coupons.myCoupons')}
-              </h1>
-              <p className="text-stone-600 mt-1">
-                {t('coupons.walletDescription')}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="inline-flex items-center font-medium border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-md hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                {isLoading ? t('common.loading') : t('common.refresh')}
-              </button>
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
+    <AppShell variant="guest" title={t('coupons.myCoupons')}>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-stone-600">
+          {t('coupons.walletDescription')}
+        </p>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="inline-flex items-center font-semibold border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-lg hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+        >
+          {isLoading ? t('common.loading') : t('common.refresh')}
+        </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="mb-6">
-          <div className="border-b border-stone-200">
-            <nav className="-mb-px flex space-x-8">
-              {/* Active Tab */}
+      <TabNav
+        aria-label={t('coupons.myCoupons')}
+        className="mb-6"
+        value={activeFilter}
+        onChange={(value) => handleFilterChange(value as CouponFilter)}
+        items={[
+          { value: 'active', label: t('coupons.activeCoupons') },
+          { value: 'used', label: t('coupons.usedCoupons', 'Used') },
+          { value: 'expired', label: t('coupons.expiredCoupons', 'Expired') },
+        ]}
+      />
+
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex">
+            <div className="text-red-400 mr-3"><FiAlertTriangle className="h-5 w-5" aria-hidden="true" /></div>
+            <div>
+              <h3 className="text-red-800 font-semibold">
+                {t('errors.error')}
+              </h3>
+              <p className="text-red-700 mt-1">{errorMessage}</p>
               <button
-                onClick={() => handleFilterChange('active')}
-                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                  activeFilter === 'active'
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                )}
+                onClick={handleRefresh}
+                className="text-red-600 underline hover:text-red-800 mt-2"
               >
-                {t('coupons.activeCoupons')}
+                {t('common.tryAgain')}
               </button>
-              
-              {/* Used Tab */}
-              <button
-                onClick={() => handleFilterChange('used')}
-                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                  activeFilter === 'used'
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                )}
-              >
-                {t('coupons.usedCoupons', 'Used')}
-              </button>
-              
-              {/* Expired Tab */}
-              <button
-                onClick={() => handleFilterChange('expired')}
-                className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                  activeFilter === 'expired'
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-                )}
-              >
-                {t('coupons.expiredCoupons', 'Expired')}
-              </button>
-            </nav>
+            </div>
           </div>
         </div>
+      )}
 
-        {errorMessage && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex">
-              <div className="text-red-400 mr-3">⚠️</div>
-              <div>
-                <h3 className="text-red-800 font-medium">
-                  {t('errors.error')}
-                </h3>
-                <p className="text-red-700 mt-1">{errorMessage}</p>
-                <button
-                  onClick={handleRefresh}
-                  className="text-red-600 underline hover:text-red-800 mt-2"
-                >
-                  {t('common.tryAgain')}
-                </button>
+      {coupons.length === 0 && !isLoading && !errorMessage && (
+        <EmptyState
+          icon={FiGift}
+          title={
+            activeFilter === 'used'
+              ? t('coupons.noUsedCoupons', 'No Used Coupons')
+              : activeFilter === 'expired'
+                ? t('coupons.noExpiredCoupons', 'No Expired Coupons')
+                : t('coupons.noCoupons')
+          }
+          description={
+            activeFilter === 'used'
+              ? t('coupons.noUsedCouponsDescription', "You haven't used any coupons yet.")
+              : activeFilter === 'expired'
+                ? t('coupons.noExpiredCouponsDescription', "You don't have any expired coupons.")
+                : t('coupons.noCouponsDescription')
+          }
+          action={<Button onClick={handleRefresh}>{t('common.refresh')}</Button>}
+        />
+      )}
+
+      {/* Coupon Display Based on Active Filter */}
+      {activeFilter === 'active' && (
+        <>
+          {/* Expiring Soon Section */}
+          {expiringSoonCoupons.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-red-100 p-2 rounded-full mr-3">
+                  <FiClock className="h-5 w-5 text-red-600" aria-hidden="true" />
+                </div>
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-red-700">
+                  {t('coupons.expiringSoon')}
+                  <Badge tone="warning">{expiringSoonCoupons.length}</Badge>
+                </h2>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {expiringSoonCoupons.map((coupon: UserActiveCoupon) => (
+                  <CouponCard
+                    key={coupon.userCouponId}
+                    coupon={coupon}
+                    onUse={handleUseCoupon}
+                    onViewDetails={handleViewDetails}
+                  />
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {coupons.length === 0 && !isLoading && !errorMessage && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="text-6xl mb-4">
-              {activeFilter === 'used' ? '✓' : activeFilter === 'expired' ? '⏰' : '🎫'}
-            </div>
-            <h3 className="text-xl font-semibold text-stone-900 mb-2">
-              {activeFilter === 'used' 
-                ? t('coupons.noUsedCoupons', 'No Used Coupons')
-                : activeFilter === 'expired' 
-                  ? t('coupons.noExpiredCoupons', 'No Expired Coupons')
-                  : t('coupons.noCoupons')
-              }
-            </h3>
-            <p className="text-stone-600 mb-4">
-              {activeFilter === 'used' 
-                ? t('coupons.noUsedCouponsDescription', "You haven't used any coupons yet.")
-                : activeFilter === 'expired' 
-                  ? t('coupons.noExpiredCouponsDescription', "You don't have any expired coupons.")
-                  : t('coupons.noCouponsDescription')
-              }
-            </p>
-            <button
-              onClick={handleRefresh}
-              className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors"
-            >
-              {t('common.refresh')}
-            </button>
-          </div>
-        )}
-
-        {/* Coupon Display Based on Active Filter */}
-        {activeFilter === 'active' && (
-          <>
-            {/* Expiring Soon Section */}
-            {expiringSoonCoupons.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center mb-4">
-                  <div className="bg-red-100 p-2 rounded-full mr-3">
-                    <span className="text-red-600 text-xl">⏰</span>
-                  </div>
-                  <h2 className="text-xl font-semibold text-red-700">
-                    {t('coupons.expiringSoon')} ({expiringSoonCoupons.length})
-                  </h2>
+          {/* Active Coupons Section */}
+          {activeCoupons.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-green-100 p-2 rounded-full mr-3">
+                  <FiCheckCircle className="h-5 w-5 text-green-600" aria-hidden="true" />
                 </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {expiringSoonCoupons.map((coupon: UserActiveCoupon) => (
-                    <CouponCard
-                      key={coupon.userCouponId}
-                      coupon={coupon}
-                      onUse={handleUseCoupon}
-                      onViewDetails={handleViewDetails}
-                    />
-                  ))}
-                </div>
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-stone-900">
+                  {t('coupons.activeCoupons')}
+                  <Badge tone="success">{activeCoupons.length}</Badge>
+                </h2>
               </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {activeCoupons.map((coupon: UserActiveCoupon) => (
+                  <CouponCard
+                    key={coupon.userCouponId}
+                    coupon={coupon}
+                    onUse={handleUseCoupon}
+                    onViewDetails={handleViewDetails}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Used/Expired Coupons Display */}
+      {(activeFilter === 'used' || activeFilter === 'expired') && coupons.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <div className={clsx('p-2 rounded-full mr-3',
+              activeFilter === 'used'
+                ? 'bg-stone-100'
+                : 'bg-red-100'
             )}
-
-            {/* Active Coupons Section */}
-            {activeCoupons.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center mb-4">
-                  <div className="bg-green-100 p-2 rounded-full mr-3">
-                    <span className="text-green-600 text-xl">✅</span>
-                  </div>
-                  <h2 className="text-xl font-semibold text-stone-900">
-                    {t('coupons.activeCoupons')} ({activeCoupons.length})
-                  </h2>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {activeCoupons.map((coupon: UserActiveCoupon) => (
-                    <CouponCard
-                      key={coupon.userCouponId}
-                      coupon={coupon}
-                      onUse={handleUseCoupon}
-                      onViewDetails={handleViewDetails}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Used/Expired Coupons Display */}
-        {(activeFilter === 'used' || activeFilter === 'expired') && coupons.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center mb-4">
-              <div className={clsx('p-2 rounded-full mr-3',
-                activeFilter === 'used'
-                  ? 'bg-stone-100'
-                  : 'bg-red-100'
-              )}
-              >
-                <span className={clsx('text-xl',
-                  activeFilter === 'used'
-                    ? 'text-stone-600'
-                    : 'text-red-600'
-                )}
-                >
-                  {activeFilter === 'used' ? '✓' : '⏰'}
-                </span>
-              </div>
-              <h2 className={clsx('text-xl font-semibold',
-                activeFilter === 'used'
-                  ? 'text-stone-900'
-                  : 'text-red-700'
-              )}
-              >
-                {activeFilter === 'used' 
-                  ? t('coupons.usedCoupons', 'Used Coupons')
-                  : t('coupons.expiredCoupons', 'Expired Coupons')
-                } ({coupons.length})
-              </h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {coupons.map((coupon: UserActiveCoupon) => (
-                <CouponCard
-                  key={coupon.userCouponId}
-                  coupon={coupon}
-                  onUse={handleUseCoupon}
-                  onViewDetails={handleViewDetails}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Load More Button */}
-        {hasMore && (
-          <div className="text-center mt-8">
-            <button
-              onClick={handleLoadMore}
-              disabled={isLoading}
-              className="bg-stone-100 text-stone-700 px-6 py-3 rounded-md hover:bg-stone-200 disabled:opacity-50 transition-colors"
             >
-              {isLoading ? t('common.loading') : t('common.loadMore')}
-            </button>
+              {activeFilter === 'used' ? (
+                <FiCheck className="h-5 w-5 text-stone-600" aria-hidden="true" />
+              ) : (
+                <FiClock className="h-5 w-5 text-red-600" aria-hidden="true" />
+              )}
+            </div>
+            <h2 className={clsx('flex items-center gap-2 text-xl font-semibold',
+              activeFilter === 'used'
+                ? 'text-stone-900'
+                : 'text-red-700'
+            )}
+            >
+              {activeFilter === 'used'
+                ? t('coupons.usedCoupons', 'Used Coupons')
+                : t('coupons.expiredCoupons', 'Expired Coupons')
+              }
+              <Badge tone="neutral">{coupons.length}</Badge>
+            </h2>
           </div>
-        )}
-      </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {coupons.map((coupon: UserActiveCoupon) => (
+              <CouponCard
+                key={coupon.userCouponId}
+                coupon={coupon}
+                onUse={handleUseCoupon}
+                onViewDetails={handleViewDetails}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* QR Code Modal */}
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="mt-8 text-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-11 sm:h-9"
+            onClick={handleLoadMore}
+            disabled={isLoading}
+          >
+            {isLoading ? t('common.loading') : t('common.loadMore')}
+          </Button>
+        </div>
+      )}
+
+      {/* QR Code Modal — renders its own overlay via the Modal primitive, so
+          it must not be wrapped in another backdrop here (fixes #295). */}
       {showQRCode && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-md w-full max-h-full overflow-y-auto">
-            <QRCodeModal
-              coupon={selectedCoupon}
-              onClose={() => {
-                setShowQRCode(false);
-                setSelectedCoupon(null);
-              }}
-            />
-          </div>
-        </div>
+        <QRCodeModal
+          coupon={selectedCoupon}
+          onClose={() => {
+            setShowQRCode(false);
+            setSelectedCoupon(null);
+          }}
+        />
       )}
 
-      {/* Coupon Details Modal */}
+      {/* Coupon Details Modal — same as above: manages its own overlay. */}
       {showDetails && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-lg w-full max-h-full overflow-y-auto">
-            <CouponDetailsModal
-              coupon={selectedCoupon}
-              onClose={() => {
-                setShowDetails(false);
-                setSelectedCoupon(null);
-              }}
-            />
-          </div>
-        </div>
+        <CouponDetailsModal
+          coupon={selectedCoupon}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedCoupon(null);
+          }}
+        />
       )}
-    </div>
+    </AppShell>
   );
 };
 

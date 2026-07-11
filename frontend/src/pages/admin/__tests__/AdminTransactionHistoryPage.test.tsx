@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, within, act } from '@testing-library/react';
 
 // Mock data for testing
 const mockTransactionWithAllData = {
@@ -64,10 +64,11 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock MainLayout
-vi.mock('../../../components/layout/MainLayout', () => ({
+// Mock AppShell — its own AdminTopBar/AdminNavRail behavior is covered by
+// AppShell's/AdminTopBar's dedicated test suites.
+vi.mock('../../../components/layout/AppShell', () => ({
   default: ({ children, title }: { children: React.ReactNode; title: string }) => (
-    <div data-testid="main-layout">
+    <div data-testid="app-shell">
       <h1>{title}</h1>
       {children}
     </div>
@@ -76,6 +77,13 @@ vi.mock('../../../components/layout/MainLayout', () => ({
 
 // Import component after mocks
 import AdminTransactionHistoryPage from '../AdminTransactionHistoryPage';
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to the desktop table to avoid ambiguous duplicate matches.
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
 
 describe('AdminTransactionHistoryPage', () => {
   beforeEach(() => {
@@ -103,13 +111,14 @@ describe('AdminTransactionHistoryPage', () => {
     it('should render table headers', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('User Membership ID')).toBeInTheDocument();
-      expect(await screen.findByText('User Name')).toBeInTheDocument();
-      expect(await screen.findByText('User Email')).toBeInTheDocument();
-      expect(await screen.findByText('Night Change')).toBeInTheDocument();
-      expect(await screen.findByText('Point Change')).toBeInTheDocument();
-      expect(await screen.findByText('Admin Name')).toBeInTheDocument();
-      expect(await screen.findByText('Admin Membership ID')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('User Membership ID')).toBeInTheDocument();
+      expect(within(table).getByText('User Name')).toBeInTheDocument();
+      expect(within(table).getByText('User Email')).toBeInTheDocument();
+      expect(within(table).getByText('Night Change')).toBeInTheDocument();
+      expect(within(table).getByText('Point Change')).toBeInTheDocument();
+      expect(within(table).getByText('Admin Name')).toBeInTheDocument();
+      expect(within(table).getByText('Admin Membership ID')).toBeInTheDocument();
     });
   });
 
@@ -147,7 +156,8 @@ describe('AdminTransactionHistoryPage', () => {
 
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('John')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('John')).toBeInTheDocument();
     });
 
     it('renders user name when only last name is available', async () => {
@@ -163,7 +173,8 @@ describe('AdminTransactionHistoryPage', () => {
 
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('Doe')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Doe')).toBeInTheDocument();
     });
 
     it('renders "-" when user_membership_id is null', async () => {
@@ -316,37 +327,43 @@ describe('AdminTransactionHistoryPage', () => {
     it('renders full user name when both firstName and lastName are present', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('John Doe')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('John Doe')).toBeInTheDocument();
     });
 
     it('renders user email', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('john.doe@example.com')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('john.doe@example.com')).toBeInTheDocument();
     });
 
     it('renders user membership ID when present', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('MEM001')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('MEM001')).toBeInTheDocument();
     });
 
     it('renders admin name when present', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('Admin User')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Admin User')).toBeInTheDocument();
     });
 
     it('renders positive point change with + sign', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('+500')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('+500')).toBeInTheDocument();
     });
 
     it('renders positive night change with + sign', async () => {
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('+5')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('+5')).toBeInTheDocument();
     });
 
     it('renders negative point change', async () => {
@@ -361,7 +378,8 @@ describe('AdminTransactionHistoryPage', () => {
 
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('-200')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('-200')).toBeInTheDocument();
     });
   });
 
@@ -374,7 +392,10 @@ describe('AdminTransactionHistoryPage', () => {
 
       render(<AdminTransactionHistoryPage />);
 
-      expect(await screen.findByText('No transactions found')).toBeInTheDocument();
+      // The Table primitive renders the empty message in both the desktop
+      // and mobile layouts simultaneously.
+      await screen.findByText('Transaction History');
+      expect(screen.getAllByText('No transactions found').length).toBeGreaterThan(0);
     });
   });
 
@@ -390,8 +411,9 @@ describe('AdminTransactionHistoryPage', () => {
 
       render(<AdminTransactionHistoryPage />);
 
-      // Verify loading state is shown
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      // The Table primitive renders skeleton placeholders while loading.
+      const desktopView = getDesktopTable().closest('[data-view="desktop"]');
+      expect(desktopView?.parentElement).toHaveAttribute('data-loading', 'true');
 
       // Resolve the promise and let React update
       await act(async () => {
@@ -399,7 +421,7 @@ describe('AdminTransactionHistoryPage', () => {
       });
 
       // Verify loading state is gone after data loads
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(desktopView?.parentElement).not.toHaveAttribute('data-loading');
     });
   });
 });

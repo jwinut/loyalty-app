@@ -8,12 +8,13 @@ import { Coupon } from '../../../types/coupon';
 import { logger } from '../../../utils/logger';
 
 // Mock dependencies
-const mockTranslate = vi.fn((key: string) => {
+const mockTranslate = vi.fn((key: string, fallback?: string) => {
   const translations: Record<string, string> = {
     'errors.failedToLoadAssignments': 'Failed to load assignments',
     'errors.failedToRemoveCoupons': 'Failed to remove user coupons',
+    'common.close': 'Close',
   };
-  return translations[key] || key;
+  return translations[key] ?? fallback ?? key;
 });
 
 vi.mock('react-i18next', () => ({
@@ -43,6 +44,24 @@ vi.mock('../../../utils/dateFormatter', () => ({
     return `${day}/${month}/${year}`;
   }),
 }));
+
+// Modal portals its content to document.body, outside the RTL render
+// container — scope assertions with `screen` (which queries document.body)
+// rather than the `container` returned by `render()`.
+function getDialog() {
+  return screen.getByRole('dialog');
+}
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to the desktop table to avoid ambiguous duplicate matches.
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
+
+function getSummarySection() {
+  return screen.getByTestId('assignment-summary');
+}
 
 describe('CouponAssignmentsModal', () => {
   const mockCoupon: Coupon = {
@@ -160,15 +179,18 @@ describe('CouponAssignmentsModal', () => {
       });
     });
 
-    it('should have modal overlay', async () => {
-      const { container } = render(
-        <CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />
-      );
+    it('should render an accessible dialog', async () => {
+      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const overlay = container.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
-        expect(overlay).toBeInTheDocument();
+        expect(getDialog()).toBeInTheDocument();
       });
+    });
+
+    it('should render nothing when closed', () => {
+      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={false} onClose={onClose} />);
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 
@@ -208,9 +230,10 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
-        expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-        expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('John Doe')).toBeInTheDocument();
+        expect(within(table).getByText('Jane Smith')).toBeInTheDocument();
+        expect(within(table).getByText('Bob Johnson')).toBeInTheDocument();
       });
     });
 
@@ -218,38 +241,22 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
-        expect(screen.getByText('jane.smith@example.com')).toBeInTheDocument();
-        expect(screen.getByText('bob.johnson@example.com')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('john.doe@example.com')).toBeInTheDocument();
+        expect(within(table).getByText('jane.smith@example.com')).toBeInTheDocument();
+        expect(within(table).getByText('bob.johnson@example.com')).toBeInTheDocument();
       });
     });
 
-    it('should display assigned counts', async () => {
+    it('should display assigned, used, and available counts', async () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const assignedCounts = screen.getAllByText(/^[0-9]+$/).filter(el =>
-          el.closest('td')?.querySelector('.text-brand-600')
-        );
-        expect(assignedCounts.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('should display used counts', async () => {
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const table = screen.getByRole('table');
-        expect(table).toBeInTheDocument();
-      });
-    });
-
-    it('should display available counts', async () => {
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const table = screen.getByRole('table');
-        expect(table).toBeInTheDocument();
+        const table = getDesktopTable();
+        const johnRow = within(table).getByText('John Doe').closest('tr')!;
+        expect(within(johnRow).getByText('3')).toBeInTheDocument(); // assigned
+        expect(within(johnRow).getByText('1')).toBeInTheDocument(); // used
+        expect(within(johnRow).getByText('2')).toBeInTheDocument(); // available
       });
     });
 
@@ -257,9 +264,10 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('15/01/2024')).toBeInTheDocument();
-        expect(screen.getByText('10/01/2024')).toBeInTheDocument();
-        expect(screen.getByText('20/01/2024')).toBeInTheDocument();
+        const table = getDesktopTable();
+        expect(within(table).getByText('15/01/2024')).toBeInTheDocument();
+        expect(within(table).getByText('10/01/2024')).toBeInTheDocument();
+        expect(within(table).getByText('20/01/2024')).toBeInTheDocument();
       });
     });
   });
@@ -269,8 +277,9 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('Total Users')).toBeInTheDocument();
-        const totalUsersSection = screen.getByText('Total Users').parentElement;
+        const summary = getSummarySection();
+        expect(within(summary).getByText('Total Users')).toBeInTheDocument();
+        const totalUsersSection = within(summary).getByText('Total Users').parentElement;
         expect(totalUsersSection).toHaveTextContent('3');
         expect(totalUsersSection).toHaveTextContent('Total Users');
       });
@@ -280,8 +289,9 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('10')).toBeInTheDocument();
-        expect(screen.getByText('Total Assigned')).toBeInTheDocument();
+        const summary = getSummarySection();
+        expect(within(summary).getByText('10')).toBeInTheDocument();
+        expect(within(summary).getByText('Total Assigned')).toBeInTheDocument();
       });
     });
 
@@ -289,11 +299,9 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const usedLabels = screen.getAllByText('Used');
-        // Find the one in the summary section (gray-600 class)
-        const usedLabel = usedLabels.find(el => el.className.includes('text-stone-600'));
-        expect(usedLabel).toBeInTheDocument();
-        const usedSection = usedLabel?.parentElement;
+        const summary = getSummarySection();
+        const usedLabel = within(summary).getByText('Used');
+        const usedSection = usedLabel.parentElement;
         expect(usedSection).toHaveTextContent('5');
         expect(usedSection).toHaveTextContent('Used');
       });
@@ -303,24 +311,11 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const availableLabels = screen.getAllByText('Available');
-        // The summary section shows "Available" as a label
-        const summaryAvailableLabel = availableLabels.find(el => {
-          const parent = el.closest('div');
-          return parent?.className.includes('text-stone-600') && parent?.textContent === 'Available';
-        });
-        expect(summaryAvailableLabel).toBeInTheDocument();
-      });
-    });
-
-    it('should style summary statistics correctly', async () => {
-      const { container } = render(
-        <CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />
-      );
-
-      await waitFor(() => {
-        const summarySection = container.querySelector('.bg-stone-50');
-        expect(summarySection).toBeInTheDocument();
+        const summary = getSummarySection();
+        const availableLabel = within(summary).getByText('Available');
+        const availableSection = availableLabel.parentElement;
+        expect(availableSection).toHaveTextContent('5');
+        expect(availableSection).toHaveTextContent('Available');
       });
     });
   });
@@ -349,11 +344,9 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        // Find the badge in the table body
-        const table = screen.getByRole('table');
-        const tbody = table.querySelector('tbody');
-        const availableBadge = within(tbody as HTMLElement).getByText('Available');
-        expect(availableBadge).toHaveClass('bg-green-100', 'text-green-800');
+        const tbody = getDesktopTable().querySelector('tbody')!;
+        const availableBadge = within(tbody).getByText('Available');
+        expect(availableBadge).toHaveAttribute('data-tone', 'success');
       });
     });
 
@@ -361,7 +354,8 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('All Used')).toBeInTheDocument();
+        const badge = within(getDesktopTable()).getByText('All Used');
+        expect(badge).toHaveAttribute('data-tone', 'neutral');
       });
     });
 
@@ -369,60 +363,11 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        // User 1 has 1 used and 2 available, so should show Partially Used
-        const badges = screen.getAllByText('Partially Used');
+        // Users 1 and 3 have both used and available coupons, so both show
+        // Partially Used.
+        const badges = within(getDesktopTable()).getAllByText('Partially Used');
         expect(badges.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('should style Available badge with green', async () => {
-      // Mock with a user who has not used any coupons
-      vi.mocked(couponService.getCouponAssignments).mockResolvedValueOnce({
-        assignments: [{
-          userId: 'user-4',
-          firstName: 'Alice',
-          lastName: 'Green',
-          email: 'alice@example.com',
-          assignedCount: 1,
-          usedCount: 0,
-          availableCount: 1,
-          latestAssignment: new Date('2024-01-25T10:00:00Z'),
-        }],
-        summary: mockSummary,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        total: 1,
-      });
-
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const table = screen.getByRole('table');
-        const tbody = table.querySelector('tbody');
-        const availableBadge = within(tbody as HTMLElement).getByText('Available');
-        expect(availableBadge).toHaveClass('bg-green-100', 'text-green-800');
-      });
-    });
-
-    it('should style All Used badge with gray', async () => {
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const allUsedBadge = screen.getByText('All Used');
-        expect(allUsedBadge).toHaveClass('bg-stone-100', 'text-stone-800');
-      });
-    });
-
-    it('should style Partially Used badge with yellow', async () => {
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const partiallyUsedBadges = screen.getAllByText('Partially Used');
-        expect(partiallyUsedBadges.length).toBeGreaterThan(0);
-        partiallyUsedBadges.forEach(badge => {
-          expect(badge).toHaveClass('bg-yellow-100', 'text-yellow-800');
-        });
+        badges.forEach((badge) => expect(badge).toHaveAttribute('data-tone', 'warning'));
       });
     });
   });
@@ -436,26 +381,17 @@ describe('CouponAssignmentsModal', () => {
         expect(screen.getByText('Coupon Assignments')).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByText('×');
+      const closeButton = screen.getByRole('button', { name: 'Close' });
       await user.click(closeButton);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should display close button', async () => {
+    it('should display an accessible close button', async () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('×')).toBeInTheDocument();
-      });
-    });
-
-    it('should style close button correctly', async () => {
-      render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
-
-      await waitFor(() => {
-        const closeButton = screen.getByText('×');
-        expect(closeButton).toHaveClass('text-stone-400', 'hover:text-stone-600');
+        expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
       });
     });
   });
@@ -555,7 +491,7 @@ describe('CouponAssignmentsModal', () => {
       await user.click(retryButton);
 
       await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('John Doe')).toBeInTheDocument();
       });
     });
   });
@@ -685,7 +621,7 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const removeButtons = screen.getAllByText('Remove');
+        const removeButtons = within(getDesktopTable()).getAllByText('Remove');
         expect(removeButtons.length).toBeGreaterThan(0);
       });
     });
@@ -694,7 +630,7 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getByText('No coupons')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('No coupons')).toBeInTheDocument();
       });
     });
 
@@ -703,10 +639,10 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
       await waitFor(() => {
@@ -719,16 +655,18 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        const dialog = screen.getByText('Confirm Coupon Removal').closest('div');
-        expect(dialog).toHaveTextContent('John Doe');
-      });
+      // The confirmation dialog and the assignments table are both open at
+      // once (and John Doe's row is still visible behind it) — scope to the
+      // confirmation dialog specifically.
+      const confirmHeading = await screen.findByText('Confirm Coupon Removal');
+      const confirmDialog = confirmHeading.closest('[role="dialog"]') as HTMLElement;
+      expect(within(confirmDialog).getByText(/John Doe/)).toBeInTheDocument();
     });
 
     it('should display coupon count in confirmation dialog', async () => {
@@ -736,10 +674,10 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
       await waitFor(() => {
@@ -752,17 +690,17 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
       await waitFor(() => {
         expect(screen.getByText('Confirm Coupon Removal')).toBeInTheDocument();
       });
 
-      const cancelButton = screen.getByText('Cancel');
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
       await waitFor(() => {
@@ -775,17 +713,13 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Remove Coupons')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Remove Coupons');
+      const confirmButton = await screen.findByRole('button', { name: 'Remove Coupons' });
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -802,19 +736,15 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
       vi.clearAllMocks();
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Remove Coupons')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Remove Coupons');
+      const confirmButton = await screen.findByRole('button', { name: 'Remove Coupons' });
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -831,21 +761,17 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Remove Coupons')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Remove Coupons');
+      const confirmButton = await screen.findByRole('button', { name: 'Remove Coupons' });
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Removing...')).toBeInTheDocument();
+        expect(within(getDesktopTable()).getByText('Removing...')).toBeInTheDocument();
       });
     });
 
@@ -857,17 +783,13 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Remove Coupons')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Remove Coupons');
+      const confirmButton = await screen.findByRole('button', { name: 'Remove Coupons' });
       await user.click(confirmButton);
 
       await waitFor(() => {
@@ -884,21 +806,17 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Remove')[0]).toBeInTheDocument();
+        expect(within(getDesktopTable()).getAllByText('Remove')[0]).toBeInTheDocument();
       });
 
-      const removeButton = screen.getAllByText('Remove')[0]!;
+      const removeButton = within(getDesktopTable()).getAllByText('Remove')[0]!;
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Remove Coupons')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Remove Coupons');
+      const confirmButton = await screen.findByRole('button', { name: 'Remove Coupons' });
       await user.click(confirmButton);
 
       await waitFor(() => {
-        const removingButton = screen.getByText('Removing...');
+        const removingButton = within(getDesktopTable()).getByText('Removing...');
         expect(removingButton).toBeDisabled();
       });
     });
@@ -909,7 +827,7 @@ describe('CouponAssignmentsModal', () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const table = screen.getByRole('table');
+        const table = getDesktopTable();
         expect(table).toBeInTheDocument();
 
         // Check for table headers within the table
@@ -919,28 +837,6 @@ describe('CouponAssignmentsModal', () => {
         expect(within(table).getByText('Status')).toBeInTheDocument();
         expect(within(table).getByText('Latest Assignment')).toBeInTheDocument();
         expect(within(table).getByText('Actions')).toBeInTheDocument();
-      });
-    });
-
-    it('should have scrollable table container', async () => {
-      const { container } = render(
-        <CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />
-      );
-
-      await waitFor(() => {
-        const scrollableDiv = container.querySelector('.overflow-x-auto');
-        expect(scrollableDiv).toBeInTheDocument();
-      });
-    });
-
-    it('should have hover effect on rows', async () => {
-      const { container } = render(
-        <CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />
-      );
-
-      await waitFor(() => {
-        const rows = container.querySelectorAll('tbody tr');
-        expect(rows[0]).toHaveClass('hover:bg-stone-50');
       });
     });
   });
@@ -954,13 +850,13 @@ describe('CouponAssignmentsModal', () => {
       });
     });
 
-    it('should have accessible buttons', async () => {
+    it('should have accessible remove buttons', async () => {
       render(<CouponAssignmentsModal coupon={mockCoupon} isOpen={true} onClose={onClose} />);
 
       await waitFor(() => {
-        const removeButtons = screen.getAllByText('Remove');
+        const removeButtons = within(getDesktopTable()).getAllByText('Remove');
         removeButtons.forEach(button => {
-          expect(button.tagName).toBe('BUTTON');
+          expect(button.closest('button')).not.toBeNull();
         });
       });
     });

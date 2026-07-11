@@ -154,6 +154,26 @@ async fn main() -> anyhow::Result<()> {
     // Create application state
     let state = AppState::new(db.pool().clone(), redis.connection.clone(), config.clone());
 
+    // Belt-and-braces sweep for channel-booking payment windows (ADR-0003):
+    // releases PMS holds whose deposit never arrived and cancels the local
+    // channel rows. The PMS runs its own expiry sweep too; both sides are
+    // idempotent, so double-release is harmless.
+    {
+        let sweep_state = state.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(300));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
+                interval.tick().await;
+                loyalty_backend::services::pms_channel::release_expired_holds(
+                    sweep_state.db(),
+                    sweep_state.config(),
+                )
+                .await;
+            }
+        });
+    }
+
     // Build the application router with all routes and middleware
     let app = create_app(state, &config);
 

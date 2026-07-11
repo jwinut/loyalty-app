@@ -13,6 +13,7 @@ pub mod auth;
 pub mod bookings;
 pub mod coupons;
 pub mod health;
+pub mod line_webhook;
 pub mod loyalty;
 pub mod membership;
 pub mod notifications;
@@ -125,6 +126,9 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/slips", slips::routes())
         .nest("/api/analytics", analytics::routes())
         .nest("/api/translation", translation::routes())
+        // LINE Messaging API webhooks (per-property OA). Public by design —
+        // authenticated by X-Line-Signature inside the handler.
+        .nest("/api/line", line_webhook::routes())
         // OpenAPI documentation routes
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()))
         .with_state(state)

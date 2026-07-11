@@ -1,14 +1,36 @@
 import React from 'react';
 import { UserActiveCoupon } from '../../types/coupon';
 import { useTranslation } from 'react-i18next';
+import {
+  FiPercent,
+  FiDollarSign,
+  FiGift,
+  FiArrowUpCircle,
+  FiTag,
+  FiFileText,
+  FiList,
+  FiAlertTriangle,
+  FiCheckCircle,
+} from 'react-icons/fi';
 import { couponService } from '../../services/couponService';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { Badge, Button, Modal } from '../ui';
 
 interface CouponDetailsModalProps {
   coupon: UserActiveCoupon;
   onClose?: () => void;
   className?: string;
 }
+
+type CouponTypeIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
+
+const TYPE_ICONS: Record<string, CouponTypeIcon> = {
+  percentage: FiPercent,
+  fixed_amount: FiDollarSign,
+  bogo: FiGift,
+  free_upgrade: FiArrowUpCircle,
+  free_service: FiGift,
+};
 
 const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
   coupon,
@@ -17,23 +39,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const isExpiring = couponService.isExpiringSoon(coupon);
-
-  const getCouponTypeIcon = (type: string) => {
-    switch (type) {
-      case 'percentage':
-        return '📊';
-      case 'fixed_amount':
-        return '💰';
-      case 'bogo':
-        return '🎁';
-      case 'free_upgrade':
-        return '⬆️';
-      case 'free_service':
-        return '🎁';
-      default:
-        return '🎫';
-    }
-  };
+  const TypeIcon = TYPE_ICONS[coupon.type] ?? FiTag;
 
   const formatValue = (coupon: UserActiveCoupon) => {
     switch (coupon.type) {
@@ -52,107 +58,103 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
     }
   };
 
-  return (
-    <div className={`bg-white rounded-lg shadow-lg ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center">
-          <span className="text-xl mr-3">{getCouponTypeIcon(coupon.type)}</span>
-          <h3 className="text-lg font-semibold text-stone-900">
-            {t('coupons.couponDetails')}
-          </h3>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-xl font-bold"
-          >
-            ×
-          </button>
-        )}
-      </div>
+  const handleClose = onClose ?? (() => {});
 
-      {/* Content */}
-      <div className="p-6">
-        {/* Coupon Header */}
-        <div className="text-center mb-6 pb-4 border-b">
-          <h4 className="text-2xl font-bold text-stone-900 mb-2">
+  return (
+    <Modal
+      open
+      onClose={handleClose}
+      size="md"
+      title={
+        <span className="flex items-center gap-2">
+          <TypeIcon className="h-5 w-5 text-brand-600" aria-hidden />
+          {t('coupons.couponDetails')}
+        </span>
+      }
+      footer={
+        <Button className="w-full" onClick={handleClose}>
+          {t('common.close')}
+        </Button>
+      }
+    >
+      <div className={className}>
+        {/* Coupon Header — name + code on a pure white panel regardless of
+            the modal's own surface, so the mono chip reads consistently. */}
+        <div className="mb-6 rounded-card border border-hairline bg-surface-card p-4 text-center">
+          <h4 className="text-title text-ink">
             {coupon.name}
           </h4>
-          <div className="flex items-center justify-center space-x-4">
-            <span className="bg-stone-100 text-stone-800 px-3 py-1 rounded-full text-sm font-mono">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <span className="rounded-full bg-surface-sunken px-3 py-1 font-mono text-caption text-ink">
               {coupon.code}
             </span>
-            {isExpiring && (
-              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-medium">
-                {t('coupons.expiringSoon')}
-              </span>
-            )}
+            {isExpiring && <Badge tone="warning">{t('coupons.expiringSoon')}</Badge>}
           </div>
         </div>
 
         {/* Description */}
         {coupon.description && (
           <div className="mb-6">
-            <h5 className="font-medium text-stone-900 mb-2">
-              📝 {t('coupons.description')}
+            <h5 className="mb-2 flex items-center gap-2 font-semibold text-ink">
+              <FiFileText className="h-4 w-4 text-ink-muted" aria-hidden />
+              {t('coupons.description')}
             </h5>
-            <p className="text-stone-700 bg-stone-50 p-3 rounded-lg">
+            <p className="rounded-lg bg-surface-sunken p-3 text-ink">
               {coupon.description}
             </p>
           </div>
         )}
 
         {/* Coupon Value & Details */}
-        <div className="bg-green-50 rounded-lg p-4 mb-6">
-          <h5 className="font-medium text-green-900 mb-3 flex items-center">
-            <span className="mr-2">💎</span>
+        <div className="mb-6 rounded-lg bg-success-50 p-4">
+          <h5 className="mb-3 flex items-center gap-2 font-semibold text-success-700">
+            <FiTag className="h-4 w-4" aria-hidden />
             {t('coupons.value')}
           </h5>
           <div className="text-center">
-            <span className="text-3xl font-bold text-green-600">
+            <span className="text-display text-success-700">
               {formatValue(coupon)}
             </span>
           </div>
         </div>
 
         {/* Detailed Information */}
-        <div className="bg-stone-50 rounded-lg p-4 mb-6">
-          <h5 className="font-medium text-stone-900 mb-3 flex items-center">
-            <span className="mr-2">📋</span>
+        <div className="mb-6 rounded-lg bg-surface-sunken p-4">
+          <h5 className="mb-3 flex items-center gap-2 font-semibold text-ink">
+            <FiList className="h-4 w-4 text-ink-muted" aria-hidden />
             {t('coupons.details')}
           </h5>
           <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-stone-200">
-              <span className="text-stone-600">{t('coupons.type')}:</span>
-              <span className="font-medium flex items-center">
-                <span className="mr-1">{getCouponTypeIcon(coupon.type)}</span>
+            <div className="flex items-center justify-between border-b border-hairline py-2">
+              <span className="text-ink-muted">{t('coupons.type')}:</span>
+              <span className="flex items-center gap-1 font-semibold text-ink">
+                <TypeIcon className="h-4 w-4" aria-hidden />
                 {t(`coupons.types.${coupon.type}`)}
               </span>
             </div>
-            
+
             {coupon.minimumSpend && (
-              <div className="flex justify-between items-center py-2 border-b border-stone-200">
-                <span className="text-stone-600">{t('coupons.minimumSpend')}:</span>
-                <span className="font-medium text-brand-600">
+              <div className="flex items-center justify-between border-b border-hairline py-2">
+                <span className="text-ink-muted">{t('coupons.minimumSpend')}:</span>
+                <span className="font-semibold text-brand-600">
                   {coupon.currency}{coupon.minimumSpend}
                 </span>
               </div>
             )}
-            
+
             {coupon.maximumDiscount && (
-              <div className="flex justify-between items-center py-2 border-b border-stone-200">
-                <span className="text-stone-600">{t('coupons.maximumDiscount')}:</span>
-                <span className="font-medium text-brand-600">
+              <div className="flex items-center justify-between border-b border-hairline py-2">
+                <span className="text-ink-muted">{t('coupons.maximumDiscount')}:</span>
+                <span className="font-semibold text-brand-600">
                   {coupon.currency}{coupon.maximumDiscount}
                 </span>
               </div>
             )}
-            
+
             {coupon.effectiveExpiry && (
-              <div className="flex justify-between items-center py-2">
-                <span className="text-stone-600">{t('coupons.expiresOn')}:</span>
-                <span className={`font-medium ${isExpiring ? 'text-red-600' : 'text-stone-900'}`}>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-ink-muted">{t('coupons.expiresOn')}:</span>
+                <span className={isExpiring ? 'font-semibold text-error-600' : 'font-semibold text-ink'}>
                   {formatDateToDDMMYYYY(coupon.effectiveExpiry)}
                 </span>
               </div>
@@ -162,43 +164,29 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
 
         {/* Terms and Conditions */}
         {coupon.termsAndConditions && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <h5 className="font-medium text-yellow-900 mb-2 flex items-center">
-              <span className="mr-2">⚠️</span>
+          <div className="mb-6 rounded-lg bg-warning-50 p-4">
+            <h5 className="mb-2 flex items-center gap-2 font-semibold text-warning-700">
+              <FiAlertTriangle className="h-4 w-4" aria-hidden />
               {t('coupons.termsAndConditions')}
             </h5>
-            <p className="text-sm text-yellow-800 leading-relaxed">
+            <p className="text-caption leading-relaxed text-warning-700">
               {coupon.termsAndConditions}
             </p>
           </div>
         )}
 
         {/* Usage Status */}
-        <div className="bg-brand-50 border border-brand-200 rounded-lg p-4 mb-6">
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-brand-600 mr-2">🎫</span>
-              <span className="font-medium text-brand-900">{t('coupons.status')}:</span>
-            </div>
-            <span className="bg-brand-200 text-brand-800 px-3 py-1 rounded-full text-sm font-medium capitalize">
-              {t(`coupons.statuses.${coupon.status}`)}
+            <span className="flex items-center gap-2 font-semibold text-brand-900">
+              <FiCheckCircle className="h-4 w-4 text-brand-600" aria-hidden />
+              {t('coupons.status')}:
             </span>
+            <Badge tone="brand">{t(`coupons.statuses.${coupon.status}`)}</Badge>
           </div>
         </div>
-
-        {/* Close Button */}
-        <div className="text-center">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="bg-stone-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-stone-700 transition-colors"
-            >
-              {t('common.close')}
-            </button>
-          )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

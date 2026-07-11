@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { FiGlobe } from 'react-icons/fi';
+import { FiGlobe, FiChevronDown, FiCheck } from 'react-icons/fi';
 import { SurveyQuestion } from '../../types/survey';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 
 interface MultiLanguageQuestion extends Omit<SurveyQuestion, 'text' | 'description' | 'options'> {
   text: Record<string, string>;
@@ -37,67 +41,65 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto max-w-text" data-testid="multi-language-survey-root">
       {/* Language Selector */}
       <div className="mb-6">
         <div className="relative">
-          <button
-            onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-            className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md shadow-sm text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-          >
-            <FiGlobe className="mr-2 h-4 w-4" />
-            <span className="mr-2">{currentLang.flag}</span>
+          <Button variant="secondary" onClick={() => setShowLanguageSelector(!showLanguageSelector)}>
+            <FiGlobe className="h-4 w-4" aria-hidden="true" />
+            <span>{currentLang.flag}</span>
             {currentLang.name}
-            <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <FiChevronDown className="h-4 w-4" aria-hidden="true" />
+          </Button>
 
           {showLanguageSelector && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-md shadow-lg z-10">
-              {availableLanguages.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    onLanguageChange(lang.code);
-                    setShowLanguageSelector(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-stone-100 flex items-center ${
-                    lang.code === currentLanguage ? 'bg-brand-50 text-brand-700' : 'text-stone-700'
-                  }`}
-                >
-                  <span className="mr-3">{lang.flag}</span>
-                  {lang.name}
-                  {lang.code === currentLanguage && (
-                    <svg className="ml-auto h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              ))}
+            <div className="absolute left-0 top-full z-10 mt-1 w-48 rounded-lg border border-hairline bg-surface-card shadow-pop">
+              {availableLanguages.map(lang => {
+                const isSelected = lang.code === currentLanguage;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    aria-current={isSelected || undefined}
+                    onClick={() => {
+                      onLanguageChange(lang.code);
+                      setShowLanguageSelector(false);
+                    }}
+                    className={`flex w-full items-center px-4 py-2 text-left text-caption hover:bg-surface-sunken ${
+                      isSelected ? 'bg-brand-50 text-brand-700' : 'text-ink'
+                    }`}
+                  >
+                    <span className="mr-3">{lang.flag}</span>
+                    {lang.name}
+                    {isSelected && (
+                      <FiCheck className="ml-auto h-4 w-4" aria-hidden="true" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
       {/* Questions */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="multi-language-survey-questions">
         {questions.map((question, index) => (
-          <div key={question.id} className="bg-white rounded-lg shadow p-6">
+          <Card key={question.id}>
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-stone-900">
+              <h3 className="text-title text-ink">
                 {index + 1}. {getTranslatedText(question.text)}
-                {question.required && <span className="text-red-500 ml-1">*</span>}
+                {question.required && <span className="ml-1 text-error-600">*</span>}
               </h3>
               {question.description && (
-                <p className="mt-1 text-sm text-stone-600">
+                <p className="mt-1 text-caption text-ink-muted">
                   {getTranslatedText(question.description)}
                 </p>
               )}
             </div>
 
             {/* Question Type Display */}
-            <div className="text-xs text-stone-500 mb-2">
+            <div className="mb-2 text-fine text-ink-muted">
               Question Type: {question.type.replace('_', ' ').toUpperCase()}
             </div>
 
@@ -111,10 +113,10 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
                       id={`${question.id}_${option.id}`}
                       name={question.id}
                       value={option.value}
-                      className="mr-3"
+                      className="mr-3 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600"
                       disabled
                     />
-                    <label htmlFor={`${question.id}_${option.id}`} className="text-sm text-stone-700">
+                    <label htmlFor={`${question.id}_${option.id}`} className="text-caption text-ink">
                       {getTranslatedText(option.text)}
                     </label>
                   </div>
@@ -124,34 +126,28 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
 
             {/* Text inputs */}
             {question.type === 'text' && (
-              <input
+              <Input
                 type="text"
                 placeholder={`Your answer in ${currentLang.name}...`}
-                className="w-full p-2 border border-stone-300 rounded-md"
                 disabled
               />
             )}
 
             {question.type === 'textarea' && (
-              <textarea
+              <Textarea
                 placeholder={`Your answer in ${currentLang.name}...`}
                 rows={4}
-                className="w-full p-2 border border-stone-300 rounded-md"
                 disabled
               />
             )}
 
             {/* Rating scales */}
             {(question.type === 'rating_5' || question.type === 'rating_10') && (
-              <div className="flex space-x-2">
+              <div className="flex gap-2">
                 {Array.from({ length: question.type === 'rating_5' ? 5 : 10 }, (_, i) => (
-                  <button
-                    key={i}
-                    className="w-10 h-10 border border-stone-300 rounded-md text-sm text-stone-500 hover:bg-stone-100"
-                    disabled
-                  >
+                  <Button key={i} variant="secondary" size="icon" disabled>
                     {i + 1}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -160,28 +156,28 @@ const MultiLanguageSurvey: React.FC<MultiLanguageSurveyProps> = ({
             {question.type === 'yes_no' && (
               <div className="space-x-4">
                 <label className="inline-flex items-center">
-                  <input type="radio" name={question.id} value="yes" className="mr-2" disabled />
+                  <input type="radio" name={question.id} value="yes" className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" disabled />
                   Yes
                 </label>
                 <label className="inline-flex items-center">
-                  <input type="radio" name={question.id} value="no" className="mr-2" disabled />
+                  <input type="radio" name={question.id} value="no" className="mr-2 h-4 w-4 border-hairline-strong text-brand-600 focus:ring-brand-600" disabled />
                   No
                 </label>
               </div>
             )}
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Language Status */}
-      <div className="mt-8 p-4 bg-brand-50 rounded-lg">
+      <div className="mt-8 rounded-lg bg-brand-50 p-4" data-testid="multi-language-survey-status">
         <div className="flex items-center">
-          <FiGlobe className="h-5 w-5 text-brand-600 mr-2" />
+          <FiGlobe className="mr-2 h-5 w-5 text-brand-600" aria-hidden="true" />
           <div>
-            <p className="text-sm font-medium text-brand-900">
+            <p className="text-caption font-semibold text-brand-900">
               Multi-Language Survey Preview
             </p>
-            <p className="text-xs text-brand-700 mt-1">
+            <p className="mt-1 text-fine text-brand-700">
               Currently showing: {currentLang.name}.
               Survey supports {availableLanguages.length} languages.
             </p>

@@ -227,6 +227,42 @@ async fn verify_slip(
         "Admin verified slip"
     );
 
+    // PMS booking channel (ADR-0003): a verified slip IS the payment event
+    // for a channel booking. Confirm the PMS booking first — if the PMS is
+    // unreachable this returns an error so the admin retries the verify
+    // action (idempotent on both sides) rather than leaving money received
+    // against a hold that would silently expire.
+    let channel_row = sqlx::query!(
+        r#"
+        SELECT pms_booking_id AS "pms_booking_id!",
+               COALESCE(amount_due_now, total_price) AS "amount_received!"
+        FROM bookings WHERE id = $1 AND pms_booking_id IS NOT NULL
+        "#,
+        row.booking_id
+    )
+    .fetch_optional(state.db())
+    .await?;
+    if let Some(channel) = channel_row {
+        let pms_booking_id = channel.pms_booking_id;
+        let pms = crate::services::pms_channel::PmsChannelClient::from_settings(state.config())?;
+        // The PMS needs the received amount — it doesn't persist the
+        // guest's deposit50/full choice.
+        pms.payment_verified(&pms_booking_id, channel.amount_received)
+            .await?;
+        sqlx::query!(
+            r#"UPDATE bookings SET status = 'confirmed', updated_at = NOW()
+               WHERE id = $1 AND status = 'pending'"#,
+            row.booking_id
+        )
+        .execute(state.db())
+        .await?;
+        tracing::info!(
+            booking_id = %row.booking_id,
+            pms_booking_id = %pms_booking_id,
+            "channel booking confirmed after slip verification"
+        );
+    }
+
     Ok(Json(AdminSlipResponse {
         id: row.id,
         booking_id: row.booking_id,

@@ -1,15 +1,37 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart, FiDownload, FiUsers, FiFileText, FiMail, FiGlobe, FiLock, FiGift } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart, FiDownload, FiFileText, FiMail, FiGlobe, FiLock, FiGift } from 'react-icons/fi';
 import { Survey } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import SurveyCouponAssignments from '../../components/surveys/SurveyCouponAssignments';
 import toast from 'react-hot-toast';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { logger } from '../../utils/logger';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Button, buttonVariants } from '../../components/ui/Button';
+import { Badge, type BadgeTone } from '../../components/ui/Badge';
+import { Select } from '../../components/ui/Select';
+import { Table, type TableColumn } from '../../components/ui/Table';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { Skeleton } from '../../components/ui/Skeleton';
+
+const STATUS_BADGE_TONE: Record<string, BadgeTone> = {
+  active: 'success',
+  draft: 'neutral',
+  paused: 'warning',
+  completed: 'brand',
+  archived: 'error',
+};
+
+const ACCESS_TYPE_BADGE_TONE: Record<string, BadgeTone> = {
+  public: 'neutral',
+  invite_only: 'gold',
+};
 
 const SurveyManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -27,7 +49,7 @@ const SurveyManagement: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await surveyService.getSurveys(currentPage, 10, statusFilter);
       setSurveys(response.surveys);
       setTotalPages(response.pagination.totalPages);
@@ -36,12 +58,12 @@ const SurveyManagement: React.FC = () => {
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      setError(errorMessage ?? 'Failed to load surveys');
-      toast.error('Failed to load surveys');
+      setError(errorMessage ?? t('surveys.admin.management.loadError'));
+      toast.error(t('surveys.admin.management.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, t]);
 
   useEffect(() => {
     loadSurveys();
@@ -54,14 +76,14 @@ const SurveyManagement: React.FC = () => {
 
     try {
       await surveyService.deleteSurvey(surveyToDelete);
-      toast.success('Survey deleted successfully');
+      toast.success(t('surveys.admin.success.deleted'));
       loadSurveys();
     } catch (err) {
       logger.error('Error deleting survey:', err);
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      toast.error(errorMessage ?? 'Failed to delete survey');
+      toast.error(errorMessage ?? t('surveys.admin.management.deleteError'));
     } finally {
       setSurveyToDelete(null);
     }
@@ -78,334 +100,289 @@ const SurveyManagement: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast.success('Survey responses exported successfully');
+      toast.success(t('surveys.admin.management.exportSuccess'));
     } catch (err) {
       logger.error('Error exporting responses:', err);
-      toast.error('Failed to export survey responses');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'draft': return 'bg-stone-100 text-stone-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-brand-100 text-brand-800';
-      case 'archived': return 'bg-red-100 text-red-800';
-      default: return 'bg-stone-100 text-stone-800';
-    }
-  };
-
-  const getAccessTypeColor = (accessType: string) => {
-    switch (accessType) {
-      case 'public': return 'bg-brand-50 text-brand-700 border-brand-200';
-      case 'invite_only': return 'bg-purple-50 text-purple-700 border-purple-200';
-      default: return 'bg-stone-50 text-stone-700 border-stone-200';
+      toast.error(t('surveys.admin.management.exportError'));
     }
   };
 
   const getAccessTypeLabel = (accessType: string) => {
     switch (accessType) {
-      case 'public': return (
-        <>
-          <FiGlobe className="mr-1 h-3 w-3" />
-          Public
-        </>
-      );
-      case 'invite_only': return (
-        <>
-          <FiLock className="mr-1 h-3 w-3" />
-          Invite Only
-        </>
-      );
-      default: return 'Unknown';
+      case 'public': return t('surveys.accessType.public');
+      case 'invite_only': return t('surveys.accessType.invited');
+      default: return t('common.unknown');
     }
   };
 
+  const getAccessTypeIcon = (accessType: string) =>
+    accessType === 'invite_only' ? FiLock : FiGlobe;
+
+  const renderActions = (survey: Survey) => (
+    <div className="flex items-center gap-1">
+      <Link
+        to={`/admin/surveys/${survey.id}/preview`}
+        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+        aria-label={t('surveys.admin.management.previewTooltip')}
+        title={t('surveys.admin.management.previewTooltip')}
+      >
+        <FiEye className="h-4 w-4" aria-hidden="true" />
+      </Link>
+
+      <Link
+        to={`/admin/surveys/${survey.id}/analytics`}
+        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+        aria-label={t('surveys.admin.management.analyticsTooltip')}
+        title={t('surveys.admin.management.analyticsTooltip')}
+      >
+        <FiBarChart className="h-4 w-4" aria-hidden="true" />
+      </Link>
+
+      <Link
+        to={`/admin/surveys/${survey.id}/invitations`}
+        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+        aria-label={t('surveys.admin.management.invitationsTooltip')}
+        title={t('surveys.admin.management.invitationsTooltip')}
+      >
+        <FiMail className="h-4 w-4" aria-hidden="true" />
+      </Link>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setSelectedSurveyForCoupons(survey)}
+        aria-label={t('surveys.admin.couponAssignment.title')}
+        title={t('surveys.admin.couponAssignment.title')}
+      >
+        <FiGift className="h-4 w-4" aria-hidden="true" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => handleExportResponses(survey.id, survey.title)}
+        aria-label={t('surveys.admin.management.exportTooltip')}
+        title={t('surveys.admin.management.exportTooltip')}
+      >
+        <FiDownload className="h-4 w-4" aria-hidden="true" />
+      </Button>
+
+      <Link
+        to={`/admin/surveys/${survey.id}/edit`}
+        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+        aria-label={t('surveys.admin.editSurvey')}
+        title={t('surveys.admin.editSurvey')}
+      >
+        <FiEdit className="h-4 w-4" aria-hidden="true" />
+      </Link>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => {
+          setSurveyToDelete(survey.id);
+          setShowDeleteConfirm(true);
+        }}
+        aria-label={t('surveys.admin.deleteSurvey')}
+        title={t('surveys.admin.deleteSurvey')}
+      >
+        <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+      </Button>
+    </div>
+  );
+
+  const columns: TableColumn<Survey>[] = [
+    {
+      key: 'survey',
+      header: t('surveys.admin.management.columns.survey'),
+      cell: (survey) => {
+        const AccessIcon = getAccessTypeIcon(survey.access_type);
+        return (
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-ink">{survey.title || t('surveys.untitled')}</span>
+              <Badge tone={STATUS_BADGE_TONE[survey.status] ?? 'neutral'}>
+                {t(`surveys.admin.statuses.${survey.status}`, survey.status)}
+              </Badge>
+              <Badge tone={ACCESS_TYPE_BADGE_TONE[survey.access_type] ?? 'neutral'}>
+                <AccessIcon className="h-3 w-3" aria-hidden="true" />
+                {getAccessTypeLabel(survey.access_type)}
+              </Badge>
+            </div>
+            {survey.description && (
+              <p className="mt-1 truncate text-caption text-ink-muted">{survey.description}</p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'questions',
+      header: t('surveys.stats.questions'),
+      cell: (survey) => t('surveys.admin.templates.questionsCount', { count: survey.questions.length }),
+      hideOnMobile: true,
+    },
+    {
+      key: 'updated',
+      header: t('surveys.admin.management.columns.updated'),
+      cell: (survey) => formatDateToDDMMYYYY(survey.updated_at),
+      hideOnMobile: true,
+    },
+    {
+      key: 'actions',
+      header: t('surveys.admin.management.columns.actions'),
+      align: 'right',
+      cell: renderActions,
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
-            <span className="ml-3 text-stone-600">Loading surveys...</span>
-          </div>
-        </div>
-      </div>
+      <AppShell variant="admin" title={t('surveys.admin.title')}>
+        <Card><Skeleton className="h-64 w-full" /></Card>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-stone-900">Survey Management</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
-      </header>
+    <AppShell variant="admin" title={t('surveys.admin.title')}>
+      <PageHeader
+        density="admin"
+        title={t('surveys.admin.title')}
+        subtitle={t('surveys.admin.subtitle')}
+        actions={
+          <>
+            <Link to="/admin/surveys/templates" className={buttonVariants({ variant: 'secondary' })}>
+              <FiFileText className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.management.templatesLink')}
+            </Link>
+            <Link to="/admin/surveys/create" className={buttonVariants({ variant: 'primary' })}>
+              <FiPlus className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.createSurvey')}
+            </Link>
+          </>
+        }
+      />
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Actions Bar */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center space-x-4">
-              <Link
-                to="/admin/surveys/create"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                <FiPlus className="mr-2 h-4 w-4" />
-                Create Survey
-              </Link>
-              
-              <Link
-                to="/admin/surveys/templates"
-                className="inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                <FiFileText className="mr-2 h-4 w-4" />
-                Templates
-              </Link>
-              
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="block w-40 pl-3 pr-10 py-2 text-base border-stone-300 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm rounded-md"
-              >
-                <option value="">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-          </div>
+      <div className="mb-4 flex items-center gap-3">
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-48"
+          aria-label={t('surveys.admin.management.allStatuses')}
+        >
+          <option value="">{t('surveys.admin.management.allStatuses')}</option>
+          <option value="draft">{t('surveys.admin.statuses.draft')}</option>
+          <option value="active">{t('surveys.admin.statuses.active')}</option>
+          <option value="paused">{t('surveys.admin.statuses.paused')}</option>
+          <option value="completed">{t('surveys.admin.statuses.completed')}</option>
+          <option value="archived">{t('surveys.admin.statuses.archived')}</option>
+        </Select>
+      </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
-              <p>{error}</p>
-            </div>
-          )}
+      {error && (
+        <Card className="mb-4" surface="sunken">
+          <p className="text-caption text-error-600">{error}</p>
+        </Card>
+      )}
 
-          {/* Survey List */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-stone-900">
-                Surveys ({surveys.length})
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-stone-500">
-                Manage and monitor your customer surveys
-              </p>
-            </div>
-
-            {surveys.length > 0 ? (
-              <div className="border-t border-stone-200">
-                <ul className="divide-y divide-stone-200">
-                  {surveys.map((survey) => (
-                    <li key={survey.id} className="px-4 py-4 sm:px-6 hover:bg-stone-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center min-w-0 flex-1">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center">
-                              <p className="text-lg font-semibold text-stone-900 truncate">
-                                {survey.title}
-                              </p>
-                              <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(survey.status)}`}>
-                                {survey.status}
-                              </span>
-                              <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getAccessTypeColor(survey.access_type)}`}>
-                                {getAccessTypeLabel(survey.access_type)}
-                              </span>
-                            </div>
-                            {survey.description && (
-                              <p className="mt-1 text-sm text-stone-600 truncate">
-                                {survey.description}
-                              </p>
-                            )}
-                            <div className="mt-2 flex items-center text-xs text-stone-500 space-x-4">
-                              <span className="flex items-center">
-                                <FiUsers className="mr-1 h-3 w-3" />
-                                {survey.questions.length} questions
-                              </span>
-                              <span>Created: {formatDateToDDMMYYYY(survey.created_at)}</span>
-                              <span>Updated: {formatDateToDDMMYYYY(survey.updated_at)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Link
-                            to={`/admin/surveys/${survey.id}/preview`}
-                            className="p-2 text-stone-400 hover:text-stone-600"
-                            title="Preview survey"
-                          >
-                            <FiEye className="h-4 w-4" />
-                          </Link>
-                          
-                          <Link
-                            to={`/admin/surveys/${survey.id}/analytics`}
-                            className="p-2 text-stone-400 hover:text-brand-600"
-                            title="View analytics"
-                          >
-                            <FiBarChart className="h-4 w-4" />
-                          </Link>
-                          
-                          <Link
-                            to={`/admin/surveys/${survey.id}/invitations`}
-                            className="p-2 text-stone-400 hover:text-purple-600"
-                            title="Manage invitations"
-                          >
-                            <FiMail className="h-4 w-4" />
-                          </Link>
-                          
-                          <button
-                            onClick={() => setSelectedSurveyForCoupons(survey)}
-                            className="p-2 text-stone-400 hover:text-orange-600"
-                            title="Manage survey rewards"
-                          >
-                            <FiGift className="h-4 w-4" />
-                          </button>
-                          
-                          <button
-                            onClick={() => handleExportResponses(survey.id, survey.title)}
-                            className="p-2 text-stone-400 hover:text-green-600"
-                            title="Export responses"
-                          >
-                            <FiDownload className="h-4 w-4" />
-                          </button>
-                          
-                          <Link
-                            to={`/admin/surveys/${survey.id}/edit`}
-                            className="p-2 text-stone-400 hover:text-brand-600"
-                            title="Edit survey"
-                          >
-                            <FiEdit className="h-4 w-4" />
-                          </Link>
-                          
-                          <button
-                            onClick={() => {
-                              setSurveyToDelete(survey.id);
-                              setShowDeleteConfirm(true);
-                            }}
-                            className="p-2 text-stone-400 hover:text-red-600"
-                            title="Delete survey"
-                          >
-                            <FiTrash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="border-t border-stone-200 p-6 text-center">
-                <div className="text-stone-500">
-                  <FiBarChart className="mx-auto h-12 w-12 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No surveys found</h3>
-                  <p className="mb-4">Get started by creating your first customer survey.</p>
-                  <Link
-                    to="/admin/surveys/create"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    Create Survey
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-stone-200 sm:px-6 mt-4 rounded-lg shadow">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+      <Table
+        columns={columns}
+        rows={surveys}
+        rowKey={(survey) => survey.id}
+        aria-label={t('surveys.admin.title')}
+        mobileCard={(survey) => {
+          const AccessIcon = getAccessTypeIcon(survey.access_type);
+          return (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm text-stone-700">
-                    Page <span className="font-medium">{currentPage}</span> of{' '}
-                    <span className="font-medium">{totalPages}</span>
-                  </p>
+                  <p className="font-semibold text-ink">{survey.title || t('surveys.untitled')}</p>
+                  {survey.description && (
+                    <p className="mt-1 text-caption text-ink-muted">{survey.description}</p>
+                  )}
                 </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          page === currentPage
-                            ? 'z-10 bg-brand-50 border-brand-500 text-brand-600'
-                            : 'bg-white border-stone-300 text-stone-500 hover:bg-stone-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
-                  </nav>
-                </div>
+                <Badge tone={STATUS_BADGE_TONE[survey.status] ?? 'neutral'}>
+                  {t(`surveys.admin.statuses.${survey.status}`, survey.status)}
+                </Badge>
               </div>
+              <div className="flex flex-wrap items-center gap-3 text-fine text-ink-muted">
+                <span className="inline-flex items-center gap-1">
+                  <AccessIcon className="h-3 w-3" aria-hidden="true" />
+                  {getAccessTypeLabel(survey.access_type)}
+                </span>
+                <span>{t('surveys.admin.templates.questionsCount', { count: survey.questions.length })}</span>
+                <span>{t('surveys.admin.management.columns.updated')}: {formatDateToDDMMYYYY(survey.updated_at)}</span>
+              </div>
+              {renderActions(survey)}
             </div>
-          )}
-        </div>
-      </main>
+          );
+        }}
+        empty={
+          <EmptyState
+            icon={FiBarChart}
+            title={t('surveys.admin.management.emptyTitle')}
+            description={t('surveys.admin.management.emptyDescription')}
+            action={
+              <Link to="/admin/surveys/create" className={buttonVariants({ variant: 'primary' })}>
+                <FiPlus className="h-4 w-4" aria-hidden="true" />
+                {t('surveys.admin.createSurvey')}
+              </Link>
+            }
+          />
+        }
+      />
 
-      {/* Survey Coupon Assignment Modal */}
-      {selectedSurveyForCoupons && (
-        <div className="fixed inset-0 bg-stone-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-stone-900">
-                {t('surveys.admin.couponAssignment.title')} - {selectedSurveyForCoupons.title || t('surveys.untitled')}
-              </h3>
-              <button
-                onClick={() => setSelectedSurveyForCoupons(null)}
-                className="text-stone-400 hover:text-stone-600"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <SurveyCouponAssignments
-              surveyId={selectedSurveyForCoupons.id}
-              surveyTitle={selectedSurveyForCoupons.title}
-              surveyStatus={selectedSurveyForCoupons.status}
-            />
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-caption text-ink-muted">
+            {t('common.pageOf', { current: currentPage, total: totalPages })}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              {t('common.previous')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              {t('common.next')}
+            </Button>
           </div>
         </div>
       )}
 
+      {/* Survey Coupon Assignment Modal */}
+      <Modal
+        open={!!selectedSurveyForCoupons}
+        onClose={() => setSelectedSurveyForCoupons(null)}
+        size="lg"
+        title={`${t('surveys.admin.couponAssignment.title')} - ${selectedSurveyForCoupons?.title ?? t('surveys.untitled')}`}
+      >
+        {selectedSurveyForCoupons && (
+          <SurveyCouponAssignments
+            surveyId={selectedSurveyForCoupons.id}
+            surveyTitle={selectedSurveyForCoupons.title}
+            surveyStatus={selectedSurveyForCoupons.status}
+          />
+        )}
+      </Modal>
+
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Delete Survey"
-        message="Are you sure you want to delete this survey? This action cannot be undone and will delete all associated responses and invitations."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('surveys.admin.deleteSurvey')}
+        message={t('surveys.admin.management.deleteConfirmMessage')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         onConfirm={handleDeleteSurvey}
         onCancel={() => {
           setShowDeleteConfirm(false);
@@ -413,7 +390,7 @@ const SurveyManagement: React.FC = () => {
         }}
         variant="danger"
       />
-    </div>
+    </AppShell>
   );
 };
 

@@ -385,3 +385,81 @@ mod tests {
         assert_eq!(format!("{}", SortOrder::Desc), "DESC");
     }
 }
+
+/// A physical hotel property.
+///
+/// ADR-0001: a property is an attribute of a stay/redemption/coupon
+/// restriction — never a partition of members, balances, or tiers.
+/// Stored in the database as lowercase text ("hf" | "hfville").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Property {
+    Hf,
+    Hfville,
+}
+
+impl Property {
+    pub const ALL: [Property; 2] = [Property::Hf, Property::Hfville];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Property::Hf => "hf",
+            Property::Hfville => "hfville",
+        }
+    }
+
+    /// Guest-facing English name.
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Property::Hf => "The Harbour Front Hotel",
+            Property::Hfville => "HF Ville",
+        }
+    }
+}
+
+impl std::str::FromStr for Property {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "hf" => Ok(Property::Hf),
+            "hfville" => Ok(Property::Hfville),
+            other => Err(format!("unknown property: {other}")),
+        }
+    }
+}
+
+impl std::fmt::Display for Property {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod property_tests {
+    use super::Property;
+    use std::str::FromStr;
+
+    #[test]
+    fn property_round_trips_through_str() {
+        for p in Property::ALL {
+            assert_eq!(Property::from_str(p.as_str()).unwrap(), p);
+        }
+    }
+
+    #[test]
+    fn property_serde_uses_lowercase() {
+        assert_eq!(
+            serde_json::to_string(&Property::Hfville).unwrap(),
+            "\"hfville\""
+        );
+        let p: Property = serde_json::from_str("\"hf\"").unwrap();
+        assert_eq!(p, Property::Hf);
+    }
+
+    #[test]
+    fn unknown_property_rejected() {
+        assert!(Property::from_str("HF").is_err());
+        assert!(Property::from_str("ville").is_err());
+    }
+}

@@ -68,6 +68,18 @@ export const authService = {
     return response.data;
   },
 
+  /**
+   * Exchange a LINE LIFF ID token for a normal session. Only called from
+   * the LIFF bootstrap (`utils/liffAuth.ts`) when the app runs inside the
+   * LINE in-app browser — never on the web login page. The backend
+   * verifies the ID token with LINE, silently enrolls first-time LINE
+   * users, and returns the same body/cookie contract as `login`.
+   */
+  async liffLogin(idToken: string): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/liff', { idToken });
+    return response.data;
+  },
+
   async register(data: RegisterData): Promise<RegisterResponse> {
     const response = await api.post<RegisterResponse>('/auth/register', data);
     return response.data;

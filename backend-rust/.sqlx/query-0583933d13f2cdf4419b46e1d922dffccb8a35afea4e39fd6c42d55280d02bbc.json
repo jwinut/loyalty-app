@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO stays (pms_stay_id, user_id, property, check_in, check_out, nights)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (pms_stay_id) DO NOTHING\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Varchar",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0583933d13f2cdf4419b46e1d922dffccb8a35afea4e39fd6c42d55280d02bbc"
+}

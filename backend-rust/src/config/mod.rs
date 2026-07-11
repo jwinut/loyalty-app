@@ -341,13 +341,93 @@ impl SlipokConfig {
 pub struct PromptPayConfig {
     /// 13-digit Tax ID (or 10-digit phone number) for PromptPay payments.
     /// Sourced from the `PROMPTPAY_TAX_ID` environment variable.
+    /// Legacy single-account fallback when per-property IDs are unset.
     pub tax_id: Option<String>,
+
+    /// Receiving PromptPay ID for HF (`PROMPTPAY_HF_ID`).
+    pub hf_id: Option<String>,
+
+    /// Receiving PromptPay ID for HF Ville (`PROMPTPAY_HFVILLE_ID`).
+    pub hfville_id: Option<String>,
 }
 
 impl PromptPayConfig {
     pub fn is_configured(&self) -> bool {
         self.tax_id.is_some()
     }
+
+    /// Receiving PromptPay ID for a property ("hf" | "hfville"), falling
+    /// back to the legacy single `tax_id` when no per-property ID is set.
+    /// Each property has its own receiving account (docs/launch-plan.md).
+    pub fn id_for_property(&self, property: &str) -> Option<&String> {
+        let per_property = match property {
+            "hf" => self.hf_id.as_ref(),
+            "hfville" => self.hfville_id.as_ref(),
+            _ => None,
+        };
+        per_property.or(self.tax_id.as_ref())
+    }
+}
+
+/// One LINE Messaging API channel (a property's OA).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct LineMessagingChannelConfig {
+    /// Long-lived channel access token for push messages.
+    pub access_token: Option<String>,
+    /// Channel secret for webhook signature verification.
+    pub channel_secret: Option<String>,
+}
+
+impl LineMessagingChannelConfig {
+    pub fn is_configured(&self) -> bool {
+        self.access_token.is_some() && self.channel_secret.is_some()
+    }
+}
+
+/// LINE Messaging API configuration — one channel per property OA
+/// (ADR-0002: all channels live under the same LINE provider, so userIds
+/// are shared with the LINE Login channel).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct LineMessagingConfig {
+    #[serde(default)]
+    pub hf: LineMessagingChannelConfig,
+    #[serde(default)]
+    pub hfville: LineMessagingChannelConfig,
+}
+
+impl LineMessagingConfig {
+    /// Channel credentials for a property ("hf" | "hfville").
+    pub fn channel(&self, property: &str) -> Option<&LineMessagingChannelConfig> {
+        match property {
+            "hf" => Some(&self.hf),
+            "hfville" => Some(&self.hfville),
+            _ => None,
+        }
+    }
+}
+
+/// PMS booking-channel client configuration (ADR-0003: the loyalty app is
+/// a booking channel into the PMS; availability and booking creation live
+/// there).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct PmsConfig {
+    /// Base URL of the PMS channel API (e.g. https://pms.internal).
+    pub base_url: Option<String>,
+    /// Bearer token for outbound calls to the PMS channel API.
+    pub channel_token: Option<String>,
+}
+
+impl PmsConfig {
+    pub fn is_configured(&self) -> bool {
+        self.base_url.is_some() && self.channel_token.is_some()
+    }
+}
+
+/// Inbound service-token configuration for machine-to-machine callers
+/// (the PMS checkout hook posting to /api/loyalty/stays).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct LoyaltyServiceConfig {
+    pub token: Option<String>,
 }
 
 /// Server configuration
@@ -545,6 +625,18 @@ pub struct Settings {
     /// Cloudflare Access configuration (admin auto-login exchange)
     #[serde(default)]
     pub cf_access: CfAccessConfig,
+
+    /// LINE Messaging API channels (one per property OA)
+    #[serde(default)]
+    pub line_messaging: LineMessagingConfig,
+
+    /// PMS booking-channel client (ADR-0003)
+    #[serde(default)]
+    pub pms: PmsConfig,
+
+    /// Inbound service token (PMS → loyalty accrual calls)
+    #[serde(default)]
+    pub loyalty_service: LoyaltyServiceConfig,
 }
 
 impl Settings {
@@ -633,6 +725,33 @@ impl Settings {
             .set_override_option("slipok.branch_id", env::var("SLIPOK_BRANCH_ID").ok())?
             .set_override_option("slipok.api_key", env::var("SLIPOK_API_KEY").ok())?
             .set_override_option("promptpay.tax_id", env::var("PROMPTPAY_TAX_ID").ok())?
+            .set_override_option("promptpay.hf_id", env::var("PROMPTPAY_HF_ID").ok())?
+            .set_override_option(
+                "promptpay.hfville_id",
+                env::var("PROMPTPAY_HFVILLE_ID").ok(),
+            )?
+            .set_override_option(
+                "line_messaging.hf.access_token",
+                env::var("LINE_MESSAGING_HF_ACCESS_TOKEN").ok(),
+            )?
+            .set_override_option(
+                "line_messaging.hf.channel_secret",
+                env::var("LINE_MESSAGING_HF_CHANNEL_SECRET").ok(),
+            )?
+            .set_override_option(
+                "line_messaging.hfville.access_token",
+                env::var("LINE_MESSAGING_HFVILLE_ACCESS_TOKEN").ok(),
+            )?
+            .set_override_option(
+                "line_messaging.hfville.channel_secret",
+                env::var("LINE_MESSAGING_HFVILLE_CHANNEL_SECRET").ok(),
+            )?
+            .set_override_option("pms.base_url", env::var("PMS_BASE_URL").ok())?
+            .set_override_option("pms.channel_token", env::var("PMS_CHANNEL_TOKEN").ok())?
+            .set_override_option(
+                "loyalty_service.token",
+                env::var("LOYALTY_SERVICE_TOKEN").ok(),
+            )?
             .set_override_option("security.max_file_size", env::var("MAX_FILE_SIZE").ok())?
             .set_override_option(
                 "security.rate_limit_window_ms",

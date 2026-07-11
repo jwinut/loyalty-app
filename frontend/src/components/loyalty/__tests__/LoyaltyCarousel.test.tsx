@@ -147,9 +147,8 @@ describe('LoyaltyCarousel', () => {
       const nextButton = screen.getByRole('button', { name: /next slide/i });
       await user.click(nextButton);
 
-      const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-primary-600'));
-      expect(activeDot).toBeDefined();
+      const secondDot = screen.getByRole('button', { name: /go to slide 2/i });
+      expect(secondDot.querySelector('.bg-brand-600')).toBeInTheDocument();
     });
 
     it('should disable next button on last slide', async () => {
@@ -183,9 +182,8 @@ describe('LoyaltyCarousel', () => {
       const prevButton = screen.getByRole('button', { name: /previous slide/i });
       await user.click(prevButton);
 
-      const dots = screen.getAllByRole('button').filter(btn => !btn.textContent?.includes('slide'));
-      const activeDot = dots.find(dot => dot.classList.contains('bg-primary-600'));
-      expect(activeDot).toBeDefined();
+      const firstDot = screen.getByRole('button', { name: /go to slide 1/i });
+      expect(firstDot.querySelector('.bg-brand-600')).toBeInTheDocument();
     });
 
     it('should have hidden class on desktop', () => {
@@ -225,7 +223,7 @@ describe('LoyaltyCarousel', () => {
         <LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />
       );
 
-      const activeDot = container.querySelector('.bg-primary-600');
+      const activeDot = container.querySelector('.bg-brand-600');
       expect(activeDot).toBeInTheDocument();
     });
 
@@ -249,7 +247,7 @@ describe('LoyaltyCarousel', () => {
       const nextButton = screen.getByRole('button', { name: /next slide/i });
       await user.click(nextButton);
 
-      const activeDots = container.querySelectorAll('.bg-primary-600');
+      const activeDots = container.querySelectorAll('.bg-brand-600');
       expect(activeDots.length).toBeGreaterThan(0);
     });
   });
@@ -503,11 +501,13 @@ describe('LoyaltyCarousel', () => {
       expect(prevButton).toHaveClass('opacity-50', 'cursor-not-allowed');
     });
 
-    it('should apply shadow to navigation buttons', () => {
+    it('should render navigation buttons as flat circular controls', () => {
       render(<LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />);
 
       const nextButton = screen.getByRole('button', { name: /next slide/i });
-      expect(nextButton).toHaveClass('shadow-lg');
+      expect(nextButton).toHaveClass('rounded-full', 'bg-white');
+      // Flat per the design system — no elevation classes on this control.
+      expect(nextButton.className).not.toMatch(/\bshadow-(?!none)/);
     });
 
     it('should have proper dot styling', () => {

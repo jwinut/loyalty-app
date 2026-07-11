@@ -163,7 +163,7 @@ describe('CouponScanner', () => {
       const { container } = render(<CouponScanner />, { wrapper });
 
       const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('bg-white', 'rounded-lg', 'shadow-lg');
+      expect(card).toHaveClass('rounded-card', 'border', 'bg-surface-card');
     });
 
     it('should apply custom className', () => {
@@ -179,7 +179,7 @@ describe('CouponScanner', () => {
       render(<CouponScanner />, { wrapper });
 
       const manualButton = screen.getByText('Manual Entry');
-      expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
+      expect(manualButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should switch to camera mode when camera button clicked', async () => {
@@ -189,7 +189,7 @@ describe('CouponScanner', () => {
       const cameraButton = screen.getByText('Scan Camera');
       await user.click(cameraButton);
 
-      expect(cameraButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
+      expect(cameraButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should switch back to manual mode when manual button clicked', async () => {
@@ -202,7 +202,7 @@ describe('CouponScanner', () => {
       await user.click(cameraButton);
       await user.click(manualButton);
 
-      expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
+      expect(manualButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should not display camera view in manual mode', () => {
@@ -265,7 +265,7 @@ describe('CouponScanner', () => {
 
       await waitFor(() => {
         const manualButton = screen.getByText('Manual Entry');
-        expect(manualButton).toHaveClass('bg-white', 'text-stone-900', 'shadow-sm');
+        expect(manualButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
   });
@@ -386,8 +386,8 @@ describe('CouponScanner', () => {
 
       await waitFor(() => {
         const validationMessage = screen.getByText(/Valid coupon/);
-        const validationDiv = validationMessage.closest('div.bg-green-50');
-        expect(validationDiv).toHaveClass('bg-green-50', 'border-green-200');
+        const validationDiv = validationMessage.closest('div.bg-success-50');
+        expect(validationDiv).toHaveClass('bg-success-50');
       });
     });
 
@@ -405,8 +405,8 @@ describe('CouponScanner', () => {
       await user.type(input, 'INVALID');
 
       await waitFor(() => {
-        const validationDiv = screen.getByText('Invalid coupon code').closest('div');
-        expect(validationDiv).toHaveClass('bg-red-50', 'border-red-200');
+        const validationDiv = screen.getByText('Invalid coupon code').closest('div.bg-error-50');
+        expect(validationDiv).toHaveClass('bg-error-50');
       });
     });
 

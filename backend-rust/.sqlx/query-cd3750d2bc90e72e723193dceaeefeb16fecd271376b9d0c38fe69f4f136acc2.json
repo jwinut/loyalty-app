@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, user_id, property, nights, points_awarded\n            FROM stays WHERE pms_stay_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "property",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "points_awarded",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cd3750d2bc90e72e723193dceaeefeb16fecd271376b9d0c38fe69f4f136acc2"
+}

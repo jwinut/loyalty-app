@@ -687,6 +687,106 @@ async fn login(
     ))
 }
 
+/// LIFF login request (POST /api/auth/liff)
+#[derive(Debug, Deserialize)]
+pub struct LiffLoginRequest {
+    #[serde(rename = "idToken")]
+    pub id_token: String,
+}
+
+/// POST /api/auth/liff - Silent login from inside LINE (LIFF).
+///
+/// Verifies the LIFF ID token with LINE, finds-or-creates the member from
+/// the LINE identity (silent enrollment — docs/launch-plan.md), and issues
+/// the exact same access-token + HttpOnly-refresh-cookie contract as
+/// /api/auth/login. The LIFF app is attached to the LINE Login channel, so
+/// the userId matches web "Sign in with LINE" accounts (ADR-0002).
+async fn liff_login(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(payload): Json<LiffLoginRequest>,
+) -> Result<(CookieJar, Json<AuthResponse>), AppError> {
+    if payload.id_token.trim().is_empty() {
+        return Err(AppError::Validation("idToken is required".to_string()));
+    }
+
+    let config = state.config();
+    let client_id = config
+        .oauth
+        .line
+        .client_id
+        .clone()
+        .ok_or_else(|| AppError::Configuration("LINE login is not configured".to_string()))?;
+
+    // 1. Verify the ID token with LINE.
+    let claims = crate::services::line::verify_liff_id_token(&payload.id_token, &client_id).await?;
+
+    // 2. Silent enrollment: find-or-create the member by LINE userId.
+    let profile = super::oauth::LineProfile {
+        user_id: claims.sub,
+        display_name: claims.name.unwrap_or_else(|| "LINE Member".to_string()),
+        picture_url: claims.picture,
+        status_message: None,
+    };
+    let (oauth_user, is_new_user) = super::oauth::upsert_line_user(&state, &profile).await?;
+    let user_id: Uuid = oauth_user
+        .id
+        .parse()
+        .map_err(|_| AppError::Internal("Invalid user id from enrollment".to_string()))?;
+
+    // 3. Same token + cookie contract as login().
+    let access_token = generate_access_token(
+        &user_id,
+        oauth_user.email.as_deref(),
+        &oauth_user.role,
+        &config.auth.jwt_secret,
+        config.auth.access_token_expiry_secs as i64,
+    )?;
+
+    let refresh_token = generate_refresh_token_string();
+    let refresh_expires_at = Utc::now() + Duration::days(7);
+
+    sqlx::query(
+        r#"
+        INSERT INTO refresh_tokens (user_id, token, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+    )
+    .bind(user_id)
+    .bind(&refresh_token)
+    .bind(refresh_expires_at)
+    .execute(state.db())
+    .await
+    .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO user_audit_log (user_id, action, details)
+        VALUES ($1, 'login', $2)
+        "#,
+    )
+    .bind(user_id)
+    .bind(serde_json::json!({ "method": "liff", "isNewUser": is_new_user }))
+    .execute(state.db())
+    .await
+    .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+    let user_response = get_user_profile(state.db(), &user_id).await?;
+
+    tracing::info!(user_id = %user_id, is_new_user, "LIFF login");
+
+    let refresh_max_age_secs = (refresh_expires_at - Utc::now()).num_seconds().max(0);
+    let jar = jar.add(build_refresh_cookie(refresh_token, refresh_max_age_secs));
+
+    Ok((
+        jar,
+        Json(AuthResponse {
+            user: user_response,
+            tokens: AuthTokens { access_token },
+        }),
+    ))
+}
+
 /// Map a Cloudflare Access verification failure onto the app's error type.
 ///
 /// `FetchFailed` (JWKS unreachable) is a transient infrastructure problem,
@@ -1242,6 +1342,7 @@ pub fn routes() -> Router<AppState> {
     // Public routes (no authentication required)
     let public_routes = Router::<AppState>::new()
         .route("/login", post(login))
+        .route("/liff", post(liff_login))
         .route("/register", post(register))
         .route("/refresh", post(refresh))
         .route("/reset-password/request", post(forgot_password))
@@ -1269,6 +1370,7 @@ pub fn routes_with_state(state: AppState) -> Router {
     // Public routes (no authentication required)
     let public_routes = Router::<AppState>::new()
         .route("/auth/login", post(login))
+        .route("/auth/liff", post(liff_login))
         .route("/auth/register", post(register))
         .route("/auth/refresh", post(refresh))
         .route("/auth/reset-password/request", post(forgot_password))

@@ -2,6 +2,7 @@ import { UserLoyaltyStatus, Tier } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
 import { FiChevronUp, FiAward } from 'react-icons/fi';
 import { logger } from '../../utils/logger';
+import { tierTheme } from '../../utils/tierTheme';
 
 interface TierStatusProps {
   loyaltyStatus: UserLoyaltyStatus;
@@ -13,6 +14,7 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
 
   const currentTierIndex = allTiers.findIndex(tier => tier.name === loyaltyStatus.tier_name);
   const isTopTier = currentTierIndex === allTiers.length - 1;
+  const headerTheme = tierTheme(loyaltyStatus.tier_name, loyaltyStatus.tier_color);
 
   // Helper function to safely convert progress_percentage to number
   const getProgressPercentage = () => {
@@ -26,14 +28,14 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-stone-900">
           {t('loyalty.tierStatus')}
         </h3>
         <div className="flex items-center space-x-2">
-          <FiAward className="w-5 h-5" style={{ color: loyaltyStatus.tier_color }} />
-          <span className="font-medium" style={{ color: loyaltyStatus.tier_color }}>
+          <FiAward className="w-5 h-5" style={{ color: headerTheme.accent }} />
+          <span className="font-semibold" style={{ color: headerTheme.accent }}>
             {loyaltyStatus.tier_name}
           </span>
         </div>
@@ -45,22 +47,27 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
           const isCurrentTier = tier.name === loyaltyStatus.tier_name;
           const isCompleted = index < currentTierIndex || isCurrentTier;
           const isNext = index === currentTierIndex + 1;
+          const itemTheme = tierTheme(tier.name, tier.color);
 
           return (
             <div key={tier.id} className="flex items-center space-x-4">
               {/* Tier Icon */}
               <div className={`
                 w-10 h-10 rounded-full flex items-center justify-center border-2
-                ${isCompleted 
-                  ? 'border-transparent' 
-                  : isNext 
-                    ? 'border-stone-300 border-dashed' 
-                    : 'border-stone-200'
+                ${isCompleted
+                  ? 'border-transparent'
+                  : isNext
+                    ? 'border-hairline-strong border-dashed'
+                    : 'border-stone-200 bg-surface-sunken'
                 }
               `}
-style={{
-                backgroundColor: isCompleted ? tier.color : isNext ? `${tier.color}20` : '#f9fafb'
-              }}
+                style={
+                  isCompleted
+                    ? { backgroundColor: itemTheme.accent }
+                    : isNext
+                      ? { backgroundColor: itemTheme.tintBg }
+                      : undefined
+                }
               >
                 <FiAward className={`w-5 h-5 ${
                   isCompleted ? 'text-white' : isNext ? 'text-stone-600' : 'text-stone-400'
@@ -71,7 +78,7 @@ style={{
               {/* Tier Info */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className={`font-medium ${
+                  <span className={`font-semibold ${
                     isCurrentTier ? 'text-stone-900' : isCompleted ? 'text-stone-700' : 'text-stone-500'
                   }`}
                   >
@@ -100,11 +107,11 @@ style={{
                       </span>
                     </div>
                     <div className="w-full bg-stone-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="h-2 rounded-full transition-all duration-300"
-                        style={{ 
+                        style={{
                           width: `${getProgressPercentage()}%`,
-                          backgroundColor: tier.color
+                          backgroundColor: itemTheme.accent
                         }}
                       />
                     </div>
@@ -114,7 +121,7 @@ style={{
                 {/* Current Tier Indicator */}
                 {isCurrentTier && (
                   <div className="mt-1 flex items-center space-x-1">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tier.color }} />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: itemTheme.accent }} />
                     <span className="text-xs text-stone-600">{t('loyalty.currentTier')}</span>
                   </div>
                 )}
@@ -132,7 +139,7 @@ style={{
       {/* Next Tier Benefits Preview */}
       {!isTopTier && loyaltyStatus.next_tier_name && (
         <div className="mt-6 p-4 bg-stone-50 rounded-lg">
-          <div className="text-sm font-medium text-stone-700 mb-2">
+          <div className="text-sm font-semibold text-stone-700 mb-2">
             {t('loyalty.nextTierBenefits', { tier: loyaltyStatus.next_tier_name })}
           </div>
           <div className="text-xs text-stone-600">
@@ -145,9 +152,10 @@ style={{
 
       {/* Top Tier Message */}
       {isTopTier && (
-        <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: `${loyaltyStatus.tier_color}10` }}>
-          <div className="text-sm font-medium" style={{ color: loyaltyStatus.tier_color }}>
-            🎉 {t('loyalty.topTierMessage')}
+        <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: headerTheme.tintBg }}>
+          <div className="text-sm font-semibold flex items-center gap-1.5" style={{ color: headerTheme.onTint }}>
+            <FiAward className="w-4 h-4" aria-hidden="true" />
+            {t('loyalty.topTierMessage')}
           </div>
           <div className="text-xs text-stone-600 mt-1">
             {t('loyalty.topTierDescription')}

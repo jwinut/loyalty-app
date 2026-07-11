@@ -4,20 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
- * BookingPage tests
+ * BookingPage tests — channel booking flow (ADR-0003).
  *
- * These tests focus on the Step 4 (Payment) flow that was wired in
- * `feat/promptpay-slip-flow`:
- *   1. PromptPay QR is fetched dynamically once the user confirms a payment
- *      type (deposit vs. full).
- *   2. Slip upload calls `bookingService.uploadSlip` followed by
- *      `bookingService.addSlip`.
- *   3. Failure paths surface a toast and mark the slip status as failed.
- *
- * To keep the suite focused (and fast), we render BookingPage with
- * in-memory state advanced past steps 1–3 by driving the existing UI
- * controls; the room-availability and booking creation services are mocked
- * out to avoid touching the network.
+ * The page is a booking channel into the PMS:
+ *   1. Availability is fetched per property from the channel endpoint.
+ *   2. Confirming creates the booking with guest details + payment option
+ *      (50% deposit or full) in one call, per the locked contract in
+ *      docs/launch-plan.md.
+ *   3. The per-property PromptPay QR is rendered from the
+ *      `promptpay_qr_payload` in the response (no hardcoded account).
+ *   4. Slip upload calls `bookingService.uploadSlip` then `addSlip`.
  */
 
 function createTestQueryClient() {
@@ -38,24 +34,29 @@ function wrapper({ children }: { children: React.ReactNode }) {
 // Service mocks
 // ============================================================================
 
-const mockCheckAvailability = vi.fn();
-const mockCreateBooking = vi.fn();
+const mockGetAvailability = vi.fn();
+const mockCreateChannelBooking = vi.fn();
 const mockUploadSlip = vi.fn();
 const mockAddSlip = vi.fn();
-const mockGetPromptPayQr = vi.fn();
+const mockQrToDataURL = vi.fn();
+
+vi.mock('../../services/channelBookingService', () => ({
+  channelBookingService: {
+    getAvailability: (...args: unknown[]) => mockGetAvailability(...args),
+    createBooking: (...args: unknown[]) => mockCreateChannelBooking(...args),
+  },
+}));
 
 vi.mock('../../services/bookingService', () => ({
   bookingService: {
-    checkAvailability: (...args: unknown[]) => mockCheckAvailability(...args),
-    createBooking: (...args: unknown[]) => mockCreateBooking(...args),
     uploadSlip: (...args: unknown[]) => mockUploadSlip(...args),
     addSlip: (...args: unknown[]) => mockAddSlip(...args),
   },
 }));
 
-vi.mock('../../services/paymentService', () => ({
-  paymentService: {
-    getPromptPayQr: (...args: unknown[]) => mockGetPromptPayQr(...args),
+vi.mock('qrcode', () => ({
+  default: {
+    toDataURL: (...args: unknown[]) => mockQrToDataURL(...args),
   },
 }));
 
@@ -71,8 +72,6 @@ vi.mock('react-hot-toast', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => {
-      // Return the key (or a key:count stub) so the tests assert on
-      // structural elements / test-ids rather than translated strings.
       if (opts && typeof opts === 'object' && 'count' in opts) {
         return `${key}:${opts.count as number}`;
       }
@@ -85,7 +84,19 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
-vi.mock('../../components/layout/MainLayout', () => ({
+vi.mock('../../store/authStore', () => ({
+  useAuthStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      user: {
+        id: 'user-1',
+        firstName: 'Test',
+        lastName: 'Guest',
+        phone: '0812345678',
+      },
+    }),
+}));
+
+vi.mock('../../components/layout/AppShell', () => ({
   default: ({ children, title }: { children: React.ReactNode; title: string }) => (
     <div>
       <h1>{title}</h1>
@@ -93,10 +104,6 @@ vi.mock('../../components/layout/MainLayout', () => ({
     </div>
   ),
 }));
-
-// Stub the asset imports so vite/vitest doesn't choke in jsdom.
-vi.mock('../../assets/company-promptpay-qr.png', () => ({ default: 'company-qr.png' }));
-vi.mock('../../assets/kbank-logo.png', () => ({ default: 'kbank-logo.png' }));
 
 // Import the component AFTER all mocks are registered.
 import BookingPage from '../BookingPage';
@@ -106,45 +113,56 @@ import BookingPage from '../BookingPage';
 // ============================================================================
 
 const SAMPLE_ROOM_TYPE = {
-  id: 'room-type-1',
+  room_type_id: 'room-type-1',
   name: 'Deluxe Room',
   description: 'A nice room',
-  pricePerNight: 1000,
-  maxGuests: 2,
-  bedType: 'king',
-  amenities: ['wifi'],
-  images: [],
-  availableRooms: 5,
+  photo_url: null,
+  nightly_price: 1000,
+  available_count: 5,
+};
+
+const SAMPLE_AVAILABILITY = {
+  property: 'hf',
+  check_in: '2030-01-01',
+  check_out: '2030-01-03',
+  room_types: [SAMPLE_ROOM_TYPE],
+};
+
+const SAMPLE_BOOKING = {
+  booking_id: 'booking-123',
+  pms_booking_id: 'PMS-9',
+  total_amount: 2000,
+  amount_due_now: 1000,
+  balance_due_at_checkin: 1000,
+  promptpay_qr_payload: '00020101021129370016A000000677010111PAYLOAD',
+  // Far-future hold so the countdown never hits zero mid-test.
+  hold_expires_at: '2099-01-01T00:00:00Z',
 };
 
 /**
- * Drive the BookingPage UI from step 1 through to the payment screen so
- * each test starts from a known good state with a created booking.
+ * Drive the UI from step 1 (property + dates) to the payment screen.
  */
 async function advanceToPaymentStep(user: ReturnType<typeof userEvent.setup>) {
-  // Step 1: pick dates two nights apart. `userEvent.type` is unreliable on
+  // Step 1: property + two-night dates. `userEvent.type` is unreliable on
   // <input type="date"> in jsdom, so drive the value with fireEvent.change.
-  const checkIn = '2030-01-01';
-  const checkOut = '2030-01-03';
-  fireEvent.change(screen.getByTestId('check-in-date'), { target: { value: checkIn } });
-  fireEvent.change(screen.getByTestId('check-out-date'), { target: { value: checkOut } });
+  await user.click(screen.getByTestId('property-hf'));
+  fireEvent.change(screen.getByTestId('check-in-date'), { target: { value: '2030-01-01' } });
+  fireEvent.change(screen.getByTestId('check-out-date'), { target: { value: '2030-01-03' } });
   await user.click(screen.getByTestId('continue-to-rooms'));
 
   // Step 2: pick the only available room type.
   await waitFor(() => {
-    expect(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.id}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.room_type_id}`)).toBeInTheDocument();
   });
-  await user.click(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.id}`));
+  await user.click(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.room_type_id}`));
 
-  // Step 3: confirm the booking.
+  // Step 3: guest details are prefilled from the auth store; confirm.
   await waitFor(() => {
     expect(screen.getByTestId('confirm-booking')).toBeInTheDocument();
   });
   await user.click(screen.getByTestId('confirm-booking'));
 
-  // Step 4 should now be visible (payment).
-  // 'payment.title' appears in both the stepper and the section heading;
-  // assert ANY occurrence is rendered rather than requiring a unique match.
+  // Step 4 (payment) should now be visible.
   await waitFor(() => {
     expect(screen.getAllByText('payment.title').length).toBeGreaterThan(0);
   });
@@ -154,106 +172,119 @@ async function advanceToPaymentStep(user: ReturnType<typeof userEvent.setup>) {
 // Tests
 // ============================================================================
 
-describe('BookingPage — payment step (PromptPay QR + slip upload)', () => {
+describe('BookingPage — channel flow (property → rooms → confirm → payment)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCheckAvailability.mockResolvedValue([SAMPLE_ROOM_TYPE]);
-    mockCreateBooking.mockResolvedValue({
-      id: 'booking-123',
-      totalPrice: 2000,
-    });
+    mockGetAvailability.mockResolvedValue(SAMPLE_AVAILABILITY);
+    mockCreateChannelBooking.mockResolvedValue(SAMPLE_BOOKING);
     mockUploadSlip.mockResolvedValue({ url: '/storage/slips/abc.png' });
     mockAddSlip.mockResolvedValue(undefined);
-    mockGetPromptPayQr.mockResolvedValue({
-      svg: '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>',
-      amount: 1000,
-      currency: 'THB',
+    mockQrToDataURL.mockResolvedValue('data:image/png;base64,MOCKQR');
+  });
+
+  it('fetches availability with the locked contract params', async () => {
+    const user = userEvent.setup();
+    render(<BookingPage />, { wrapper });
+
+    await user.click(screen.getByTestId('property-hf'));
+    fireEvent.change(screen.getByTestId('check-in-date'), { target: { value: '2030-01-01' } });
+    fireEvent.change(screen.getByTestId('check-out-date'), { target: { value: '2030-01-03' } });
+    await user.click(screen.getByTestId('continue-to-rooms'));
+
+    await waitFor(() => {
+      expect(mockGetAvailability).toHaveBeenCalledWith('hf', '2030-01-01', '2030-01-03', 1);
     });
   });
 
-  it('should fetch the PromptPay QR for the deposit amount once payment type is confirmed', async () => {
+  it('creates the booking with property, guest details, and default deposit50', async () => {
     const user = userEvent.setup();
     render(<BookingPage />, { wrapper });
 
     await advanceToPaymentStep(user);
 
-    // QR should NOT be requested before the user confirms payment type.
-    expect(mockGetPromptPayQr).not.toHaveBeenCalled();
-
-    // Confirm the (default-selected) deposit payment type.
-    await user.click(screen.getByText('payment.confirmPaymentType'));
-
-    // Total price is 2000, deposit is 50% = 1000.
-    await waitFor(() => {
-      expect(mockGetPromptPayQr).toHaveBeenCalledWith(1000, 'booking-123');
-    });
-
-    // The dynamically-generated SVG should be rendered as a data URL <img>.
-    await waitFor(() => {
-      const qr = screen.getByTestId('promptpay-qr') as HTMLImageElement;
-      expect(qr.src).toContain('data:image/svg+xml');
+    expect(mockCreateChannelBooking).toHaveBeenCalledWith({
+      property: 'hf',
+      room_type_id: 'room-type-1',
+      check_in: '2030-01-01',
+      check_out: '2030-01-03',
+      guests: 1,
+      guest_name: 'Test Guest',
+      guest_phone: '0812345678',
+      payment_option: 'deposit50',
     });
   });
 
-  it('should re-fetch the QR when the user switches from deposit to pay-in-full', async () => {
+  it('sends payment_option "full" when the guest chooses to pay in full', async () => {
     const user = userEvent.setup();
     render(<BookingPage />, { wrapper });
 
-    await advanceToPaymentStep(user);
+    await user.click(screen.getByTestId('property-hf'));
+    fireEvent.change(screen.getByTestId('check-in-date'), { target: { value: '2030-01-01' } });
+    fireEvent.change(screen.getByTestId('check-out-date'), { target: { value: '2030-01-03' } });
+    await user.click(screen.getByTestId('continue-to-rooms'));
 
-    // Switch to "Pay in Full" (the radio whose value attribute is "full"),
-    // then confirm.
+    await waitFor(() => {
+      expect(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.room_type_id}`)).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId(`room-type-${SAMPLE_ROOM_TYPE.room_type_id}`));
+
+    // Switch the payment option radio to "full" before confirming.
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-booking')).toBeInTheDocument();
+    });
     const radios = screen.getAllByRole('radio');
     const fullRadio = radios.find((r) => r.getAttribute('value') === 'full');
     expect(fullRadio).toBeDefined();
     await user.click(fullRadio!);
-    await user.click(screen.getByText('payment.confirmPaymentType'));
+    await user.click(screen.getByTestId('confirm-booking'));
 
-    // Pay-in-full of total 2000 should request 2000 (not 1000).
     await waitFor(() => {
-      expect(mockGetPromptPayQr).toHaveBeenCalledWith(2000, 'booking-123');
+      expect(mockCreateChannelBooking).toHaveBeenCalled();
+    });
+    expect(mockCreateChannelBooking.mock.calls[0]?.[0]).toMatchObject({
+      payment_option: 'full',
     });
   });
 
-  it('should fall back to the bundled QR image when the dynamic generator fails', async () => {
+  it('renders the PromptPay QR from the response payload and shows amounts + hold countdown', async () => {
     const user = userEvent.setup();
-    mockGetPromptPayQr.mockRejectedValue(new Error('Tax ID not configured'));
     render(<BookingPage />, { wrapper });
 
     await advanceToPaymentStep(user);
-    await user.click(screen.getByText('payment.confirmPaymentType'));
 
-    // useQuery has retry: 1, so the error state lands after the second
-    // failed fetch. Bump timeout from 1s default to 4s to cover that.
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('qr-error')).toBeInTheDocument();
-      },
-      { timeout: 4000 },
-    );
+    // QR is generated from the per-property payload — never a bundled image.
+    await waitFor(() => {
+      expect(mockQrToDataURL).toHaveBeenCalledWith(
+        SAMPLE_BOOKING.promptpay_qr_payload,
+        expect.any(Object),
+      );
+    });
+    await waitFor(() => {
+      const qr = screen.getByTestId('promptpay-qr') as HTMLImageElement;
+      expect(qr.src).toContain('data:image/png');
+    });
 
-    const qr = screen.getByTestId('promptpay-qr') as HTMLImageElement;
-    expect(qr.src).toContain('company-qr.png');
+    // Deposit summary: amount due now + balance due at check-in.
+    expect(screen.getByTestId('amount-due-now')).toHaveTextContent('1,000');
+    expect(screen.getByTestId('balance-due')).toHaveTextContent('1,000');
+
+    // Hold countdown is visible while payment is pending.
+    expect(screen.getByTestId('hold-countdown')).toBeInTheDocument();
   });
 
-  it('should call uploadSlip then addSlip when the user submits a payment slip', async () => {
+  it('calls uploadSlip then addSlip with the channel booking id', async () => {
     const user = userEvent.setup();
     render(<BookingPage />, { wrapper });
 
     await advanceToPaymentStep(user);
-    await user.click(screen.getByText('payment.confirmPaymentType'));
 
-    // Wait for the slip dropzone (only visible after payment type confirmed).
     await waitFor(() => {
       expect(screen.getByTestId('slip-input')).toBeInTheDocument();
     });
 
-    // Upload a tiny PNG file.
     const slipFile = new File(['fake-png-bytes'], 'slip.png', { type: 'image/png' });
-    const input = screen.getByTestId('slip-input') as HTMLInputElement;
-    await user.upload(input, slipFile);
+    await user.upload(screen.getByTestId('slip-input') as HTMLInputElement, slipFile);
 
-    // Submit the slip.
     await waitFor(() => {
       expect(screen.getByTestId('submit-slip')).toBeInTheDocument();
     });
@@ -267,13 +298,12 @@ describe('BookingPage — payment step (PromptPay QR + slip upload)', () => {
     expect(mockToastSuccess).toHaveBeenCalledWith('payment.slipUploaded');
   });
 
-  it('should surface an error toast when the slip upload fails', async () => {
+  it('surfaces an error toast when the slip upload fails', async () => {
     const user = userEvent.setup();
     mockUploadSlip.mockRejectedValue(new Error('network'));
     render(<BookingPage />, { wrapper });
 
     await advanceToPaymentStep(user);
-    await user.click(screen.getByText('payment.confirmPaymentType'));
 
     await waitFor(() => {
       expect(screen.getByTestId('slip-input')).toBeInTheDocument();

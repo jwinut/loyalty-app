@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- Test file uses non-null assertions for DOM element access */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, within, act } from '@testing-library/react';
 
 // Mock data for testing
 const mockUserWithAllData = {
@@ -114,13 +115,24 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock DashboardButton
-vi.mock('../../../components/navigation/DashboardButton', () => ({
-  default: () => <div data-testid="dashboard-button">Dashboard</div>,
+// Mock AppShell — its own AdminTopBar/AdminNavRail behavior is covered by
+// AppShell's/AdminTopBar's dedicated test suites.
+vi.mock('../../../components/layout/AppShell', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-testid="app-shell">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
 }));
 
 // Import component after mocks
 import LoyaltyAdminPage from '../LoyaltyAdminPage';
+
+// The Table primitive dual-renders a desktop <table> and a mobile card list
+// simultaneously (CSS controls which is visible) — scope row-content
+// assertions to `screen.findByRole('table')` to avoid ambiguous duplicate
+// matches against the mobile card list.
 
 describe('LoyaltyAdminPage', () => {
   beforeEach(() => {
@@ -139,13 +151,13 @@ describe('LoyaltyAdminPage', () => {
     it('should render the page title', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('Loyalty Management')).toBeInTheDocument();
+      expect((await screen.findAllByText('Loyalty Management')).length).toBeGreaterThan(0);
     });
 
     it('should render without crashing', async () => {
       const { container } = render(<LoyaltyAdminPage />);
 
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
       expect(container).toBeTruthy();
     });
 
@@ -158,12 +170,13 @@ describe('LoyaltyAdminPage', () => {
     it('should render table headers', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('User')).toBeInTheDocument();
-      expect(await screen.findByText('Phone')).toBeInTheDocument();
-      expect(await screen.findByText('Tier')).toBeInTheDocument();
-      expect(await screen.findByText('Membership ID')).toBeInTheDocument();
-      expect(await screen.findByText('Points')).toBeInTheDocument();
-      expect(await screen.findByText('Actions')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('User')).toBeInTheDocument();
+      expect(within(table).getByText('Phone')).toBeInTheDocument();
+      expect(within(table).getByText('Tier')).toBeInTheDocument();
+      expect(within(table).getByText('Membership ID')).toBeInTheDocument();
+      expect(within(table).getByText('Points')).toBeInTheDocument();
+      expect(within(table).getByText('Actions')).toBeInTheDocument();
     });
   });
 
@@ -180,7 +193,7 @@ describe('LoyaltyAdminPage', () => {
       });
 
       render(<LoyaltyAdminPage />);
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
 
       // Should show email as fallback when both names are null
       // Email may appear multiple times in the UI
@@ -201,12 +214,12 @@ describe('LoyaltyAdminPage', () => {
       });
 
       render(<LoyaltyAdminPage />);
-      await screen.findByText('Loyalty Management');
+      const table = await screen.findByRole('table');
 
       // LINE users with first_name should show that name
-      expect(screen.getByText('LineTestUser')).toBeInTheDocument();
+      expect(within(table).getByText('LineTestUser')).toBeInTheDocument();
       // Should also show LINE badge
-      expect(screen.getByText('via LINE')).toBeInTheDocument();
+      expect(within(table).getByText('via LINE')).toBeInTheDocument();
     });
 
     it('renders "-" when phone is null', async () => {
@@ -221,7 +234,7 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
       // Phone column should show "-"
       const cells = screen.getAllByRole('cell');
       const phoneCell = cells.find(cell => cell.textContent === '-');
@@ -240,7 +253,7 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
       // Membership ID column should show "-"
       const cells = screen.getAllByRole('cell');
       const membershipCells = cells.filter(cell => cell.textContent === '-');
@@ -260,7 +273,8 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('Gold')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Gold')).toBeInTheDocument();
     });
 
     it('renders user with all optional fields null', async () => {
@@ -291,7 +305,7 @@ describe('LoyaltyAdminPage', () => {
       });
 
       const { container } = render(<LoyaltyAdminPage />);
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
 
       expect(container).toBeTruthy();
       // Email appears multiple times (as name fallback and in secondary display)
@@ -311,7 +325,7 @@ describe('LoyaltyAdminPage', () => {
       });
 
       const { container } = render(<LoyaltyAdminPage />);
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
 
       // Component should not crash
       expect(container).toBeTruthy();
@@ -328,7 +342,7 @@ describe('LoyaltyAdminPage', () => {
       });
 
       const { container } = render(<LoyaltyAdminPage />);
-      await screen.findByText('Loyalty Management');
+      await screen.findAllByText('Loyalty Management');
 
       expect(container).toBeTruthy();
     });
@@ -338,7 +352,8 @@ describe('LoyaltyAdminPage', () => {
     it('renders full name when both first_name and last_name are present', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('John Doe')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('John Doe')).toBeInTheDocument();
     });
 
     it('renders phone when present', async () => {
@@ -350,25 +365,29 @@ describe('LoyaltyAdminPage', () => {
     it('renders membership ID when present', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('MEM001')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('MEM001')).toBeInTheDocument();
     });
 
     it('renders tier badge with correct name', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('Gold')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Gold')).toBeInTheDocument();
     });
 
     it('renders points with formatting', async () => {
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('5,000')).toBeInTheDocument();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('5,000')).toBeInTheDocument();
     });
 
     it('renders email', async () => {
       render(<LoyaltyAdminPage />);
 
-      await screen.findByText('John Doe');
+      const table = await screen.findByRole('table');
+      await within(table).findByText('John Doe');
       // Email may appear multiple times in the UI (under name and elsewhere)
       const emails = screen.getAllByText('john.doe@example.com');
       expect(emails.length).toBeGreaterThan(0);
@@ -384,7 +403,7 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('No users found')).toBeInTheDocument();
+      expect((await screen.findAllByText('No users found')).length).toBeGreaterThan(0);
     });
 
     it('renders select user prompt when no user is selected', async () => {
@@ -404,9 +423,11 @@ describe('LoyaltyAdminPage', () => {
         new Promise((resolve) => setTimeout(() => resolve({ users: [], total: 0 }), 100))
       );
 
-      render(<LoyaltyAdminPage />);
+      const { container } = render(<LoyaltyAdminPage />);
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      // The Table primitive marks the desktop layout as loading via
+      // data-loading while the request is in flight.
+      expect(container.querySelector('[data-loading="true"]')).toBeInTheDocument();
 
       // Advance timers and wait for React to process state updates
       await act(async () => {
@@ -414,7 +435,7 @@ describe('LoyaltyAdminPage', () => {
       });
 
       // Verify loading is complete
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(container.querySelector('[data-loading="true"]')).not.toBeInTheDocument();
 
       // Restore real timers
       vi.useRealTimers();
@@ -434,7 +455,7 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('via LINE')).toBeInTheDocument();
+      expect((await screen.findAllByText('via LINE')).length).toBeGreaterThan(0);
     });
 
     it('shows Google badge for Google users', async () => {
@@ -449,7 +470,7 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      expect(await screen.findByText('via GOOGLE')).toBeInTheDocument();
+      expect((await screen.findAllByText('via GOOGLE')).length).toBeGreaterThan(0);
     });
 
     it('does not show OAuth badge for regular users', async () => {
@@ -464,8 +485,22 @@ describe('LoyaltyAdminPage', () => {
 
       render(<LoyaltyAdminPage />);
 
-      await screen.findByText('John Doe');
+      const table = await screen.findByRole('table');
+      await within(table).findByText('John Doe');
       expect(screen.queryByText(/via/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Row Selection', () => {
+    it('should load user transactions when a row is clicked', async () => {
+      render(<LoyaltyAdminPage />);
+
+      const table = await screen.findByRole('table');
+      const row = within(table).getByText('John Doe').closest('tr')!;
+      row.click();
+
+      await screen.findByText('User Details');
+      expect(mockGetUserPointsHistoryAdmin).toHaveBeenCalledWith('user-1', 50, 0);
     });
   });
 });

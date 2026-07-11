@@ -1,21 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { FiAlertTriangle } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import { Coupon, CreateCouponRequest, CouponType, CouponStatus } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import { loyaltyService } from '../../services/loyaltyService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import CouponAssignmentsModal from '../../components/admin/CouponAssignmentsModal';
-import toast from 'react-hot-toast';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { logger } from '../../utils/logger';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader, Table, type TableColumn, Badge, Button, Modal, Input, Select, Textarea, FormField } from '../../components/ui';
 
-interface User {
+interface CouponUser {
   id: string;
   email: string;
   firstName: string;
   lastName?: string;
   membershipId?: string | null;
+}
+
+type CouponStatusTone = 'success' | 'warning' | 'error';
+
+const STATUS_BADGE_TONE: Record<string, CouponStatusTone> = {
+  active: 'success',
+  paused: 'warning',
+};
+
+function getCouponStatusTone(status: string): CouponStatusTone {
+  return STATUS_BADGE_TONE[status] ?? 'error';
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency: 'THB'
+  }).format(amount);
+}
+
+const EMPTY_NEW_COUPON: CreateCouponRequest = {
+  code: '',
+  name: '',
+  description: '',
+  type: 'percentage',
+  value: 0,
+  minimumSpend: 0,
+  maximumDiscount: 0,
+  usageLimit: 100,
+  usageLimitPerUser: 1,
+  validFrom: new Date().toISOString().split('T')[0],
+  validUntil: '',
+  termsAndConditions: ''
+};
+
+function matchesUserSearch(user: CouponUser, searchTerm: string): boolean {
+  if (!searchTerm) {return true;}
+  const searchLower = searchTerm.toLowerCase();
+  const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.toLowerCase();
+  const email = (user.email ?? '').toLowerCase();
+  const membershipId = (user.membershipId ?? '').toLowerCase();
+  return fullName.includes(searchLower) || email.includes(searchLower) || membershipId.includes(searchLower);
 }
 
 const CouponManagement: React.FC = () => {
@@ -29,7 +72,7 @@ const CouponManagement: React.FC = () => {
   const [showAssignmentsModal, setShowAssignmentsModal] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<CouponUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -37,26 +80,13 @@ const CouponManagement: React.FC = () => {
   const [createModalError, setCreateModalError] = useState<string | null>(null);
 
   // Create coupon form state
-  const [newCoupon, setNewCoupon] = useState<CreateCouponRequest>({
-    code: '',
-    name: '',
-    description: '',
-    type: 'percentage',
-    value: 0,
-    minimumSpend: 0,
-    maximumDiscount: 0,
-    usageLimit: 100,
-    usageLimitPerUser: 1,
-    validFrom: new Date().toISOString().split('T')[0],
-    validUntil: '',
-    termsAndConditions: ''
-  });
+  const [newCoupon, setNewCoupon] = useState<CreateCouponRequest>(EMPTY_NEW_COUPON);
 
   const loadCoupons = async (pageNum: number = 1) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Get all non-expired coupons - let backend handle the filtering
       // We need to make multiple calls to get different statuses since API doesn't support "NOT expired"
       const [activeResponse, pausedResponse, draftResponse] = await Promise.all([
@@ -64,21 +94,21 @@ const CouponManagement: React.FC = () => {
         couponService.getAdminCoupons(1, 1000, { status: 'paused' }),
         couponService.getAdminCoupons(1, 1000, { status: 'draft' })
       ]);
-      
+
       // Combine all non-expired coupons
       const allCoupons = [
         ...activeResponse.coupons,
-        ...pausedResponse.coupons, 
+        ...pausedResponse.coupons,
         ...draftResponse.coupons
       ];
-      
+
       // Implement client-side pagination for the filtered results
       const itemsPerPage = 10;
       const startIndex = (pageNum - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       const paginatedCoupons = allCoupons.slice(startIndex, endIndex);
       const calculatedTotalPages = Math.ceil(allCoupons.length / itemsPerPage);
-      
+
       setCoupons(paginatedCoupons);
       setTotalPages(calculatedTotalPages);
       setPage(pageNum);
@@ -98,7 +128,7 @@ const CouponManagement: React.FC = () => {
       // Use the loyalty service instead of direct fetch to avoid hardcoded URLs
       const response = await loyaltyService.getAllUsersLoyaltyStatus(100, 0);
       const usersData = response.users || [];
-      
+
       // Transform the loyalty service response to our User interface
       const transformedUsers = usersData.map((user: { user_id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; membership_id?: string | null }) => ({
         id: user.user_id,
@@ -123,36 +153,23 @@ const CouponManagement: React.FC = () => {
     try {
       setLoading(true);
       setCreateModalError(null); // Clear any previous errors
-      
+
       // Convert date strings to datetime format for backend validation
       const couponData = {
         ...newCoupon,
         validFrom: newCoupon.validFrom ? new Date(newCoupon.validFrom + 'T00:00:00.000Z').toISOString() : undefined,
         validUntil: newCoupon.validUntil ? new Date(newCoupon.validUntil + 'T23:59:59.999Z').toISOString() : undefined
       };
-      
+
       await couponService.createCoupon(couponData);
       setShowCreateModal(false);
       setCreateModalError(null); // Clear error on success
-      setNewCoupon({
-        code: '',
-        name: '',
-        description: '',
-        type: 'percentage',
-        value: 0,
-        minimumSpend: 0,
-        maximumDiscount: 0,
-        usageLimit: 100,
-        usageLimitPerUser: 1,
-        validFrom: new Date().toISOString().split('T')[0],
-        validUntil: '',
-        termsAndConditions: ''
-      });
+      setNewCoupon(EMPTY_NEW_COUPON);
       await loadCoupons();
     } catch (err: unknown) {
       // Show error in modal instead of main page
-      const errorMessage = err instanceof Error && 'response' in err 
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+      const errorMessage = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
       setCreateModalError(errorMessage ?? 'Failed to create coupon');
     } finally {
@@ -212,8 +229,8 @@ const CouponManagement: React.FC = () => {
       await couponService.updateCouponStatus(coupon.id, newStatus as CouponStatus);
       await loadCoupons();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error && 'response' in err 
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+      const errorMessage = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
       setError(errorMessage ?? 'Failed to update coupon status');
     }
@@ -234,16 +251,16 @@ const CouponManagement: React.FC = () => {
     try {
       setLoading(true);
       await couponService.deleteCoupon(selectedCoupon.id);
-      
+
       // Close modal and reset state
       setShowDeleteModal(false);
       setSelectedCoupon(null);
       setDeleteConfirmText('');
-      
+
       // Reload coupons and clear any existing errors
       await loadCoupons();
       setError(null);
-      
+
     } catch (err: unknown) {
       logger.error('Error deleting coupon:', err);
 
@@ -269,695 +286,572 @@ const CouponManagement: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB'
-    }).format(amount);
-  };
+  const couponTypeAndValue = (coupon: Coupon) =>
+    coupon.type === 'percentage'
+      ? `${coupon.value}% off`
+      : coupon.type === 'fixed_amount'
+      ? formatCurrency(coupon.value ?? 0)
+      : t(`coupons.types.${coupon.type}`);
 
-  if (loading && coupons.length === 0) {
-    return (
-      <div className="min-h-screen bg-stone-50 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-stone-200 rounded w-1/4" />
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-stone-200 rounded" />
-                ))}
-              </div>
+  const statusLabel = (status: string) =>
+    status === 'active' ? t('admin.coupons.active') : status === 'paused' ? t('admin.coupons.paused') : t(`admin.coupons.${status}`);
+
+  const columns: TableColumn<Coupon>[] = [
+    {
+      key: 'coupon',
+      header: t('admin.coupons.title_field'),
+      cell: (coupon) => (
+        <div>
+          <div className="text-body font-semibold text-ink">{coupon.name}</div>
+          <div className="text-caption text-ink-muted">{coupon.code} - {coupon.description}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'typeValue',
+      header: t('admin.coupons.couponTypeAndValue'),
+      cell: (coupon) => (
+        <div>
+          <div className="text-ink">{couponTypeAndValue(coupon)}</div>
+          {(coupon.minimumSpend ?? 0) > 0 && (
+            <div className="text-caption text-ink-muted">
+              {t('admin.coupons.min')}: {formatCurrency(coupon.minimumSpend ?? 0)}
             </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'usage',
+      header: t('admin.coupons.usage'),
+      cell: (coupon) => (
+        <div>
+          <div className="text-ink">{coupon.usedCount || 0} / {coupon.usageLimit}</div>
+          <div className="text-caption text-ink-muted">{t('admin.coupons.maxPerUser', { count: coupon.usageLimitPerUser })}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'validity',
+      header: t('admin.coupons.validity'),
+      cell: (coupon) => (
+        <div>
+          <div className="text-ink">{formatDateToDDMMYYYY(coupon.validFrom)}</div>
+          <div className="text-caption text-ink-muted">
+            {t('admin.coupons.to')} {coupon.validUntil ? formatDateToDDMMYYYY(coupon.validUntil) : t('common.noEndDate')}
           </div>
         </div>
-      </div>
-    );
-  }
+      ),
+    },
+    {
+      key: 'status',
+      header: t('admin.coupons.status'),
+      cell: (coupon) => <Badge tone={getCouponStatusTone(coupon.status)}>{statusLabel(coupon.status)}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: t('admin.coupons.actions'),
+      cell: (coupon) => (
+        <div className="flex flex-col sm:flex-row sm:gap-3 gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start px-0 text-brand-700"
+            onClick={() => {
+              setSelectedCoupon(coupon);
+              setShowAssignModal(true);
+            }}
+          >
+            {t('admin.coupons.assign')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start px-0 text-info-700"
+            onClick={() => {
+              setSelectedCoupon(coupon);
+              setShowAssignmentsModal(true);
+            }}
+          >
+            {t('admin.coupons.viewAssignments')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`justify-start px-0 ${coupon.status === 'active' ? 'text-warning-700' : 'text-success-700'}`}
+            onClick={() => handleToggleCouponStatus(coupon)}
+          >
+            {coupon.status === 'active' ? t('admin.coupons.pause') : t('admin.coupons.activate')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start px-0 text-error-700"
+            onClick={() => handleDeleteCoupon(coupon)}
+            title={t('admin.coupons.deleteTooltip')}
+          >
+            {t('admin.coupons.remove')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const filteredUsers = users.filter((user) => matchesUserSearch(user, userSearchTerm));
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto p-4">
-          <div className="flex items-center justify-between">
+    <AppShell variant="admin" title={t('admin.coupons.title')}>
+      <PageHeader
+        density="admin"
+        title={t('admin.coupons.title')}
+        subtitle={t('admin.coupons.subtitle')}
+        actions={
+          <Button
+            onClick={() => {
+              setShowCreateModal(true);
+              setCreateModalError(null);
+            }}
+          >
+            {t('admin.coupons.createCoupon')}
+          </Button>
+        }
+      />
+
+      {error && (
+        <div className="rounded-lg border border-error-600 bg-error-50 p-4 mb-6">
+          <div className="flex gap-3">
+            <FiAlertTriangle className="h-5 w-5 text-error-700 flex-shrink-0" aria-hidden="true" />
             <div>
-              <h1 className="text-2xl font-bold text-stone-900">
-                {t('admin.coupons.title')}
-              </h1>
-              <p className="text-stone-600 mt-1">
-                {t('admin.coupons.subtitle')}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => {
-                  setShowCreateModal(true);
-                  setCreateModalError(null); // Clear any previous errors
-                }}
-                className="inline-flex items-center font-medium bg-brand-600 text-white px-4 py-2 text-sm rounded-md hover:bg-brand-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                {t('admin.coupons.createCoupon')}
-              </button>
-              <DashboardButton variant="outline" size="md" />
+              <h3 className="text-caption font-semibold text-error-700">Error</h3>
+              <p className="text-caption text-error-700 mt-1">{error}</p>
+              <Button variant="ghost" size="sm" className="px-0 mt-2 underline text-error-700" onClick={() => setError(null)}>
+                Dismiss
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto p-4">
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex">
-              <div className="text-red-400 mr-3">⚠️</div>
-              <div>
-                <h3 className="text-red-800 font-medium">Error</h3>
-                <p className="text-red-700 mt-1">{error}</p>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-600 underline hover:text-red-800 mt-2"
-                >
-                  Dismiss
-                </button>
+      {/* Coupons Table */}
+      <Table
+        columns={columns}
+        rows={coupons}
+        rowKey={(coupon) => coupon.id}
+        loading={loading && coupons.length === 0}
+        aria-label={t('admin.coupons.title')}
+        empty={
+          <div className="text-ink-muted">
+            <p className="text-body font-semibold">{t('admin.coupons.noCoupons')}</p>
+            <p className="text-caption mt-1">{t('admin.coupons.noCouponsDescription')}</p>
+          </div>
+        }
+        mobileCard={(coupon) => (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-body font-semibold text-ink">{coupon.name}</p>
+              <Badge tone={getCouponStatusTone(coupon.status)} size="sm">{statusLabel(coupon.status)}</Badge>
+            </div>
+            <p className="text-caption text-ink-muted">{coupon.code} - {coupon.description}</p>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-fine text-ink-muted">{t('admin.coupons.validity')}</span>
+              <span className="text-caption text-ink text-right">
+                {formatDateToDDMMYYYY(coupon.validFrom)} {t('admin.coupons.to')} {coupon.validUntil ? formatDateToDDMMYYYY(coupon.validUntil) : t('common.noEndDate')}
+              </span>
+            </div>
+            {(coupon.minimumSpend ?? 0) > 0 && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-fine text-ink-muted">{t('admin.coupons.min')}</span>
+                <span className="text-caption text-ink text-right">{formatCurrency(coupon.minimumSpend ?? 0)}</span>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-0 text-brand-700"
+                onClick={() => {
+                  setSelectedCoupon(coupon);
+                  setShowAssignModal(true);
+                }}
+              >
+                {t('admin.coupons.assign')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-0 text-info-700"
+                onClick={() => {
+                  setSelectedCoupon(coupon);
+                  setShowAssignmentsModal(true);
+                }}
+              >
+                {t('admin.coupons.viewAssignments')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`px-0 ${coupon.status === 'active' ? 'text-warning-700' : 'text-success-700'}`}
+                onClick={() => handleToggleCouponStatus(coupon)}
+              >
+                {coupon.status === 'active' ? t('admin.coupons.pause') : t('admin.coupons.activate')}
+              </Button>
+              <Button variant="ghost" size="sm" className="px-0 text-error-700" onClick={() => handleDeleteCoupon(coupon)}>
+                {t('admin.coupons.remove')}
+              </Button>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-caption text-ink-muted">
+            {t('admin.pagination.page')} {page} {t('admin.pagination.of')} {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => loadCoupons(page - 1)} disabled={page <= 1}>
+              {t('common.previous')}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => loadCoupons(page + 1)} disabled={page >= totalPages}>
+              {t('common.next')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Create Coupon Modal */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setCreateModalError(null);
+        }}
+        title={t('admin.coupons.createNewCoupon')}
+        size="lg"
+      >
+        {createModalError && (
+          <div className="rounded-lg border border-error-600 bg-error-50 p-4 mb-4">
+            <div className="flex gap-3">
+              <FiAlertTriangle className="h-5 w-5 text-error-700 flex-shrink-0" aria-hidden="true" />
+              <div className="flex-1">
+                <h3 className="text-caption font-semibold text-error-700">{t('admin.coupons.errorCreating')}</h3>
+                <p className="text-caption text-error-700 mt-1">{createModalError}</p>
+                <Button variant="ghost" size="sm" className="px-0 mt-2 underline text-error-700" onClick={() => setCreateModalError(null)}>
+                  {t('common.dismiss')}
+                </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Coupons Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-200">
-              <thead className="bg-stone-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.title_field')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.couponTypeAndValue')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.usage')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.validity')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.status')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('admin.coupons.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-stone-200">
-                {coupons.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="text-stone-500">
-                        <p className="text-lg font-medium">{t('admin.coupons.noCoupons')}</p>
-                        <p className="text-sm mt-1">{t('admin.coupons.noCouponsDescription')}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  coupons.map((coupon) => (
-                    <tr key={coupon.id} className="hover:bg-stone-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-stone-900">
-                          {coupon.name}
-                        </div>
-                        <div className="text-sm text-stone-500">
-                          {coupon.code} - {coupon.description}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-stone-900">
-                        {coupon.type === 'percentage' 
-                          ? `${coupon.value}% off`
-                          : coupon.type === 'fixed_amount'
-                          ? formatCurrency(coupon.value ?? 0)
-                          : t(`coupons.types.${coupon.type}`)
-                        }
-                      </div>
-                      {(coupon.minimumSpend ?? 0) > 0 && (
-                        <div className="text-sm text-stone-500">
-                          {t('admin.coupons.min')}: {formatCurrency(coupon.minimumSpend ?? 0)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-stone-900">
-                        {coupon.usedCount || 0} / {coupon.usageLimit}
-                      </div>
-                      <div className="text-sm text-stone-500">
-                        {t('admin.coupons.maxPerUser', { count: coupon.usageLimitPerUser })}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-stone-900">
-                        {formatDateToDDMMYYYY(coupon.validFrom)}
-                      </div>
-                      <div className="text-sm text-stone-500">
-                        {t('admin.coupons.to')} {coupon.validUntil ? formatDateToDDMMYYYY(coupon.validUntil) : t('common.noEndDate')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={clsx(
-                        'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-                        coupon.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : coupon.status === 'paused'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      )}
-                      >
-                        {coupon.status === 'active' ? t('admin.coupons.active') : 
-                         coupon.status === 'paused' ? t('admin.coupons.paused') : 
-                         t(`admin.coupons.${coupon.status}`)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0">
-                        <button
-                          onClick={() => {
-                            setSelectedCoupon(coupon);
-                            setShowAssignModal(true);
-                          }}
-                          className="text-brand-600 hover:text-brand-900 text-left"
-                        >
-                          {t('admin.coupons.assign')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedCoupon(coupon);
-                            setShowAssignmentsModal(true);
-                          }}
-                          className="text-purple-600 hover:text-purple-900 text-left"
-                        >
-                          {t('admin.coupons.viewAssignments')}
-                        </button>
-                        <button
-                          onClick={() => handleToggleCouponStatus(coupon)}
-                          className={clsx(
-                            'text-left',
-                            coupon.status === 'active'
-                              ? 'text-orange-600 hover:text-orange-900'
-                              : 'text-green-600 hover:text-green-900'
-                          )}
-                        >
-                          {coupon.status === 'active' ? t('admin.coupons.pause') : t('admin.coupons.activate')}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCoupon(coupon)}
-                          className="text-red-600 hover:text-red-900 text-left"
-                          title={t('admin.coupons.deleteTooltip')}
-                        >
-                          {t('admin.coupons.remove')}
-                        </button>
-                      </div>
-                    </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        <form onSubmit={handleCreateCoupon} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('admin.coupons.code')} htmlFor="coupon-code" required>
+              <Input
+                id="coupon-code"
+                type="text"
+                required
+                value={newCoupon.code}
+                onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                placeholder={t('admin.coupons.codePlaceholder')}
+              />
+            </FormField>
+
+            <FormField label={t('admin.coupons.name')} htmlFor="coupon-name" required>
+              <Input
+                id="coupon-name"
+                type="text"
+                required
+                value={newCoupon.name}
+                onChange={(e) => setNewCoupon({ ...newCoupon, name: e.target.value })}
+                placeholder={t('admin.coupons.namePlaceholder')}
+              />
+            </FormField>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 border-t border-stone-200 sm:px-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-stone-700">
-                  {t('admin.pagination.page')} {page} {t('admin.pagination.of')} {totalPages}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => loadCoupons(page - 1)}
-                    disabled={page <= 1}
-                    className="px-3 py-1 text-sm bg-stone-100 text-stone-700 rounded disabled:opacity-50"
-                  >
-                    {t('common.previous')}
-                  </button>
-                  <button
-                    onClick={() => loadCoupons(page + 1)}
-                    disabled={page >= totalPages}
-                    className="px-3 py-1 text-sm bg-stone-100 text-stone-700 rounded disabled:opacity-50"
-                  >
-                    {t('common.next')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+          <FormField label={t('admin.coupons.type_field')} htmlFor="coupon-type">
+            <Select
+              id="coupon-type"
+              value={newCoupon.type}
+              onChange={(e) => setNewCoupon({ ...newCoupon, type: e.target.value as CouponType })}
+            >
+              <option value="percentage">{t('coupons.types.percentage')}</option>
+              <option value="fixed_amount">{t('coupons.types.fixed_amount')}</option>
+              <option value="bogo">{t('coupons.types.bogo')}</option>
+              <option value="free_upgrade">{t('coupons.types.free_upgrade')}</option>
+              <option value="free_service">{t('coupons.types.free_service')}</option>
+            </Select>
+          </FormField>
 
-      {/* Create Coupon Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-full overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{t('admin.coupons.createNewCoupon')}</h2>
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setCreateModalError(null); // Clear error when closing
-                  }}
-                  className="text-stone-400 hover:text-stone-600"
-                >
-                  ✕
-                </button>
-              </div>
+          <FormField label={t('admin.coupons.description_field')} htmlFor="coupon-description">
+            <Textarea
+              id="coupon-description"
+              value={newCoupon.description}
+              onChange={(e) => setNewCoupon({ ...newCoupon, description: e.target.value })}
+              rows={3}
+            />
+          </FormField>
 
-              {/* Modal-specific error display */}
-              {createModalError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <div className="flex">
-                    <div className="text-red-400 mr-3">⚠️</div>
-                    <div className="flex-1">
-                      <h3 className="text-red-800 font-medium text-sm">{t('admin.coupons.errorCreating')}</h3>
-                      <p className="text-red-700 text-sm mt-1">{createModalError}</p>
-                      <button
-                        onClick={() => setCreateModalError(null)}
-                        className="text-red-600 underline hover:text-red-800 text-xs mt-2"
-                      >
-                        {t('common.dismiss')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label={newCoupon.type === 'percentage' ? t('admin.coupons.percentage') : t('admin.coupons.amount')} htmlFor="coupon-value">
+              <Input
+                id="coupon-value"
+                type="number"
+                step={newCoupon.type === 'percentage' ? '1' : '0.01'}
+                min="0"
+                required
+                value={newCoupon.value}
+                onChange={(e) => setNewCoupon({ ...newCoupon, value: parseFloat(e.target.value) || 0 })}
+              />
+            </FormField>
 
-              <form onSubmit={handleCreateCoupon} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.code')}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newCoupon.code}
-                      onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
-                      placeholder={t('admin.coupons.codePlaceholder')}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
+            <FormField label={t('admin.coupons.minimumSpend')} htmlFor="coupon-min-spend">
+              <Input
+                id="coupon-min-spend"
+                type="number"
+                step="0.01"
+                min="0"
+                value={newCoupon.minimumSpend}
+                onChange={(e) => setNewCoupon({ ...newCoupon, minimumSpend: parseFloat(e.target.value) || 0 })}
+              />
+            </FormField>
 
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.name')}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newCoupon.name}
-                      onChange={(e) => setNewCoupon({...newCoupon, name: e.target.value})}
-                      placeholder={t('admin.coupons.namePlaceholder')}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.type_field')}
-                    </label>
-                    <select
-                      value={newCoupon.type}
-                      onChange={(e) => setNewCoupon({...newCoupon, type: e.target.value as CouponType})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="percentage">{t('coupons.types.percentage')}</option>
-                      <option value="fixed_amount">{t('coupons.types.fixed_amount')}</option>
-                      <option value="bogo">{t('coupons.types.bogo')}</option>
-                      <option value="free_upgrade">{t('coupons.types.free_upgrade')}</option>
-                      <option value="free_service">{t('coupons.types.free_service')}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.coupons.description_field')}
-                  </label>
-                  <textarea
-                    value={newCoupon.description}
-                    onChange={(e) => setNewCoupon({...newCoupon, description: e.target.value})}
-                    rows={3}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {newCoupon.type === 'percentage' ? t('admin.coupons.percentage') : t('admin.coupons.amount')}
-                    </label>
-                    <input
-                      type="number"
-                      step={newCoupon.type === 'percentage' ? '1' : '0.01'}
-                      min="0"
-                      required
-                      value={newCoupon.value}
-                      onChange={(e) => setNewCoupon({...newCoupon, value: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.minimumSpend')}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={newCoupon.minimumSpend}
-                      onChange={(e) => setNewCoupon({...newCoupon, minimumSpend: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.maximumDiscount')}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={newCoupon.maximumDiscount}
-                      onChange={(e) => setNewCoupon({...newCoupon, maximumDiscount: parseFloat(e.target.value) || 0})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.maxTotalUses')}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={newCoupon.usageLimit}
-                      onChange={(e) => setNewCoupon({...newCoupon, usageLimit: parseInt(e.target.value) || 1})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.maxUsesPerUser')}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={newCoupon.usageLimitPerUser}
-                      onChange={(e) => setNewCoupon({...newCoupon, usageLimitPerUser: parseInt(e.target.value) || 1})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.validFrom')}
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={newCoupon.validFrom}
-                      onChange={(e) => setNewCoupon({...newCoupon, validFrom: e.target.value})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      {t('admin.coupons.validUntil')}
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={newCoupon.validUntil}
-                      onChange={(e) => setNewCoupon({...newCoupon, validUntil: e.target.value})}
-                      className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
-                    {t('admin.coupons.termsAndConditions')}
-                  </label>
-                  <textarea
-                    value={newCoupon.termsAndConditions}
-                    onChange={(e) => setNewCoupon({...newCoupon, termsAndConditions: e.target.value})}
-                    rows={3}
-                    className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                </div>
-
-                <div className="text-sm text-stone-600">
-                  <p>{t('admin.coupons.activeImmediately')}</p>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false);
-                      setCreateModalError(null); // Clear error when canceling
-                    }}
-                    className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {loading ? t('admin.coupons.creating') : t('admin.coupons.createCoupon')}
-                  </button>
-                </div>
-              </form>
-            </div>
+            <FormField label={t('admin.coupons.maximumDiscount')} htmlFor="coupon-max-discount">
+              <Input
+                id="coupon-max-discount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={newCoupon.maximumDiscount}
+                onChange={(e) => setNewCoupon({ ...newCoupon, maximumDiscount: parseFloat(e.target.value) || 0 })}
+              />
+            </FormField>
           </div>
-        </div>
-      )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('admin.coupons.maxTotalUses')} htmlFor="coupon-usage-limit" required>
+              <Input
+                id="coupon-usage-limit"
+                type="number"
+                min="1"
+                required
+                value={newCoupon.usageLimit}
+                onChange={(e) => setNewCoupon({ ...newCoupon, usageLimit: parseInt(e.target.value) || 1 })}
+              />
+            </FormField>
+
+            <FormField label={t('admin.coupons.maxUsesPerUser')} htmlFor="coupon-usage-limit-per-user" required>
+              <Input
+                id="coupon-usage-limit-per-user"
+                type="number"
+                min="1"
+                required
+                value={newCoupon.usageLimitPerUser}
+                onChange={(e) => setNewCoupon({ ...newCoupon, usageLimitPerUser: parseInt(e.target.value) || 1 })}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('admin.coupons.validFrom')} htmlFor="coupon-valid-from" required>
+              <Input
+                id="coupon-valid-from"
+                type="date"
+                required
+                value={newCoupon.validFrom}
+                onChange={(e) => setNewCoupon({ ...newCoupon, validFrom: e.target.value })}
+              />
+            </FormField>
+
+            <FormField label={t('admin.coupons.validUntil')} htmlFor="coupon-valid-until" required>
+              <Input
+                id="coupon-valid-until"
+                type="date"
+                required
+                value={newCoupon.validUntil}
+                onChange={(e) => setNewCoupon({ ...newCoupon, validUntil: e.target.value })}
+              />
+            </FormField>
+          </div>
+
+          <FormField label={t('admin.coupons.termsAndConditions')} htmlFor="coupon-terms">
+            <Textarea
+              id="coupon-terms"
+              value={newCoupon.termsAndConditions}
+              onChange={(e) => setNewCoupon({ ...newCoupon, termsAndConditions: e.target.value })}
+              rows={3}
+            />
+          </FormField>
+
+          <p className="text-caption text-ink-muted">{t('admin.coupons.activeImmediately')}</p>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowCreateModal(false);
+                setCreateModalError(null);
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" loading={loading}>
+              {loading ? t('admin.coupons.creating') : t('admin.coupons.createCoupon')}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Assign Coupon Modal */}
-      {showAssignModal && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-full overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{t('admin.coupons.assignCoupon')}</h2>
-                <button
-                  onClick={() => {
-                    setShowAssignModal(false);
-                    setUserSearchTerm('');
-                  }}
-                  className="text-stone-400 hover:text-stone-600"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="mb-4 p-3 bg-stone-50 rounded-md">
-                <div className="font-medium">{selectedCoupon.name}</div>
-                <div className="text-sm text-stone-600">{selectedCoupon.code} - {selectedCoupon.description}</div>
-              </div>
-
-              {/* Search Field */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('admin.coupons.searchUsers')}
-                </label>
-                <input
-                  type="text"
-                  value={userSearchTerm}
-                  onChange={(e) => setUserSearchTerm(e.target.value)}
-                  placeholder={t('admin.coupons.searchPlaceholder')}
-                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {users
-                  .filter(user => {
-                    if (!userSearchTerm) {return true;}
-                    const searchLower = userSearchTerm.toLowerCase();
-                    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.toLowerCase();
-                    const email = (user.email ?? '').toLowerCase();
-                    const membershipId = (user.membershipId ?? '').toLowerCase();
-                    return (
-                      fullName.includes(searchLower) ||
-                      email.includes(searchLower) ||
-                      membershipId.includes(searchLower)
-                    );
-                  })
-                  .map((user) => (
-                  <label key={user.id || user.email} className="flex items-center p-2 hover:bg-stone-50 rounded-md cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedUsers([...selectedUsers, user.id]);
-                        } else {
-                          setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                        }
-                      }}
-                      className="mr-3 h-4 w-4 text-brand-600 focus:ring-brand-500 border-stone-300 rounded"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-stone-900">{user.firstName ?? ''} {user.lastName ?? ''}</div>
-                        {user.membershipId && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
-                            ID: {user.membershipId}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-stone-600">{user.email ?? 'No email'}</div>
-                      {!user.membershipId && (
-                        <div className="text-xs text-stone-400">{t('admin.coupons.noMembershipId')}</div>
-                      )}
-                    </div>
-                  </label>
-                ))}
-                {users.filter(user => {
-                  if (!userSearchTerm) {return false;}
-                  const searchLower = userSearchTerm.toLowerCase();
-                  const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.toLowerCase();
-                  const email = (user.email ?? '').toLowerCase();
-                  const membershipId = (user.membershipId ?? '').toLowerCase();
-                  return (
-                    fullName.includes(searchLower) ||
-                    email.includes(searchLower) ||
-                    membershipId.includes(searchLower)
-                  );
-                }).length === 0 && userSearchTerm && (
-                  <div className="text-center py-4 text-stone-500">
-                    <div className="text-sm">{t('admin.coupons.noUsersFound', { searchTerm: userSearchTerm })}</div>
-                    <div className="text-xs mt-1">{t('admin.coupons.searchHint')}</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t">
-                <button
-                  onClick={() => {
-                    setShowAssignModal(false);
-                    setUserSearchTerm('');
-                  }}
-                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleAssignCoupons}
-                  disabled={loading || selectedUsers.length === 0}
-                  className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50"
-                >
-                  {loading ? t('admin.coupons.assigning') : t('admin.coupons.assignToUsers', { count: selectedUsers.length })}
-                </button>
-              </div>
+      <Modal
+        open={showAssignModal && Boolean(selectedCoupon)}
+        onClose={() => {
+          setShowAssignModal(false);
+          setUserSearchTerm('');
+        }}
+        title={t('admin.coupons.assignCoupon')}
+      >
+        {selectedCoupon && (
+          <>
+            <div className="mb-4 p-3 rounded-lg bg-surface-sunken">
+              <div className="font-semibold text-ink">{selectedCoupon.name}</div>
+              <div className="text-caption text-ink-muted">{selectedCoupon.code} - {selectedCoupon.description}</div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <FormField label={t('admin.coupons.searchUsers')} htmlFor="assign-user-search">
+              <Input
+                id="assign-user-search"
+                type="text"
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                placeholder={t('admin.coupons.searchPlaceholder')}
+              />
+            </FormField>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto mt-4">
+              {filteredUsers.map((user) => (
+                <label key={user.id || user.email} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUsers([...selectedUsers, user.id]);
+                      } else {
+                        setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-ink">{user.firstName ?? ''} {user.lastName ?? ''}</div>
+                      {user.membershipId && <Badge tone="brand" size="sm">ID: {user.membershipId}</Badge>}
+                    </div>
+                    <div className="text-caption text-ink-muted">{user.email ?? 'No email'}</div>
+                    {!user.membershipId && (
+                      <div className="text-fine text-ink-faint">{t('admin.coupons.noMembershipId')}</div>
+                    )}
+                  </div>
+                </label>
+              ))}
+              {filteredUsers.length === 0 && userSearchTerm && (
+                <div className="text-center py-4 text-ink-muted">
+                  <div className="text-caption">{t('admin.coupons.noUsersFound', { searchTerm: userSearchTerm })}</div>
+                  <div className="text-fine mt-1">{t('admin.coupons.searchHint')}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-hairline">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setUserSearchTerm('');
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={handleAssignCoupons} disabled={loading || selectedUsers.length === 0} loading={loading}>
+                {loading ? t('admin.coupons.assigning') : t('admin.coupons.assignToUsers', { count: selectedUsers.length })}
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-red-600">{t('admin.coupons.deleteCoupon')}</h2>
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedCoupon(null);
-                    setDeleteConfirmText('');
-                  }}
-                  className="text-stone-400 hover:text-stone-600"
-                >
-                  ✕
-                </button>
+      <Modal
+        open={showDeleteModal && Boolean(selectedCoupon)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedCoupon(null);
+          setDeleteConfirmText('');
+        }}
+        title={<span className="text-error-700">{t('admin.coupons.deleteCoupon')}</span>}
+        size="sm"
+      >
+        {selectedCoupon && (
+          <>
+            <div className="mb-4 p-3 rounded-lg border border-error-600 bg-error-50">
+              <div className="flex items-center gap-2 mb-2">
+                <FiAlertTriangle className="h-4 w-4 text-error-700" aria-hidden="true" />
+                <span className="font-semibold text-error-700">{t('admin.coupons.deleteWarning')}</span>
               </div>
-
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-center mb-2">
-                  <span className="text-red-500 mr-2">⚠️</span>
-                  <span className="font-medium text-red-800">{t('admin.coupons.deleteWarning')}</span>
-                </div>
-                <div className="text-sm text-red-700">
-                  <p className="mb-2">{t('admin.coupons.deleteConfirmText')}:</p>
-                  <p className="font-medium">&quot;{selectedCoupon.name}&quot; ({selectedCoupon.code})</p>
-                </div>
-              </div>
-
-              <div className="mb-4 p-3 bg-stone-50 rounded-md">
-                <p className="text-sm text-stone-700 mb-2">{t('admin.coupons.deleteAffects')}:</p>
-                <ul className="text-sm text-stone-600 space-y-1">
-                  <li>• {t('admin.coupons.existingRedemptions', { count: selectedCoupon.usedCount || 0 })}</li>
-                  <li>• {t('admin.coupons.assignedUsers')}</li>
-                  <li>• {t('admin.coupons.analyticsHistory')}</li>
-                </ul>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('admin.coupons.typeToConfirm')} <span className="font-bold text-red-600">{t('admin.coupons.deleteKeyword')}</span> {t('admin.coupons.toConfirm')}:
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder={t('admin.coupons.deletePlaceholder')}
-                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedCoupon(null);
-                    setDeleteConfirmText('');
-                  }}
-                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={confirmDeleteCoupon}
-                  disabled={loading || deleteConfirmText !== t('admin.coupons.deleteKeyword')}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? t('admin.coupons.deleting') : t('admin.coupons.deleteCoupon')}
-                </button>
+              <div className="text-caption text-error-700">
+                <p className="mb-2">{t('admin.coupons.deleteConfirmText')}:</p>
+                <p className="font-semibold">&quot;{selectedCoupon.name}&quot; ({selectedCoupon.code})</p>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="mb-4 p-3 rounded-lg bg-surface-sunken">
+              <p className="text-caption text-ink mb-2">{t('admin.coupons.deleteAffects')}:</p>
+              <ul className="text-caption text-ink-muted space-y-1">
+                <li>• {t('admin.coupons.existingRedemptions', { count: selectedCoupon.usedCount || 0 })}</li>
+                <li>• {t('admin.coupons.assignedUsers')}</li>
+                <li>• {t('admin.coupons.analyticsHistory')}</li>
+              </ul>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="delete-confirm-text" className="text-caption font-semibold text-ink">
+                {t('admin.coupons.typeToConfirm')} <span className="font-bold text-error-600">{t('admin.coupons.deleteKeyword')}</span> {t('admin.coupons.toConfirm')}
+              </label>
+              <Input
+                id="delete-confirm-text"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={t('admin.coupons.deletePlaceholder')}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setSelectedCoupon(null);
+                  setDeleteConfirmText('');
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteCoupon}
+                disabled={loading || deleteConfirmText !== t('admin.coupons.deleteKeyword')}
+                loading={loading}
+              >
+                {loading ? t('admin.coupons.deleting') : t('admin.coupons.deleteCoupon')}
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
 
       {/* Coupon Assignments Modal */}
       {showAssignmentsModal && selectedCoupon && (
@@ -970,7 +864,7 @@ const CouponManagement: React.FC = () => {
           }}
         />
       )}
-    </div>
+    </AppShell>
   );
 };
 

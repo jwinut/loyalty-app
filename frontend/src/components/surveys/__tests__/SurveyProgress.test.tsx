@@ -107,7 +107,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarContainer = container.querySelector('.bg-stone-200.rounded-full.h-2');
+      const progressBarContainer = container.querySelector('.bg-surface-sunken.rounded-full.h-2');
       expect(progressBarContainer).toBeInTheDocument();
     });
 
@@ -342,21 +342,21 @@ describe('SurveyProgress', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const progressText = screen.getByText(/Progress:.*1 of 5/);
-      expect(progressText).toHaveClass('text-sm', 'font-medium', 'text-stone-700');
+      expect(progressText).toHaveClass('text-caption', 'font-semibold', 'text-ink');
     });
 
     it('should style percentage text correctly', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const percentageText = screen.getByText('20%');
-      expect(percentageText).toHaveClass('text-sm', 'font-medium', 'text-brand-600');
+      expect(percentageText).toHaveClass('text-caption', 'font-semibold', 'text-brand-600');
     });
 
     it('should style auto-save message correctly', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const message = screen.getByText('Your progress is automatically saved');
-      expect(message).toHaveClass('text-xs', 'text-stone-500', 'mt-1');
+      expect(message).toHaveClass('text-fine', 'text-ink-muted', 'mt-1');
     });
 
     it('should have rounded progress bar container', () => {
@@ -364,7 +364,7 @@ describe('SurveyProgress', () => {
         <SurveyProgress current={1} total={5} progress={20} />
       );
 
-      const progressBarContainer = container.querySelector('.bg-stone-200.rounded-full.h-2');
+      const progressBarContainer = container.querySelector('.bg-surface-sunken.rounded-full.h-2');
       expect(progressBarContainer).toHaveClass('w-full');
     });
 
@@ -383,7 +383,7 @@ describe('SurveyProgress', () => {
       render(<SurveyProgress current={1} total={5} progress={20} />);
 
       const progressText = screen.getByText(/Progress:.*1 of 5/);
-      expect(progressText).toHaveClass('text-stone-700');
+      expect(progressText).toHaveClass('text-ink');
     });
 
     it('should have visible progress percentage', () => {

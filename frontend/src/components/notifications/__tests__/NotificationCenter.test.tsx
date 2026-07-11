@@ -78,6 +78,17 @@ vi.mock('react-icons/fi', () => ({
   FiCheck: () => <span data-testid="check-icon">✓</span>,
   FiX: () => <span data-testid="x-icon">✕</span>,
   FiTrash2: () => <span data-testid="trash-icon">🗑️</span>,
+  // Per-notification-type icons (replace the old emoji glyphs).
+  FiGift: () => <span data-testid="gift-icon" />,
+  FiTag: () => <span data-testid="tag-icon" />,
+  FiAlertTriangle: () => <span data-testid="alert-triangle-icon" />,
+  FiXCircle: () => <span data-testid="x-circle-icon" />,
+  FiUser: () => <span data-testid="user-icon" />,
+  FiClipboard: () => <span data-testid="clipboard-icon" />,
+  FiSettings: () => <span data-testid="settings-icon" />,
+  FiAward: () => <span data-testid="award-icon" />,
+  FiStar: () => <span data-testid="star-icon" />,
+  FiInfo: () => <span data-testid="info-icon" />,
 }));
 
 vi.mock('../../../utils/logger', () => ({
@@ -340,9 +351,9 @@ describe('NotificationCenter', () => {
       await user.click(bellButton);
 
       await waitFor(() => {
-        expect(screen.getByText('🎉')).toBeInTheDocument(); // reward
-        expect(screen.getAllByText('🎫').length).toBeGreaterThan(0); // coupon (icon + data display)
-        expect(screen.getByText('📝')).toBeInTheDocument(); // survey
+        expect(screen.getByTestId('gift-icon')).toBeInTheDocument(); // reward
+        expect(screen.getAllByTestId('tag-icon').length).toBeGreaterThan(0); // coupon (icon + data display)
+        expect(screen.getByTestId('clipboard-icon')).toBeInTheDocument(); // survey
       });
     });
 

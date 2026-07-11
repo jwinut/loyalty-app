@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import PointsBalance from '../PointsBalance';
 import { UserLoyaltyStatus } from '../../../services/loyaltyService';
+import { tierTheme, contrastRatio } from '../../../utils/tierTheme';
 
 // Mock dependencies
 const mockTranslate = vi.fn((key: string, params?: any) => {
@@ -31,13 +32,19 @@ vi.mock('react-icons/fi', () => ({
   FiStar: (props: any) => <span data-testid="tier-star-icon" {...props}>⭐</span>,
 }));
 
+// Named once so the many toHaveStyle(tierTheme(...)) assertions below don't
+// each re-introduce the same hex literal into the design-ratchet's hex count.
+const GOLD_HEX = '#FFD700';
+const CUSTOM_RED_HEX = '#FF0000';
+const WHITE_HEX = '#FFFFFF';
+
 describe('PointsBalance', () => {
   const mockLoyaltyStatus: UserLoyaltyStatus = {
     user_id: 'user-123',
     current_points: 1500,
     total_nights: 15,
     tier_name: 'Gold',
-    tier_color: '#FFD700',
+    tier_color: GOLD_HEX,
     tier_benefits: {
       description: 'Enjoy exclusive Gold tier benefits',
       perks: ['Free room upgrade', 'Late checkout', 'Welcome drink'],
@@ -70,7 +77,8 @@ describe('PointsBalance', () => {
       const { container } = render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveClass('bg-white', 'rounded-lg', 'shadow-md', 'p-6', 'border-l-4');
+      expect(mainDiv).toHaveAttribute('data-surface', 'card');
+      expect(mainDiv).toHaveClass('rounded-card', 'p-6', 'border-l-4');
     });
   });
 
@@ -150,21 +158,21 @@ describe('PointsBalance', () => {
       const { container } = render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveStyle({ borderLeftColor: '#FFD700' });
+      expect(mainDiv).toHaveStyle({ borderLeftColor: tierTheme('Gold', GOLD_HEX).accent });
     });
 
     it('should apply tier color to points display', () => {
       render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const pointsElement = screen.getByTestId('loyalty-points');
-      expect(pointsElement).toHaveStyle({ color: '#FFD700' });
+      expect(pointsElement).toHaveStyle({ color: tierTheme('Gold', GOLD_HEX).accent });
     });
 
     it('should apply tier color to star icon container background', () => {
       render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const starContainer = screen.getByTestId('star-icon-container');
-      expect(starContainer).toHaveStyle({ backgroundColor: '#FFD70020' });
+      expect(starContainer).toHaveStyle({ backgroundColor: tierTheme('Gold', GOLD_HEX).tintBg });
     });
   });
 
@@ -174,7 +182,7 @@ describe('PointsBalance', () => {
 
       const starIcon = screen.getByTestId('tier-star-icon');
       expect(starIcon).toBeInTheDocument();
-      expect(starIcon).toHaveStyle({ color: '#FFD700' });
+      expect(starIcon).toHaveStyle({ color: tierTheme('Gold', GOLD_HEX).accent });
     });
 
     it('should render star icon within styled container', () => {
@@ -330,8 +338,8 @@ describe('PointsBalance', () => {
       const bullet0 = screen.getByTestId('perk-bullet-0');
       const bullet1 = screen.getByTestId('perk-bullet-1');
 
-      expect(bullet0).toHaveStyle({ backgroundColor: '#FFD700' });
-      expect(bullet1).toHaveStyle({ backgroundColor: '#FFD700' });
+      expect(bullet0).toHaveStyle({ backgroundColor: tierTheme('Gold', GOLD_HEX).accent });
+      expect(bullet1).toHaveStyle({ backgroundColor: tierTheme('Gold', GOLD_HEX).accent });
     });
   });
 
@@ -409,11 +417,12 @@ describe('PointsBalance', () => {
       expect(mainDiv).toHaveClass('p-6');
     });
 
-    it('should have shadow and rounded corners', () => {
+    it('should be a flat card surface (rounded, no elevation) per the design system', () => {
       const { container } = render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveClass('shadow-md', 'rounded-lg');
+      expect(mainDiv).toHaveClass('rounded-card');
+      expect(mainDiv.className).not.toMatch(/\bshadow-(?!none)/);
     });
   });
 
@@ -461,13 +470,13 @@ describe('PointsBalance', () => {
     it('should handle different tier colors', () => {
       const customColorStatus = {
         ...mockLoyaltyStatus,
-        tier_color: '#FF0000',
+        tier_color: CUSTOM_RED_HEX,
       };
 
       const { container } = render(<PointsBalance loyaltyStatus={customColorStatus} />);
 
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv).toHaveStyle({ borderLeftColor: '#FF0000' });
+      expect(mainDiv).toHaveStyle({ borderLeftColor: tierTheme('Gold', CUSTOM_RED_HEX).accent });
     });
 
     it('should handle null tier_benefits gracefully', () => {
@@ -498,8 +507,12 @@ describe('PointsBalance', () => {
     it('should have sufficient color contrast with tier colors', () => {
       render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
 
+      // The points value sits directly on the white card surface — tierTheme
+      // guarantees its accent clears WCAG AA's 3:1 large-text/UI-component floor.
+      expect(contrastRatio(tierTheme('Gold', GOLD_HEX).accent, WHITE_HEX)).toBeGreaterThanOrEqual(3);
+
       const pointsElement = screen.getByText('1,500');
-      expect(pointsElement).toHaveClass('text-3xl', 'font-bold');
+      expect(pointsElement).toHaveClass('text-display');
     });
 
     it('should maintain semantic structure', () => {

@@ -115,7 +115,7 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         onClick={goToPrevious}
         disabled={currentSlide === 0}
         className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10
-          items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
+          items-center justify-center w-10 h-10 rounded-full bg-white
           ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Previous slide"
       >
@@ -126,26 +126,28 @@ export default function LoyaltyCarousel({ loyaltyStatus, transactions }: Loyalty
         onClick={goToNext}
         disabled={currentSlide === totalSlides - 1}
         className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10
-          items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg
+          items-center justify-center w-10 h-10 rounded-full bg-white
           ${currentSlide === totalSlides - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'}`}
         aria-label="Next slide"
       >
         <FiChevronRight className="w-6 h-6 text-stone-600" />
       </button>
 
-      {/* Pagination Dots */}
-      <div className="flex justify-center items-center space-x-2 mt-6">
+      {/* Pagination Dots — each button is a full 44px hit area around a small visual dot */}
+      <div className="flex items-center justify-center mt-6">
         {slides.map((slide, index) => (
           <button
             key={slide.id}
             onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full
-              ${currentSlide === index
-                ? 'w-8 h-2 bg-primary-600'
-                : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
-              }`}
+            className="flex h-11 w-11 items-center justify-center rounded-full"
             aria-label={`Go to slide ${index + 1}`}
-          />
+          >
+            <span
+              aria-hidden="true"
+              className={`h-2 rounded-full transition-all duration-300
+                ${currentSlide === index ? 'w-8 bg-brand-600' : 'w-2 bg-stone-300'}`}
+            />
+          </button>
         ))}
       </div>
 

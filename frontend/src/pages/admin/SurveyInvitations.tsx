@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  FiArrowLeft,
   FiSend,
   FiUsers,
   FiMail,
@@ -12,15 +11,24 @@ import {
   FiFilter,
   FiSearch,
   FiUserPlus,
-  FiX
 } from 'react-icons/fi';
 import { Survey, SurveyInvitation } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
 import { User, userService } from '../../services/userService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Button, buttonVariants } from '../../components/ui/Button';
+import { Badge, BadgeTone } from '../../components/ui/Badge';
+import { Select } from '../../components/ui/Select';
+import { Input } from '../../components/ui/Input';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableColumn } from '../../components/ui/Table';
 
 interface InvitationStats {
   total: number;
@@ -63,22 +71,22 @@ const SurveyInvitations: React.FC = () => {
 
   const loadData = async () => {
     if (!id) {
-      toast.error('Survey ID is required');
+      toast.error(t('surveys.admin.invitations.surveyIdRequired'));
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      
+
       // Load survey details
       const surveyData = await surveyService.getSurveyById(id);
       setSurvey(surveyData);
-      
+
       // Load invitations
       const invitationsData = await surveyService.getSurveyInvitations(id);
       setInvitations(invitationsData);
-      
+
       // Calculate stats
       const newStats: InvitationStats = {
         total: invitationsData.length,
@@ -88,10 +96,10 @@ const SurveyInvitations: React.FC = () => {
         completed: invitationsData.filter(i => i.status === 'completed').length
       };
       setStats(newStats);
-      
+
     } catch (err) {
       logger.error('Error loading data:', err);
-      toast.error('Failed to load survey invitations');
+      toast.error(t('surveys.admin.invitations.loadError'));
     } finally {
       setLoading(false);
     }
@@ -101,21 +109,21 @@ const SurveyInvitations: React.FC = () => {
     setShowSendAllConfirm(false);
 
     if (!id) {
-      toast.error('Survey ID is required');
+      toast.error(t('surveys.admin.invitations.surveyIdRequired'));
       return;
     }
 
     try {
       setSending(true);
       const result = await surveyService.sendSurveyInvitations(id);
-      toast.success(`Successfully sent ${result.sent} invitations`);
+      toast.success(t('surveys.admin.invitations.invitationsSent', { count: result.sent }));
       loadData();
     } catch (err) {
       logger.error('Error sending invitations:', err);
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      toast.error(errorMessage ?? 'Failed to send invitations');
+      toast.error(errorMessage ?? t('surveys.admin.invitations.sendError'));
     } finally {
       setSending(false);
     }
@@ -124,11 +132,11 @@ const SurveyInvitations: React.FC = () => {
   const handleResendInvitation = async (invitationId: string) => {
     try {
       await surveyService.resendInvitation(invitationId);
-      toast.success('Invitation resent successfully');
+      toast.success(t('surveys.admin.invitations.resendSuccess'));
       loadData();
     } catch (err) {
       logger.error('Error resending invitation:', err);
-      toast.error('Failed to resend invitation');
+      toast.error(t('surveys.admin.invitations.resendError'));
     }
   };
 
@@ -140,7 +148,7 @@ const SurveyInvitations: React.FC = () => {
       setUsers(customerUsers);
     } catch (err) {
       logger.error('Error loading users:', err);
-      toast.error('Failed to load users');
+      toast.error(t('surveys.admin.invitations.loadUsersError'));
     } finally {
       setLoadingUsers(false);
     }
@@ -165,14 +173,14 @@ const SurveyInvitations: React.FC = () => {
 
   const handleSendToSelectedUsers = async () => {
     if (selectedUsers.size === 0) {
-      toast.error('Please select at least one user');
+      toast.error(t('surveys.admin.invitations.selectAtLeastOneUser'));
       return;
     }
 
     setShowSendSelectedConfirm(false);
 
     if (!id) {
-      toast.error('Survey ID is required');
+      toast.error(t('surveys.admin.invitations.surveyIdRequired'));
       return;
     }
 
@@ -183,11 +191,11 @@ const SurveyInvitations: React.FC = () => {
       const result = await surveyService.sendSurveyInvitationsToUsers(id, userIdsArray);
 
       if (result.sent === 0) {
-        toast.error(`No invitations were sent. Users may not match targeting criteria or already have invitations.`);
+        toast.error(t('surveys.admin.invitations.noInvitationsSentToUsers'));
       } else {
-        toast.success(`Successfully sent ${result.sent} invitations`);
+        toast.success(t('surveys.admin.invitations.invitationsSent', { count: result.sent }));
       }
-      
+
       setShowUserSelection(false);
       setSelectedUsers(new Set());
       loadData();
@@ -196,7 +204,7 @@ const SurveyInvitations: React.FC = () => {
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      toast.error(errorMessage ?? 'Failed to send invitations');
+      toast.error(errorMessage ?? t('surveys.admin.invitations.sendError'));
     } finally {
       setSendingToUsers(false);
     }
@@ -213,420 +221,362 @@ const SurveyInvitations: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userSearch, showUserSelection]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-800">
-          <FiClock className="mr-1 h-3 w-3" /> Pending
-                </span>);
-      case 'sent':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
-          <FiMail className="mr-1 h-3 w-3" /> Sent
-                </span>);
-      case 'viewed':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          <FiAlertCircle className="mr-1 h-3 w-3" /> Viewed
-                </span>);
-      case 'started':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-          <FiClock className="mr-1 h-3 w-3" /> In Progress
-                </span>);
-      case 'completed':
-        return (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <FiCheckCircle className="mr-1 h-3 w-3" /> Completed
-                </span>);
-      default:
-        return null;
-    }
+  const STATUS_BADGE: Record<string, { tone: BadgeTone; icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>; labelKey: string }> = {
+    pending: { tone: 'neutral', icon: FiClock, labelKey: 'surveys.admin.invitations.statusPending' },
+    sent: { tone: 'brand', icon: FiMail, labelKey: 'surveys.admin.invitations.statusSent' },
+    viewed: { tone: 'warning', icon: FiAlertCircle, labelKey: 'surveys.admin.invitations.statusViewed' },
+    started: { tone: 'info', icon: FiClock, labelKey: 'surveys.admin.invitations.statusInProgress' },
+    completed: { tone: 'success', icon: FiCheckCircle, labelKey: 'surveys.admin.invitations.statusCompleted' },
   };
+
+  const getStatusBadge = (status: string) => {
+    const config = STATUS_BADGE[status];
+    if (!config) {return null;}
+    const Icon = config.icon;
+    return (
+      <Badge tone={config.tone}>
+        <Icon className="h-3 w-3" aria-hidden />
+        {t(config.labelKey)}
+      </Badge>
+    );
+  };
+
+  const formatInvitationMeta = (invitation: SurveyInvitation) => {
+    const invited = `${t('surveys.admin.invitations.invited')}: ${new Date(invitation.created_at).toLocaleDateString()}`;
+    const sent = invitation.sent_at
+      ? ` • ${t('surveys.admin.invitations.sentOn')}: ${new Date(invitation.sent_at).toLocaleDateString()}`
+      : '';
+    return `${invited}${sent}`;
+  };
+
+  const invitationColumns: TableColumn<SurveyInvitation>[] = [
+    {
+      key: 'user',
+      header: t('surveys.admin.invitations.userIdLabel'),
+      cell: (invitation) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-surface-sunken">
+            <FiUsers className="h-5 w-5 text-ink-muted" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-caption font-semibold text-ink">
+              {t('surveys.admin.invitations.userIdLabel')}: {invitation.user_id}
+            </p>
+            <p className="text-fine text-ink-muted">{formatInvitationMeta(invitation)}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('surveys.admin.basicInfo.status'),
+      cell: (invitation) => getStatusBadge(invitation.status),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      hideOnMobile: true,
+      cell: (invitation) =>
+        invitation.status === 'pending' ? (
+          <Button variant="ghost" size="sm" onClick={() => handleResendInvitation(invitation.id)}>
+            {t('surveys.admin.invitations.sendNow')}
+          </Button>
+        ) : null,
+    },
+  ];
+
+  const filteredInvitations = invitations.filter(
+    (inv) => selectedStatus === 'all' || inv.status === selectedStatus
+  );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
-            <span className="ml-3 text-stone-600">Loading invitations...</span>
-          </div>
+      <AppShell variant="admin" title={t('surveys.admin.invitations.title')}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Card key={`invitations-kpi-skeleton-${index}`}>
+              <Skeleton className="h-12 w-full" />
+            </Card>
+          ))}
         </div>
-      </div>
+        <Card className="mt-6">
+          <Skeleton className="h-64 w-full" />
+        </Card>
+      </AppShell>
     );
   }
 
   if (!survey) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            <p>Survey not found</p>
-            <Link to="/admin/surveys" className="text-red-800 underline mt-2 inline-block">
-              Back to Surveys
-            </Link>
-          </div>
-        </div>
-      </div>
+      <AppShell variant="admin" title={t('surveys.admin.invitations.title')}>
+        <Card>
+          <EmptyState
+            title={t('surveys.notFound')}
+            action={
+              <Link to="/admin/surveys" className={buttonVariants({ variant: 'secondary' })}>
+                {t('surveys.backToSurveys')}
+              </Link>
+            }
+          />
+        </Card>
+      </AppShell>
     );
   }
 
   // Show message for public surveys (invitations not needed)
   if (survey.access_type === 'public') {
     return (
-      <div className="min-h-screen bg-stone-50">
-        {/* Header */}
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-              <div className="flex items-center">
-                <Link
-                  to="/admin/surveys"
-                  className="mr-4 text-stone-400 hover:text-stone-600"
-                >
-                  <FiArrowLeft className="h-6 w-6" />
-                </Link>
-                <div>
-                  <h1 className="text-3xl font-bold text-stone-900">Survey Invitations</h1>
-                  <p className="text-sm text-stone-600 mt-1">{survey.title}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <DashboardButton variant="outline" size="md" />
-              </div>
-            </div>
+      <AppShell variant="admin" title={t('surveys.admin.invitations.title')}>
+        <PageHeader density="admin" title={survey.title} subtitle={t('surveys.admin.invitations.title')} backTo="/admin/surveys" />
+        <Card className="mx-auto max-w-text text-center" padding="lg">
+          <FiUsers className="mx-auto mb-4 h-12 w-12 text-brand-600" aria-hidden="true" />
+          <h3 className="mb-2 text-title text-ink">{t('surveys.admin.invitations.publicSurveyTitle')}</h3>
+          <p className="mb-4 text-body text-ink-muted">{t('surveys.admin.invitations.publicSurveyDescription')}</p>
+          <div className="space-y-2 text-caption text-ink-muted">
+            <p><strong className="text-ink">{t('surveys.admin.invitations.surveyType')}:</strong> {t('surveys.admin.invitations.publicSurveyType')}</p>
+            <p><strong className="text-ink">{t('surveys.admin.basicInfo.status')}:</strong> {survey.status}</p>
+            <p><strong className="text-ink">{t('surveys.stats.questions')}:</strong> {survey.questions.length}</p>
+            <p><strong className="text-ink">{t('surveys.admin.invitations.availabilityLabel')}:</strong> {t('surveys.admin.invitations.availabilityAllUsers')}</p>
           </div>
-        </header>
-
-        {/* Content */}
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="bg-brand-50 border border-brand-200 rounded-lg p-8 text-center">
-              <FiUsers className="mx-auto h-12 w-12 text-brand-600 mb-4" />
-              <h3 className="text-lg font-medium text-brand-900 mb-2">
-                {t('surveys.admin.invitations.publicSurveyTitle')}
-              </h3>
-              <p className="text-brand-800 mb-4">
-                {t('surveys.admin.invitations.publicSurveyDescription')}
-              </p>
-              <div className="space-y-2 text-sm text-brand-700">
-                <p><strong>{t('surveys.admin.invitations.surveyType')}:</strong> {t('surveys.admin.invitations.publicSurveyType')}</p>
-                <p><strong>Status:</strong> {survey.status}</p>
-                <p><strong>Questions:</strong> {survey.questions.length}</p>
-                <p><strong>Availability:</strong> All users can access this survey</p>
-              </div>
-              <div className="mt-6 space-x-4">
-                <Link
-                  to={`/admin/surveys/${survey.id}/analytics`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700"
-                >
-                  View Analytics
-                </Link>
-                <Link
-                  to={`/admin/surveys/${survey.id}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-brand-300 rounded-md shadow-sm text-sm font-medium text-brand-700 bg-white hover:bg-brand-50"
-                >
-                  Edit Survey
-                </Link>
-              </div>
-            </div>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link to={`/admin/surveys/${survey.id}/analytics`} className={buttonVariants({ variant: 'primary' })}>
+              {t('surveys.admin.invitations.viewAnalytics')}
+            </Link>
+            <Link to={`/admin/surveys/${survey.id}/edit`} className={buttonVariants({ variant: 'secondary' })}>
+              {t('surveys.admin.editSurvey')}
+            </Link>
           </div>
-        </main>
-      </div>
+        </Card>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <Link
-                to="/admin/surveys"
-                className="mr-4 text-stone-400 hover:text-stone-600"
-              >
-                <FiArrowLeft className="h-6 w-6" />
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-900">Survey Invitations</h1>
-                <p className="text-sm text-stone-600 mt-1">{survey.title}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleShowUserSelection}
-                disabled={survey.status !== 'active'}
-                className="inline-flex items-center px-4 py-2 border border-brand-300 rounded-md shadow-sm text-sm font-medium text-brand-700 bg-white hover:bg-brand-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiUserPlus className="mr-2 h-4 w-4" />
-                Select Users
-              </button>
-              <button
-                onClick={() => setShowSendAllConfirm(true)}
-                disabled={sending || survey.status !== 'active'}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiSend className="mr-2 h-4 w-4" />
-                {sending ? 'Sending...' : 'Send to All Eligible'}
-              </button>
-              <DashboardButton variant="outline" size="md" />
+    <AppShell variant="admin" title={t('surveys.admin.invitations.title')}>
+      <PageHeader
+        density="admin"
+        title={survey.title}
+        subtitle={t('surveys.admin.invitations.title')}
+        backTo="/admin/surveys"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleShowUserSelection}
+              disabled={survey.status !== 'active'}
+            >
+              <FiUserPlus className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.invitations.selectUsers')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => setShowSendAllConfirm(true)}
+              loading={sending}
+              disabled={survey.status !== 'active'}
+            >
+              <FiSend className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.invitations.sendInvitations')}
+            </Button>
+          </>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <Card>
+          <div className="flex items-center gap-4">
+            <FiUsers className="h-8 w-8 flex-shrink-0 text-ink-faint" aria-hidden="true" />
+            <div>
+              <p className="text-caption text-ink-muted">{t('surveys.admin.invitations.statsTotal')}</p>
+              <p className="text-title text-ink">{stats.total}</p>
             </div>
           </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <FiMail className="h-8 w-8 flex-shrink-0 text-brand-600" aria-hidden="true" />
+            <div>
+              <p className="text-caption text-ink-muted">{t('surveys.admin.invitations.statsSent')}</p>
+              <p className="text-title text-ink">{stats.sent}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <FiAlertCircle className="h-8 w-8 flex-shrink-0 text-warning-600" aria-hidden="true" />
+            <div>
+              <p className="text-caption text-ink-muted">{t('surveys.admin.invitations.statsViewed')}</p>
+              <p className="text-title text-ink">{stats.viewed}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <FiClock className="h-8 w-8 flex-shrink-0 text-info-600" aria-hidden="true" />
+            <div>
+              <p className="text-caption text-ink-muted">{t('surveys.admin.invitations.statsStarted')}</p>
+              <p className="text-title text-ink">{stats.started}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <FiCheckCircle className="h-8 w-8 flex-shrink-0 text-success-600" aria-hidden="true" />
+            <div>
+              <p className="text-caption text-ink-muted">{t('surveys.admin.invitations.statsCompleted')}</p>
+              <p className="text-title text-ink">{stats.completed}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="mt-6">
+        <div className="flex items-center gap-4">
+          <FiFilter className="h-5 w-5 text-ink-faint" aria-hidden="true" />
+          <Select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-48"
+          >
+            <option value="all">{t('surveys.admin.invitations.statusFilterAll')}</option>
+            <option value="pending">{t('surveys.admin.invitations.statusPending')}</option>
+            <option value="sent">{t('surveys.admin.invitations.statusSent')}</option>
+            <option value="viewed">{t('surveys.admin.invitations.statusViewed')}</option>
+            <option value="started">{t('surveys.admin.invitations.statusInProgress')}</option>
+            <option value="completed">{t('surveys.admin.invitations.statusCompleted')}</option>
+          </Select>
         </div>
-      </header>
+      </Card>
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <FiUsers className="h-8 w-8 text-stone-400" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-stone-500">Total Invitations</p>
-                  <p className="text-2xl font-semibold text-stone-900">{stats.total}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <FiMail className="h-8 w-8 text-brand-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-stone-500">Sent</p>
-                  <p className="text-2xl font-semibold text-stone-900">{stats.sent}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <FiAlertCircle className="h-8 w-8 text-yellow-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-stone-500">Viewed</p>
-                  <p className="text-2xl font-semibold text-stone-900">{stats.viewed}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <FiClock className="h-8 w-8 text-purple-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-stone-500">Started</p>
-                  <p className="text-2xl font-semibold text-stone-900">{stats.started}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <FiCheckCircle className="h-8 w-8 text-green-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-stone-500">Completed</p>
-                  <p className="text-2xl font-semibold text-stone-900">{stats.completed}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
-            <div className="flex items-center space-x-4">
-              <FiFilter className="h-5 w-5 text-stone-400" />
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="block w-40 pl-3 pr-10 py-2 text-base border-stone-300 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm rounded-md"
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="sent">Sent</option>
-                <option value="viewed">Viewed</option>
-                <option value="started">Started</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Invitations List */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-stone-900">
-                Invitation Recipients
-              </h3>
-            </div>
-            {invitations.length > 0 ? (
-              <div className="border-t border-stone-200">
-                <ul className="divide-y divide-stone-200">
-                  {invitations
-                    .filter(inv => selectedStatus === 'all' || inv.status === selectedStatus)
-                    .map((invitation) => (
-                    <li key={invitation.id} className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center min-w-0">
-                          <div className="flex-shrink-0">
-                            <div className="h-10 w-10 rounded-full bg-stone-300 flex items-center justify-center">
-                              <FiUsers className="h-5 w-5 text-stone-600" />
-                            </div>
-                          </div>
-                          <div className="ml-4 min-w-0">
-                            <p className="text-sm font-medium text-stone-900 truncate">
-                              User ID: {invitation.user_id}
-                            </p>
-                            <p className="text-sm text-stone-500">
-                              Invited: {new Date(invitation.created_at).toLocaleDateString()}
-                              {invitation.sent_at && ` • Sent: ${new Date(invitation.sent_at).toLocaleDateString()}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          {getStatusBadge(invitation.status)}
-                          {invitation.status === 'pending' && (
-                            <button
-                              onClick={() => handleResendInvitation(invitation.id)}
-                              className="text-brand-600 hover:text-brand-800 text-sm font-medium"
-                            >
-                              Send Now
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="border-t border-stone-200 p-6 text-center">
-                <FiUsers className="mx-auto h-12 w-12 text-stone-400 mb-4" />
-                <p className="text-stone-500">No invitations sent yet</p>
-                {survey.status === 'active' && (
-                  <button
-                    onClick={() => setShowSendAllConfirm(true)}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
-                  >
-                    <FiSend className="mr-2 h-4 w-4" />
-                    Send First Invitations
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+      {/* Invitations List */}
+      <Card className="mt-6" padding="none">
+        <div className="px-6 py-5">
+          <h3 className="text-title text-ink">{t('surveys.admin.invitations.recipientsHeading')}</h3>
         </div>
-      </main>
-
-      {/* User Selection Modal */}
-      {showUserSelection && (
-        <div className="fixed inset-0 bg-stone-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-stone-900">Select Users to Invite</h3>
-              <button
-                onClick={() => setShowUserSelection(false)}
-                className="text-stone-400 hover:text-stone-600"
-              >
-                <FiX className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-5 w-5" />
-                <input
-                  type="text"
-                  placeholder="Search users by email or name..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-md focus:ring-brand-500 focus:border-brand-500"
-                />
-              </div>
-            </div>
-
-            {/* Selected count */}
-            {selectedUsers.size > 0 && (
-              <div className="mb-4 p-3 bg-brand-50 border border-brand-200 rounded-md">
-                <p className="text-sm text-brand-800">
-                  {selectedUsers.size} user{selectedUsers.size === 1 ? '' : 's'} selected
-                </p>
-              </div>
-            )}
-
-            {/* Users list */}
-            <div className="max-h-96 overflow-y-auto border border-stone-200 rounded-md">
-              {loadingUsers ? (
-                <div className="flex justify-center items-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
-                  <span className="ml-3 text-stone-600">Loading users...</span>
+        <div className="px-6 pb-6">
+          <Table
+            columns={invitationColumns}
+            rows={filteredInvitations}
+            rowKey={(invitation) => invitation.id}
+            mobileCard={(invitation) => (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-surface-sunken">
+                    <FiUsers className="h-5 w-5 text-ink-muted" aria-hidden="true" />
+                  </div>
+                  <p className="text-body font-semibold text-ink">
+                    {t('surveys.admin.invitations.userIdLabel')}: {invitation.user_id}
+                  </p>
                 </div>
-              ) : users.length > 0 ? (
-                <div className="divide-y divide-stone-200">
-                  {users.map((user) => (
-                    <div key={user.id} className="flex items-center p-4 hover:bg-stone-50">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.has(user.id)}
-                        onChange={() => handleUserSelectionToggle(user.id)}
-                        className="h-4 w-4 text-brand-600 border-stone-300 rounded focus:ring-brand-500"
-                      />
-                      <div className="ml-3 flex-1">
-                        <div className="flex items-center">
-                          <p className="text-sm font-medium text-stone-900">
-                            {user.firstName} {user.lastName}
-                          </p>
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-800">
-                            {user.role}
-                          </span>
-                        </div>
-                        <p className="text-sm text-stone-500">{user.email}</p>
-                        <p className="text-xs text-stone-400">
-                          Joined: {new Date(user.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-stone-500">
-                  <FiUsers className="mx-auto h-12 w-12 mb-4" />
-                  <p>No users found</p>
-                  {userSearch && (
-                    <p className="text-sm mt-1">Try adjusting your search terms</p>
+                <p className="text-fine text-ink-muted">{formatInvitationMeta(invitation)}</p>
+                <div className="flex items-center justify-between">
+                  {getStatusBadge(invitation.status)}
+                  {invitation.status === 'pending' && (
+                    <Button variant="ghost" size="sm" onClick={() => handleResendInvitation(invitation.id)}>
+                      {t('surveys.admin.invitations.sendNow')}
+                    </Button>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+            empty={
+              <EmptyState
+                icon={FiUsers}
+                title={t('surveys.admin.invitations.noInvitations')}
+                action={
+                  survey.status === 'active' ? (
+                    <Button variant="primary" onClick={() => setShowSendAllConfirm(true)}>
+                      <FiSend className="h-4 w-4" aria-hidden="true" />
+                      {t('surveys.admin.invitations.sendFirstInvitations')}
+                    </Button>
+                  ) : undefined
+                }
+              />
+            }
+          />
+        </div>
+      </Card>
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowUserSelection(false)}
-                className="px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowSendSelectedConfirm(true)}
-                disabled={selectedUsers.size === 0 || sendingToUsers}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiSend className="mr-2 h-4 w-4" />
-                {sendingToUsers ? 'Sending...' : `Send Invitations (${selectedUsers.size})`}
-              </button>
-            </div>
+      {/* User Selection Modal */}
+      <Modal
+        open={showUserSelection}
+        onClose={() => setShowUserSelection(false)}
+        title={t('surveys.admin.invitations.selectUsers')}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowUserSelection(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => setShowSendSelectedConfirm(true)}
+              disabled={selectedUsers.size === 0}
+              loading={sendingToUsers}
+            >
+              <FiSend className="h-4 w-4" aria-hidden="true" />
+              {t('surveys.admin.invitations.sendInvitationsCount', { count: selectedUsers.size })}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            type="text"
+            leadingIcon={<FiSearch className="h-4 w-4" aria-hidden="true" />}
+            placeholder={t('surveys.admin.invitations.searchUsersPlaceholder')}
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+          />
+
+          {selectedUsers.size > 0 && (
+            <Badge tone="brand">{t('surveys.admin.invitations.usersSelectedCount', { count: selectedUsers.size })}</Badge>
+          )}
+
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-hairline">
+            {loadingUsers ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <Skeleton key={`user-select-skeleton-${index}`} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : users.length > 0 ? (
+              <div className="divide-y divide-hairline">
+                {users.map((user) => (
+                  <label key={user.id} className="flex cursor-pointer items-center p-4 hover:bg-surface-sunken">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.has(user.id)}
+                      onChange={() => handleUserSelectionToggle(user.id)}
+                      className="h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600"
+                    />
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-caption font-semibold text-ink">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <Badge tone="neutral" size="sm">{user.role}</Badge>
+                      </div>
+                      <p className="text-caption text-ink-muted">{user.email}</p>
+                      <p className="text-fine text-ink-faint">
+                        {t('surveys.admin.invitations.joined')}: {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={FiUsers}
+                title={t('surveys.admin.invitations.noUsersFound')}
+                description={userSearch ? t('surveys.rewardHistory.tryAdjustingSearch') : undefined}
+              />
+            )}
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Confirm Send to All Dialog */}
       <ConfirmDialog
@@ -651,7 +601,7 @@ const SurveyInvitations: React.FC = () => {
         onCancel={() => setShowSendSelectedConfirm(false)}
         variant="info"
       />
-    </div>
+    </AppShell>
   );
 };
 

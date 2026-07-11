@@ -95,6 +95,11 @@
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot your password?",
     "resetPassword": "Reset Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "sendResetLink": "Send reset link",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "alreadyHaveAccount": "Already have an account?",
     "dontHaveAccount": "Don't have an account?",
     "createAccount": "Create account",
@@ -162,7 +167,7 @@
     "manageAccountLinks": "Manage Connected Accounts",
     "role": "Role",
     "customer": "Customer",
-    "staff": "Staff", 
+    "staff": "Staff",
     "admin": "Admin",
     "superAdmin": "Super Admin",
     "loggedInAs": "Logged in as {{email}}",
@@ -186,7 +191,7 @@
     "phonePlaceholder": "+1 (555) 123-4567",
     "accountLinkingDescription2": "Link multiple accounts together to access your data from different login methods.",
     "membershipId": "Membership ID",
-    "copyMembershipId": "Copy membership ID", 
+    "copyMembershipId": "Copy membership ID",
     "membershipIdCopied": "Membership ID copied successfully",
     "membershipIdFormat": "8-digit ID starting with 269",
     "personalInformation": "Personal Information",
@@ -341,6 +346,9 @@
     "backToDashboard": "Back to Dashboard"
   },
   "errors": {
+    "failedToLoadCoupons": "Unable to load your coupons. Please try refreshing the page.",
+    "validationFailed": "This coupon couldn't be validated. Please check the code and try again.",
+    "redemptionFailed": "Unable to redeem this coupon right now. Please contact support if the problem continues.",
     "notFound": "Page Not Found",
     "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
     "unauthorized": "Access Denied",
@@ -355,8 +363,9 @@
     "tryAgain": "Try Again",
     "goHome": "Return to Dashboard",
     "contactSupport": "Contact Support",
-    "emailAlreadyRegistered": "This email is already registered",
-    "emailAlreadyInUse": "This email is already in use by another account"
+    "error": "Error occurred",
+    "failedToLoadAssignments": "Failed to load coupon assignments",
+    "failedToRemoveCoupons": "Failed to remove coupons"
   },
   "languages": {
     "en": "English",
@@ -395,7 +404,7 @@
     "used": "used",
     "expired": "expired",
     "deducted": "deducted",
-    "pointsEarned": "Points Earned",
+    "pointsEarned": "Points Earned Successfully!",
     "pointsDeducted": "Points Deducted",
     "transactionHistory": "Transaction History",
     "noTransactions": "No transactions yet",
@@ -413,7 +422,6 @@
     "amountSpent": "Amount Spent",
     "stayId": "Stay ID (Optional)",
     "earnPoints": "Earn Points",
-    "pointsEarned": "Points Earned Successfully!",
     "dashboard": {
       "title": "Your Loyalty Rewards",
       "welcome": "Manage your rewards and track your progress",
@@ -430,9 +438,9 @@
       "selectUser": "Choose a customer to view their loyalty details",
       "userDetails": "User Details",
       "currentPoints": "Current Points",
-        "currentTier": "Current Tier",
+      "currentTier": "Current Tier",
       "recentTransactions": "Recent Transactions",
-      "noTransactions": "No transactions found",
+      "noTransactions": "No transactions available",
       "noUsers": "No users found",
       "refresh": "Refresh",
       "expirePoints": "Expire Old Points",
@@ -445,6 +453,7 @@
       "table": {
         "user": "User",
         "tier": "Tier",
+        "nights": "Nights",
         "points": "Points",
         "actions": "Actions"
       },
@@ -464,8 +473,7 @@
       },
       "transactionHistory": "Transaction History",
       "transactions": "transactions",
-      "viewTransactionHistory": "View transaction history",
-      "noTransactions": "No transactions available"
+      "viewTransactionHistory": "View transaction history"
     },
     "coupons": {
       "title": "Digital Coupon Management",
@@ -908,7 +916,7 @@
     "noCouponsDescription": "You don't have any active coupons right now. Keep earning points to unlock exclusive offers!",
     "noUsedCoupons": "No Used Coupons",
     "noUsedCouponsDescription": "You haven't used any coupons yet.",
-    "noExpiredCoupons": "No Expired Coupons", 
+    "noExpiredCoupons": "No Expired Coupons",
     "noExpiredCouponsDescription": "You don't have any expired coupons.",
     "activeCoupons": "Active Coupons",
     "usedCoupons": "Used Coupons",
@@ -994,37 +1002,15 @@
     "settings": "Settings",
     "help": "Help & Support"
   },
-  "errors": {
-    "failedToLoadCoupons": "Unable to load your coupons. Please try refreshing the page.",
-    "validationFailed": "This coupon couldn't be validated. Please check the code and try again.",
-    "redemptionFailed": "Unable to redeem this coupon right now. Please contact support if the problem continues.",
-    "notFound": "Page Not Found",
-    "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
-    "unauthorized": "Access Denied",
-    "unauthorizedDescription": "You don't have permission to access this page. Please sign in with appropriate credentials.",
-    "forbidden": "Access Forbidden",
-    "serverError": "Something Went Wrong",
-    "serverErrorDescription": "We're experiencing technical difficulties. Our team has been notified.",
-    "networkError": "Connection Problem",
-    "networkErrorDescription": "Please check your internet connection and try again.",
-    "unknownError": "Unexpected Error",
-    "unknownErrorDescription": "Something unexpected happened. Please try again or contact support if the problem persists.",
-    "tryAgain": "Try Again",
-    "goHome": "Return to Dashboard",
-    "contactSupport": "Contact Support",
-    "error": "Error occurred",
-    "failedToLoadAssignments": "Failed to load coupon assignments",
-    "failedToRemoveCoupons": "Failed to remove coupons"
-  },
   "surveys": {
     "title": "Customer Surveys",
     "subtitle": "Help us improve by sharing your feedback - you can retake surveys anytime!",
     "untitled": "Untitled Survey",
-    "loading": "Loading available surveys...",
+    "loading": "Loading survey...",
     "noSurveys": "No surveys available",
     "noPublicSurveys": "No surveys are currently available. We'll notify you when new surveys become available!",
     "noInvitedSurveys": "You haven't been invited to participate in any surveys yet. Check back soon!",
-    "takeSurvey": "Start Survey",
+    "takeSurvey": "Take Survey",
     "viewDetails": "View Survey Details",
     "questions": "questions",
     "question": "question",
@@ -1043,16 +1029,20 @@
       "required": "This question is required - please provide an answer",
       "invalid": "Please provide a valid answer for this question"
     },
-    "loading": "Loading survey...",
     "description": "Description",
     "preview": "Preview ({{count}} questions)",
     "created": "Created",
-    "takeSurvey": "Take Survey",
     "backToSurveys": "Back to Surveys",
-    "notFound": "Survey not found",
     "accessType": {
       "public": "Public",
       "invited": "Invited"
+    },
+    "stats": {
+      "questions": "Questions",
+      "status": "Status",
+      "accessType": "Access Type",
+      "created": "Created",
+      "details": "Details"
     },
     "completed": {
       "title": "Survey Completed Successfully!",
@@ -1088,7 +1078,9 @@
       "page": "Page",
       "of": "of",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "couponColumn": "Coupon",
+      "userColumn": "User"
     },
     "couponAssignment": {
       "editAssignment": "Edit Assignment",
@@ -1107,6 +1099,26 @@
       "createSurvey": "Create New Survey",
       "editSurvey": "Edit Survey",
       "deleteSurvey": "Delete Survey",
+      "management": {
+        "columns": {
+          "survey": "Survey",
+          "updated": "Updated",
+          "actions": "Actions"
+        },
+        "templatesLink": "Templates",
+        "allStatuses": "All Status",
+        "previewTooltip": "Preview survey",
+        "analyticsTooltip": "View analytics",
+        "invitationsTooltip": "Manage invitations",
+        "exportTooltip": "Export responses",
+        "emptyTitle": "No surveys found",
+        "emptyDescription": "Get started by creating your first customer survey.",
+        "deleteConfirmMessage": "Are you sure you want to delete this survey? This action cannot be undone and will delete all associated responses and invitations.",
+        "loadError": "Failed to load surveys",
+        "deleteError": "Failed to delete survey",
+        "exportSuccess": "Survey responses exported successfully",
+        "exportError": "Failed to export survey responses"
+      },
       "surveyBuilder": {
         "pageTitle": {
           "create": "Create Survey",
@@ -1237,6 +1249,7 @@
         "optionValuePlaceholder": "Value",
         "newOptionText": "Option {{number}}",
         "addOption": "+ Add Option",
+        "removeOption": "Remove option",
         "minRating": "Min Rating",
         "maxRating": "Max Rating",
         "requiredQuestion": "Required Question",
@@ -1265,7 +1278,19 @@
         "noResponses": "No responses collected yet",
         "insights": "Key Insights",
         "trends": "Response Trends",
-        "exportData": "Export Survey Data"
+        "exportData": "Export Survey Data",
+        "responsePercentage": "Response Percentage",
+        "ratingDistribution": "Rating Distribution",
+        "yesNoDistribution": "Yes/No Distribution",
+        "dailyResponseCount": "Daily Response Count",
+        "averageRating": "Average Rating",
+        "outOf": "out of {{max}}",
+        "textResponsesCollected": "{{count}} text responses collected",
+        "textResponsesNote": "Text responses are included in the CSV export",
+        "loadError": "Failed to load survey analytics",
+        "surveyIdRequired": "Survey ID is required",
+        "exportSuccess": "Analytics exported successfully",
+        "exportError": "Failed to export analytics"
       },
       "invitations": {
         "title": "Survey Invitations",
@@ -1280,7 +1305,40 @@
         "publicSurveyTitle": "This is a Public Survey",
         "publicSurveyDescription": "Public surveys are automatically available to all users in the app. No invitations are needed - users can find and take this survey directly from their \"Take Survey\" menu.",
         "publicSurveyType": "Public",
-        "surveyType": "Survey Type"
+        "surveyType": "Survey Type",
+        "surveyIdRequired": "Survey ID is required",
+        "loadError": "Failed to load survey invitations",
+        "sendError": "Failed to send invitations",
+        "resendSuccess": "Invitation resent successfully",
+        "resendError": "Failed to resend invitation",
+        "loadUsersError": "Failed to load users",
+        "selectAtLeastOneUser": "Please select at least one user",
+        "noInvitationsSentToUsers": "No invitations were sent. Users may not match targeting criteria or already have invitations.",
+        "searchUsersPlaceholder": "Search users by email or name...",
+        "usersSelectedCount": "{{count}} selected",
+        "sendInvitationsCount": "Send Invitations ({{count}})",
+        "noUsersFound": "No users found",
+        "joined": "Joined",
+        "invited": "Invited",
+        "sentOn": "Sent",
+        "userIdLabel": "User ID",
+        "sendNow": "Send Now",
+        "statsTotal": "Total Invitations",
+        "statsSent": "Sent",
+        "statsViewed": "Viewed",
+        "statsStarted": "Started",
+        "statsCompleted": "Completed",
+        "statusPending": "Pending",
+        "statusSent": "Sent",
+        "statusViewed": "Viewed",
+        "statusInProgress": "In Progress",
+        "statusCompleted": "Completed",
+        "recipientsHeading": "Invitation Recipients",
+        "viewAnalytics": "View Analytics",
+        "sendFirstInvitations": "Send First Invitations",
+        "statusFilterAll": "All Status",
+        "availabilityLabel": "Availability",
+        "availabilityAllUsers": "All users can access this survey"
       },
       "couponAssignment": {
         "title": "Survey Rewards",
@@ -1315,7 +1373,8 @@
         "updateSuccess": "Coupon assignment updated successfully",
         "updateError": "Failed to update coupon assignment",
         "removeSuccess": "Coupon assignment removed successfully",
-        "removeError": "Failed to remove coupon assignment"
+        "removeError": "Failed to remove coupon assignment",
+        "valueColumn": "Value"
       },
       "templates": {
         "title": "Survey Templates",
@@ -1324,7 +1383,7 @@
         "allTemplates": "All Templates",
         "categories": {
           "feedback": "Feedback",
-          "loyalty": "Loyalty", 
+          "loyalty": "Loyalty",
           "events": "Events",
           "quick": "Quick",
           "custom": "Custom"
@@ -1332,6 +1391,7 @@
         "startFromScratch": "Start from Scratch",
         "createCustomSurvey": "Create a custom survey with your own questions",
         "useTemplate": "Use Template",
+        "loadError": "Failed to load survey templates",
         "popularityText": "{{percent}}% use this",
         "questionsCount": "{{count}} questions",
         "customTemplatesTitle": "Your Custom Templates",
@@ -1355,7 +1415,7 @@
                 "text": "How likely are you to recommend us to others?",
                 "options": {
                   "veryLikely": "Very likely",
-                  "likely": "Likely", 
+                  "likely": "Likely",
                   "neutral": "Neutral",
                   "unlikely": "Unlikely",
                   "veryUnlikely": "Very unlikely"
@@ -1406,7 +1466,7 @@
                   "pool": "Swimming pool",
                   "gym": "Gym/Fitness center",
                   "spa": "Spa",
-                  "restaurant": "Restaurant", 
+                  "restaurant": "Restaurant",
                   "bar": "Bar",
                   "business": "Business center",
                   "concierge": "Concierge services"
@@ -1642,7 +1702,13 @@
     "totalForNights": "Total for {{nights}} nights",
     "roomsLeft": "{{count}} room(s) left",
     "pointsYouWillEarn": "You'll earn {{points}} points!",
-    "maxGuests": "Max {{count}} guests"
+    "maxGuests": "Max {{count}} guests",
+    "selectProperty": "Select hotel",
+    "property": "Hotel",
+    "guestName": "Guest name",
+    "guestPhone": "Phone number",
+    "guestPhonePlaceholder": "e.g. 081-234-5678",
+    "guestDetailsRequired": "Please fill in the guest name and phone number"
   },
   "payment": {
     "title": "Payment",
@@ -1660,6 +1726,7 @@
     "uploadSlip": "Upload Transfer Slip",
     "uploadSlipDescription": "After payment, upload your transfer slip for verification",
     "dragDropSlip": "Drag and drop your slip here, or click to browse",
+    "browseFiles": "Browse files",
     "slipUploaded": "Slip Uploaded",
     "slipPreview": "Transfer Slip",
     "awaitingVerification": "Awaiting Verification",
@@ -1706,6 +1773,58 @@
     "showBankDetails": "Show bank transfer details",
     "hideBankDetails": "Hide bank transfer details",
     "yourSlips": "Your uploaded slips",
-    "removeSlip": "Remove slip"
+    "removeSlip": "Remove slip",
+    "balanceDueAtCheckin": "Balance due at check-in",
+    "holdExpiresIn": "Please pay within {{time}} — the room is held for you until then",
+    "holdExpired": "The payment window has expired and the room hold was released. Please start a new booking.",
+    "startOver": "Start a new booking",
+    "propertyAccount": "Payment goes to {{property}}'s account"
+  },
+  "property": {
+    "hf": "The Harbour Front Hotel",
+    "hfville": "HF Ville"
+  },
+  "memberCard": {
+    "title": "Member Card",
+    "dashboardDescription": "Show your QR at the front desk",
+    "membershipId": "Membership ID",
+    "qrAlt": "Membership QR code",
+    "qrError": "Could not generate the QR code",
+    "generating": "Generating QR code...",
+    "noMembershipId": "Your membership ID is not ready yet. Please contact the front desk.",
+    "showAtDesk": "Show this QR code at the front desk when you check in, so your stay counts toward your membership."
+  },
+  "privacy": {
+    "title": "Privacy Notice",
+    "footerLink": "Privacy notice",
+    "whatWeStoreTitle": "What we store",
+    "whatWeStoreBody": "Your name, your LINE identity, your phone number (only if you choose to add it), and your stay history — used to run the loyalty program: nights, tier, points, and coupons.",
+    "whyTitle": "Why we store it",
+    "whyBody": "Membership data is processed to operate your membership (our contract with you). We do not sell your data or share it outside the hotel group.",
+    "messagesTitle": "Messages from us",
+    "messagesBody": "Adding one of our hotels' LINE official accounts as a friend is your opt-in to receive membership messages from that hotel. Blocking the account stops its messages at any time.",
+    "contactTitle": "Contact",
+    "contactBody": "For data questions, export, or deletion requests, contact the hotel support email or the front desk.",
+    "backToApp": "Back to the app"
+  },
+  "nav": {
+    "home": "Home",
+    "memberCard": "Member Card",
+    "coupons": "Coupons",
+    "bookings": "Bookings",
+    "profile": "Profile",
+    "surveys": "Surveys"
+  },
+  "adminNav": {
+    "loyalty": "Loyalty",
+    "coupons": "Coupons",
+    "users": "Users",
+    "surveys": "Surveys",
+    "rooms": "Rooms",
+    "roomTypes": "Room Types",
+    "availability": "Availability",
+    "bookings": "Bookings",
+    "transactions": "Transactions",
+    "email": "Email"
   }
 }

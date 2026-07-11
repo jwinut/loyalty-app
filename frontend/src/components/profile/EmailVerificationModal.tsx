@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { FiX, FiMail, FiRefreshCw, FiCheck } from 'react-icons/fi';
+import React, { useRef, useState, useEffect } from 'react';
+import { FiMail, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
+import { Modal } from '../ui';
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   const verifyMutation = useMutation({
     mutationFn: async (_data: { code: string }) => {
@@ -99,97 +101,81 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     resendMutation.mutate();
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden"
-        data-testid="email-verification-modal"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FiMail className="text-brand-500" />
-            {t('profile.verifyEmail', 'Verify Email')}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-stone-100 rounded-full transition-colors"
-            aria-label="Close"
-          >
-            <FiX size={20} />
-          </button>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="sm"
+      initialFocusRef={codeInputRef}
+      title={
+        <span className="flex items-center gap-2">
+          <FiMail className="text-brand-500" />
+          {t('profile.verifyEmail', 'Verify Email')}
+        </span>
+      }
+    >
+      <form onSubmit={handleSubmit} data-testid="email-verification-modal">
+        <p className="text-stone-600 mb-4">
+          {t('profile.verificationCodeSent', 'A verification code has been sent to:')}
+        </p>
+        <p className="font-semibold text-stone-900 mb-6 break-all">{newEmail}</p>
+
+        <div className="mb-4">
+          <label htmlFor="verification-code" className="block text-sm font-semibold text-stone-700 mb-2">
+            {t('profile.enterCode', 'Enter verification code')}
+          </label>
+          <input
+            ref={codeInputRef}
+            id="verification-code"
+            type="text"
+            value={code}
+            onChange={handleCodeChange}
+            placeholder="XXXX-XXXX"
+            maxLength={9}
+            className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            data-testid="verification-code-input"
+            autoComplete="off"
+          />
         </div>
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <p className="text-stone-600 mb-4">
-            {t('profile.verificationCodeSent', 'A verification code has been sent to:')}
-          </p>
-          <p className="font-medium text-stone-900 mb-6 break-all">{newEmail}</p>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
+        )}
 
-          <div className="mb-4">
-            <label htmlFor="verification-code" className="block text-sm font-medium text-stone-700 mb-2">
-              {t('profile.enterCode', 'Enter verification code')}
-            </label>
-            <input
-              id="verification-code"
-              type="text"
-              value={code}
-              onChange={handleCodeChange}
-              placeholder="XXXX-XXXX"
-              maxLength={9}
-              className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              data-testid="verification-code-input"
-              autoComplete="off"
-              autoFocus
-            />
-          </div>
+        <button
+          type="submit"
+          disabled={verifyMutation.isPending || code.length < 9}
+          className="w-full py-3 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          data-testid="verify-button"
+        >
+          {verifyMutation.isPending ? t('common.verifying', 'Verifying...') : t('profile.verifyCode', 'Verify Code')}
+        </button>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+        <div className="mt-4 text-center">
+          {resendSuccess ? (
+            <div className="text-green-600 text-sm flex items-center justify-center gap-1" data-testid="resend-success">
+              <FiCheck size={14} />
+              {t('profile.codeResent', 'New code sent!')}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendMutation.isPending}
+              className="text-brand-600 hover:text-brand-800 disabled:text-stone-400 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-1 mx-auto"
+              data-testid="resend-code-button"
+            >
+              <FiRefreshCw className={resendMutation.isPending ? 'animate-spin' : ''} size={14} />
+              {t('profile.resendCode', 'Resend code')}
+            </button>
           )}
+        </div>
 
-          <button
-            type="submit"
-            disabled={verifyMutation.isPending || code.length < 9}
-            className="w-full py-3 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            data-testid="verify-button"
-          >
-            {verifyMutation.isPending ? t('common.verifying', 'Verifying...') : t('profile.verifyCode', 'Verify Code')}
-          </button>
-
-          <div className="mt-4 text-center">
-            {resendSuccess ? (
-              <div className="text-green-600 text-sm flex items-center justify-center gap-1" data-testid="resend-success">
-                <FiCheck size={14} />
-                {t('profile.codeResent', 'New code sent!')}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resendMutation.isPending}
-                className="text-brand-600 hover:text-brand-800 disabled:text-stone-400 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-1 mx-auto"
-                data-testid="resend-code-button"
-              >
-                <FiRefreshCw className={resendMutation.isPending ? 'animate-spin' : ''} size={14} />
-                {t('profile.resendCode', 'Resend code')}
-              </button>
-            )}
-          </div>
-
-          <p className="mt-4 text-xs text-stone-500 text-center">
-            {t('profile.codeExpiry', 'Code expires in 1 hour. Check your spam folder if you don\'t see it.')}
-          </p>
-        </form>
-      </div>
-    </div>
+        <p className="mt-4 text-xs text-stone-500 text-center">
+          {t('profile.codeExpiry', "Code expires in 1 hour. Check your spam folder if you don't see it.")}
+        </p>
+      </form>
+    </Modal>
   );
 };
 

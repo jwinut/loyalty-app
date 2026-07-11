@@ -1,20 +1,86 @@
 import { useAuthStore } from '../store/authStore';
-import { FiUser, FiAward, FiUsers, FiGift, FiMail, FiCalendar } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { FiGift, FiUsers } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
 import LoyaltyCarousel from '../components/loyalty/LoyaltyCarousel';
-import { loyaltyService } from '../services/loyaltyService';
+import { loyaltyService, UserLoyaltyStatus } from '../services/loyaltyService';
+import { Card, Skeleton } from '../components/ui';
+import { tierTheme } from '../utils/tierTheme';
+import NavTile from './dashboard/NavTile';
+import { ADMIN_NAV_CARDS, GUEST_NAV_CARDS } from './dashboard/navCards';
+
+const NAV_GRID_CLASSES = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+
+function TierHero({ loyaltyStatus }: { loyaltyStatus: UserLoyaltyStatus }) {
+  const { t } = useTranslation();
+  const theme = tierTheme(loyaltyStatus.tier_name, loyaltyStatus.tier_color);
+  const showProgress = loyaltyStatus.next_tier_name && loyaltyStatus.progress_percentage !== null;
+
+  return (
+    <Card surface="tile" padding="lg" className="mb-6">
+      <span
+        className="inline-flex rounded-full px-3 py-1 text-caption font-semibold"
+        style={{ backgroundColor: theme.tintBg, color: theme.onTint }}
+        data-testid="dashboard-tier"
+      >
+        {t('loyalty.tier')} {loyaltyStatus.tier_name}
+      </span>
+
+      <div className="mt-6 grid grid-cols-2 gap-6">
+        <div>
+          <div className="text-display-lg">{loyaltyStatus.total_nights ?? 0}</div>
+          <div className="text-caption text-tile-muted">
+            {(loyaltyStatus.total_nights ?? 0) === 1 ? t('loyalty.night') : t('loyalty.nights')}
+          </div>
+          <div className="mt-1 text-fine text-tile-muted">{t('loyalty.tierEligibility')}</div>
+        </div>
+        <div>
+          <div className="text-display-lg" data-testid="dashboard-points">
+            {loyaltyStatus.current_points.toLocaleString()}
+          </div>
+          <div className="text-caption text-tile-muted">{t('loyalty.points')}</div>
+          <div className="mt-1 text-fine text-tile-muted">{t('loyalty.forRewards')}</div>
+        </div>
+      </div>
+
+      {showProgress && (
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between text-caption text-tile-muted">
+            <span>{t('loyalty.progressToNextTier', { tier: loyaltyStatus.next_tier_name })}</span>
+            <span>
+              {loyaltyStatus.nights_to_next_tier !== undefined && loyaltyStatus.nights_to_next_tier !== null
+                ? t('loyalty.nightsToGo', { count: loyaltyStatus.nights_to_next_tier })
+                : t('loyalty.maxTierReached')}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-tile-raised">
+            <div
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ width: `${loyaltyStatus.progress_percentage}%`, backgroundColor: theme.accent }}
+            />
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function DashboardLoadingSkeleton() {
+  return (
+    <div className={NAV_GRID_CLASSES} data-testid="dashboard-loading">
+      {Array.from({ length: 6 }, (_, index) => (
+        <Skeleton key={index} className="h-24" />
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-
-  // Check user roles
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-  // Use React Query + REST for data fetching
   const { data: loyaltyStatus, isLoading: loyaltyLoading } = useQuery({
     queryKey: ['loyalty', 'status'],
     queryFn: () => loyaltyService.getUserLoyaltyStatus(),
@@ -25,565 +91,57 @@ export default function DashboardPage() {
   });
 
   const transactions = transactionsData?.transactions ?? [];
+  const dashboardTitle = t('dashboard.title', { name: user?.firstName ?? '' });
 
   if (loyaltyLoading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center" data-testid="dashboard-loading">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
-          <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
-        </div>
-      </div>
+      <AppShell variant="guest" title={dashboardTitle}>
+        <DashboardLoadingSkeleton />
+      </AppShell>
     );
   }
 
   return (
-    <MainLayout title={t('dashboard.title', { name: user?.firstName ?? '' })}>
-          {/* Membership Tier Display */}
-          {loyaltyStatus && (
-            <div className="mb-6 bg-white shadow rounded-lg border-l-4" style={{ borderLeftColor: loyaltyStatus.tier_color }}>
-              <div className="px-4 py-5 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 rounded-lg" style={{ backgroundColor: `${loyaltyStatus.tier_color}20` }}>
-                      <FiGift className="w-8 h-8" style={{ color: loyaltyStatus.tier_color }} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-stone-900" data-testid="dashboard-tier">
-                        {t('loyalty.tier')} {loyaltyStatus.tier_name}
-                      </h2>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-2xl font-bold" style={{ color: loyaltyStatus.tier_color }}>
-                          {loyaltyStatus.total_nights ?? 0}
-                        </div>
-                        <div className="text-sm text-stone-600">
-                          {(loyaltyStatus.total_nights ?? 0) === 1 ? t('loyalty.night') : t('loyalty.nights')}
-                        </div>
-                        <div className="text-xs text-stone-500 mt-1">
-                          {t('loyalty.tierEligibility')}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold" style={{ color: loyaltyStatus.tier_color }} data-testid="dashboard-points">
-                          {loyaltyStatus.current_points.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-stone-600">
-                          {t('loyalty.points')}
-                        </div>
-                        <div className="text-xs text-stone-500 mt-1">
-                          {t('loyalty.forRewards')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+    <AppShell variant="guest" title={dashboardTitle}>
+      {loyaltyStatus && <TierHero loyaltyStatus={loyaltyStatus} />}
 
-                {/* Progress to next tier */}
-                {loyaltyStatus.next_tier_name && loyaltyStatus.progress_percentage !== null && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-sm text-stone-600 mb-2">
-                      <span>
-                        {t('loyalty.progressToNextTier', { tier: loyaltyStatus.next_tier_name })}
-                      </span>
-                      <span>
-                        {loyaltyStatus.nights_to_next_tier !== undefined && loyaltyStatus.nights_to_next_tier !== null
-                          ? t('loyalty.nightsToGo', { count: loyaltyStatus.nights_to_next_tier })
-                          : t('loyalty.maxTierReached')
-                        }
-                      </span>
-                    </div>
-                    <div className="w-full bg-stone-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${loyaltyStatus.progress_percentage}%`,
-                          backgroundColor: loyaltyStatus.tier_color
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Loyalty Dashboard Section */}
-          {loyaltyStatus && (
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <FiGift className="h-6 w-6 text-primary-600" />
-                <h2 className="text-xl font-semibold text-stone-900">
-                  {t('loyalty.dashboard.title')}
-                </h2>
-              </div>
-
-              {/* Swipeable Carousel */}
-              <LoyaltyCarousel
-                loyaltyStatus={loyaltyStatus}
-                transactions={transactions}
-              />
-            </div>
-          )}
-
-          {/* User Menu Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-stone-900 mb-4">
-              {t('dashboard.myServices')}
-            </h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Profile & Loyalty Card */}
-              <Link
-                to="/profile"
-                data-testid="nav-profile"
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-              >
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <FiUser className="h-6 w-6 text-primary-600" />
-                      </div>
-                      <div className="ml-3">
-                        <dt className="text-lg font-semibold text-stone-900">
-                          {t('dashboard.myProfile')}
-                        </dt>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <div className="h-6 w-6 bg-gold-500 rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">★</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <dd className="text-sm font-medium text-stone-500 mb-1">
-                      {t('dashboard.manageProfile')}
-                    </dd>
-                    <dd className="text-sm font-medium text-stone-500">
-                      {t('dashboard.manageLoyalty')}
-                    </dd>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Coupons Card */}
-              <Link
-                to="/coupons"
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-6 w-6 bg-green-500 rounded flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">🎫</span>
-                      </div>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-lg font-semibold text-stone-900 truncate">
-                          {t('dashboard.myCoupons')}
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium text-stone-500">
-                          {t('dashboard.manageCoupons')}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Surveys Card */}
-              <Link
-                to="/surveys"
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-6 w-6 bg-purple-500 rounded flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">📝</span>
-                      </div>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-lg font-semibold text-stone-900 truncate">
-                          {t('dashboard.surveys')}
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium text-stone-500">
-                          {t('dashboard.takeSurveys')}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Book Room Card */}
-              <Link
-                to="/booking"
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                data-testid="nav-booking"
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FiCalendar className="h-6 w-6 text-primary-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-lg font-semibold text-stone-900 truncate">
-                          {t('booking.bookRoom')}
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium text-stone-500">
-                          {t('booking.bookRoomDescription')}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* My Bookings Card */}
-              <Link
-                to="/my-bookings"
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                data-testid="nav-my-bookings"
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-6 w-6 bg-brand-500 rounded flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">🏨</span>
-                      </div>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-lg font-semibold text-stone-900 truncate">
-                          {t('booking.myBookings')}
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium text-stone-500">
-                          {t('booking.viewMyBookings')}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
+      {loyaltyStatus && (
+        <div className="mb-8">
+          <div className="mb-4 flex items-center gap-2">
+            <FiGift className="h-5 w-5 text-brand-600" aria-hidden="true" />
+            <h2 className="text-title text-ink">{t('loyalty.dashboard.title')}</h2>
           </div>
+          <LoyaltyCarousel loyaltyStatus={loyaltyStatus} transactions={transactions} />
+        </div>
+      )}
 
-          {/* Admin Menu Section (Admin+ Only) */}
-          {isAdmin && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-stone-900 mb-4 flex items-center">
-                <FiUsers className="h-5 w-5 mr-2 text-brand-600" />
-                {t('dashboard.adminMenu')}
-              </h2>
+      <div className="mb-8">
+        <h2 className="mb-4 text-title text-ink">{t('dashboard.myServices')}</h2>
+        <div className={NAV_GRID_CLASSES}>
+          {GUEST_NAV_CARDS.map((card) => (
+            <NavTile key={card.to} card={card} />
+          ))}
+        </div>
+      </div>
 
-              {/* Admin Cards */}
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Loyalty Management Card */}
-                <Link
-                  to="/admin/loyalty"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <FiAward className="h-6 w-6 text-brand-600" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('dashboard.loyaltyManagement')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('dashboard.manageLoyaltyAdmin')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Coupon Management Card */}
-                <Link
-                  to="/admin/coupons"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-yellow-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">🎫</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('dashboard.couponManagement')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('dashboard.manageCouponsAdmin')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Survey Management Card */}
-                <Link
-                  to="/admin/surveys"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-purple-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">📊</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('dashboard.surveyManagement')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('dashboard.manageSurveysAdmin')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* User Management Card */}
-                <Link
-                  to="/admin/users"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <FiUsers className="h-6 w-6 text-brand-600" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('dashboard.userManagement')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('dashboard.manageUsersAdmin')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* New Member Coupons Card */}
-                <Link
-                  to="/admin/new-member-coupons"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-green-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">🎁</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.newMemberCoupons.menuTitle')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.newMemberCoupons.menuDescription')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Transaction History Card */}
-                <Link
-                  to="/admin/transaction-history"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-indigo-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">📊</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.loyalty.transactionHistory')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.loyalty.viewTransactionHistory')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Email Service Card */}
-                <Link
-                  to="/admin/email-service"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <FiMail className="h-6 w-6 text-brand-600" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('dashboard.emailService')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('dashboard.emailServiceDesc')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Room Types Management Card */}
-                <Link
-                  to="/admin/room-types"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                  data-testid="nav-admin-room-types"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-teal-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">🏨</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.booking.roomTypes.title')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.booking.roomTypes.subtitle')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Rooms Management Card */}
-                <Link
-                  to="/admin/rooms"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                  data-testid="nav-admin-rooms"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-cyan-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">🚪</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.booking.rooms.title')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.booking.rooms.subtitle')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Room Availability Card */}
-                <Link
-                  to="/admin/room-availability"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                  data-testid="nav-admin-availability"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <FiCalendar className="h-6 w-6 text-orange-600" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.booking.availability.title')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.booking.availability.subtitle')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Booking Management Card */}
-                <Link
-                  to="/admin/booking-management"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
-                  data-testid="nav-admin-booking-management"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-6 w-6 bg-rose-500 rounded flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">📋</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-lg font-semibold text-stone-900 truncate">
-                            {t('admin.booking.bookingManagement.menuTitle')}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium text-stone-500">
-                            {t('admin.booking.bookingManagement.menuDescription')}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Welcome Message */}
-          <div className="mt-8 bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-stone-900">
-                {t('dashboard.welcomeMessage')}
-              </h3>
-              <div className="mt-2 max-w-xl text-sm text-stone-500">
-                <p>
-                  {t('dashboard.welcomeDescription')}
-                </p>
-              </div>
-            </div>
+      {isAdmin && (
+        <div className="mb-8">
+          <h2 className="mb-4 flex items-center gap-2 text-title text-ink">
+            <FiUsers className="h-5 w-5 text-brand-600" aria-hidden="true" />
+            {t('dashboard.adminMenu')}
+          </h2>
+          <div className={NAV_GRID_CLASSES}>
+            {ADMIN_NAV_CARDS.map((card) => (
+              <NavTile key={card.to} card={card} />
+            ))}
           </div>
-    </MainLayout>
+        </div>
+      )}
+
+      <Card as="section" surface="sunken" padding="lg" className="mt-8">
+        <h3 className="text-title text-ink">{t('dashboard.welcomeMessage')}</h3>
+        <p className="mt-2 max-w-text text-body text-ink-muted">{t('dashboard.welcomeDescription')}</p>
+      </Card>
+    </AppShell>
   );
 }

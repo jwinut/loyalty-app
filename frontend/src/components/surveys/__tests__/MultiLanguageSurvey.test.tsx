@@ -7,6 +7,8 @@ import MultiLanguageSurvey from '../MultiLanguageSurvey';
 // Mock react-icons
 vi.mock('react-icons/fi', () => ({
   FiGlobe: () => <span data-testid="globe-icon">🌐</span>,
+  FiChevronDown: () => <span data-testid="chevron-down-icon" />,
+  FiCheck: () => <span data-testid="check-icon" />,
 }));
 
 describe('MultiLanguageSurvey', () => {
@@ -265,7 +267,7 @@ describe('MultiLanguageSurvey', () => {
       await user.click(button);
 
       const englishOption = screen.getAllByText('English')[1]!.closest('button');
-      const checkmark = englishOption?.querySelector('svg');
+      const checkmark = englishOption?.querySelector('[data-testid="check-icon"]');
       expect(checkmark).toBeInTheDocument();
     });
 
@@ -284,7 +286,7 @@ describe('MultiLanguageSurvey', () => {
       await user.click(button);
 
       const englishOption = screen.getAllByText('English')[1]!.closest('button');
-      expect(englishOption).toHaveClass('bg-brand-50', 'text-brand-700');
+      expect(englishOption).toHaveAttribute('aria-current', 'true');
     });
   });
 
@@ -845,7 +847,7 @@ describe('MultiLanguageSurvey', () => {
 
   describe('Styling and Layout', () => {
     it('should have proper max width container', () => {
-      const { container } = render(
+      render(
         <MultiLanguageSurvey
           questions={mockQuestions}
           onLanguageChange={mockOnLanguageChange}
@@ -854,12 +856,11 @@ describe('MultiLanguageSurvey', () => {
         />
       );
 
-      const mainContainer = container.querySelector('.max-w-4xl.mx-auto');
-      expect(mainContainer).toBeInTheDocument();
+      expect(screen.getByTestId('multi-language-survey-root')).toBeInTheDocument();
     });
 
     it('should have proper spacing between questions', () => {
-      const { container } = render(
+      render(
         <MultiLanguageSurvey
           questions={mockQuestions}
           onLanguageChange={mockOnLanguageChange}
@@ -868,11 +869,10 @@ describe('MultiLanguageSurvey', () => {
         />
       );
 
-      const questionsContainer = container.querySelector('.space-y-6');
-      expect(questionsContainer).toBeInTheDocument();
+      expect(screen.getByTestId('multi-language-survey-questions')).toBeInTheDocument();
     });
 
-    it('should style questions with white background and shadow', () => {
+    it('should render one card per question', () => {
       const { container } = render(
         <MultiLanguageSurvey
           questions={mockQuestions}
@@ -882,12 +882,12 @@ describe('MultiLanguageSurvey', () => {
         />
       );
 
-      const questionCards = container.querySelectorAll('.bg-white.rounded-lg.shadow.p-6');
+      const questionCards = container.querySelectorAll('[data-surface="card"]');
       expect(questionCards.length).toBe(mockQuestions.length);
     });
 
-    it('should have blue background for language status section', () => {
-      const { container } = render(
+    it('should display the language status section', () => {
+      render(
         <MultiLanguageSurvey
           questions={mockQuestions}
           onLanguageChange={mockOnLanguageChange}
@@ -896,8 +896,7 @@ describe('MultiLanguageSurvey', () => {
         />
       );
 
-      const statusSection = container.querySelector('.bg-brand-50.rounded-lg');
-      expect(statusSection).toBeInTheDocument();
+      expect(screen.getByTestId('multi-language-survey-status')).toBeInTheDocument();
     });
   });
 

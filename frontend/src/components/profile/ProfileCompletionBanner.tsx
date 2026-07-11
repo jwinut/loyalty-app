@@ -10,6 +10,7 @@ import { logger } from '../../utils/logger';
 import { GenderField, OccupationField, DateOfBirthField } from './ProfileFormFields';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { userService } from '../../services/userService';
+import { Button, Modal } from '../ui';
 
 interface ProfileCompletionBannerProps {
   className?: string;
@@ -77,26 +78,13 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
     reset();
   }, [reset]);
 
-  // Handle keyboard events for modal
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && showModal && !completeProfileMutation.isPending) {
-        handleCloseModal();
-      }
-    };
-
-    if (showModal) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    } else {
-      document.body.style.overflow = 'unset';
+  // Guard against dismissing (backdrop click, Escape, close button) while the
+  // completion request is in flight — mirrors the Cancel button's disabled state.
+  const handleModalClose = useCallback(() => {
+    if (!completeProfileMutation.isPending) {
+      handleCloseModal();
     }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [showModal, completeProfileMutation.isPending, handleCloseModal]);
+  }, [completeProfileMutation.isPending, handleCloseModal]);
 
   const onSubmit = async (data: ProfileCompletionFormData) => {
     try {
@@ -162,7 +150,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
         }
       }
     });
-    
+
     if (fields.length === 0) {
       return '';
     } else if (fields.length === 1) {
@@ -180,7 +168,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
   }
 
   return (
-    <div className={`bg-gradient-to-r from-brand-600 to-purple-600 text-white shadow-sm ${className}`}>
+    <div className={`bg-brand-600 text-white ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center flex-1 min-w-0">
@@ -188,7 +176,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
               <FiGift className="h-6 w-6 text-yellow-300" />
             </div>
             <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-semibold">
                 <span className="inline-flex items-center">
                   <span className="bg-yellow-300 text-brand-900 px-2 py-0.5 rounded-full text-xs font-semibold mr-2">
                     {t('profile.newMemberOffer')}
@@ -203,7 +191,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
             <div className="flex-shrink-0 ml-4">
               <button
                 onClick={handleOpenModal}
-                className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-md text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-semibold rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
               >
                 {t('profile.completeProfile')}
                 <FiChevronRight className="ml-1 h-4 w-4" />
@@ -214,7 +202,7 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
             <button
               type="button"
               onClick={handleDismiss}
-              className="inline-flex items-center justify-center p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
+              className="inline-flex items-center justify-center p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-600 focus:ring-white transition-colors"
               aria-label={t('common.dismiss')}
             >
               <FiX className="h-5 w-5" />
@@ -224,146 +212,115 @@ export default function ProfileCompletionBanner({ className = '' }: ProfileCompl
       </div>
 
       {/* Profile Completion Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-stone-500 bg-opacity-75 transition-opacity" onClick={handleCloseModal} />
+      <Modal open={showModal} onClose={handleModalClose} title={t('profile.completeProfile')}>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <p className="text-sm text-stone-500 mb-4">
+            {t('profile.completeProfileForCoupon')}
+          </p>
 
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          <div className="space-y-4">
+            {/* Only show fields that are actually missing */}
+            {profileStatus?.missingFields?.includes('firstName') && (
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-semibold text-stone-700">
+                  <FiUser className="inline h-4 w-4 mr-2" />
+                  {t('auth.firstName')} *
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  {...register('firstName')}
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  placeholder={t('profile.firstNamePlaceholder')}
+                />
+                {errors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                )}
+              </div>
+            )}
 
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-brand-100 sm:mx-0 sm:h-10 sm:w-10">
-                      <FiGift className="h-6 w-6 text-brand-600" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                      <h3 className="text-lg leading-6 font-medium text-stone-900">
-                        {t('profile.completeProfile')}
-                      </h3>
-                      <p className="text-sm text-stone-500 mt-2">
-                        {t('profile.completeProfileForCoupon')}
-                      </p>
-                      
-                      <div className="mt-4 space-y-4">
-                        {/* Only show fields that are actually missing */}
-                        {profileStatus?.missingFields?.includes('firstName') && (
-                          <div>
-                            <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
-                              <FiUser className="inline h-4 w-4 mr-2" />
-                              {t('auth.firstName')} *
-                            </label>
-                            <input
-                              type="text"
-                              id="firstName"
-                              {...register('firstName')}
-                              className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                              placeholder={t('profile.firstNamePlaceholder')}
-                            />
-                            {errors.firstName && (
-                              <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-                            )}
-                          </div>
-                        )}
+            {profileStatus?.missingFields?.includes('lastName') && (
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-semibold text-stone-700">
+                  <FiUser className="inline h-4 w-4 mr-2" />
+                  {t('auth.lastName')}
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  {...register('lastName')}
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  placeholder={t('profile.lastNamePlaceholder')}
+                />
+              </div>
+            )}
 
-                        {profileStatus?.missingFields?.includes('lastName') && (
-                          <div>
-                            <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
-                              <FiUser className="inline h-4 w-4 mr-2" />
-                              {t('auth.lastName')}
-                            </label>
-                            <input
-                              type="text"
-                              id="lastName"
-                              {...register('lastName')}
-                              className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                              placeholder={t('profile.lastNamePlaceholder')}
-                            />
-                          </div>
-                        )}
+            {profileStatus?.missingFields?.includes('date_of_birth') && (
+              <DateOfBirthField
+                register={register}
+                errors={errors}
+                showRequiredAsterisk={true}
+                isModal={true}
+              />
+            )}
 
-                        {profileStatus?.missingFields?.includes('date_of_birth') && (
-                          <DateOfBirthField 
-                            register={register}
-                            errors={errors}
-                            showRequiredAsterisk={true}
-                            isModal={true}
-                          />
-                        )}
+            {profileStatus?.missingFields?.includes('gender') && (
+              <GenderField
+                register={register}
+                errors={errors}
+                showRequiredAsterisk={true}
+                isModal={true}
+              />
+            )}
 
-                        {profileStatus?.missingFields?.includes('gender') && (
-                          <GenderField 
-                            register={register}
-                            errors={errors}
-                            showRequiredAsterisk={true}
-                            isModal={true}
-                          />
-                        )}
+            {profileStatus?.missingFields?.includes('occupation') && (
+              <OccupationField
+                register={register}
+                errors={errors}
+                showRequiredAsterisk={true}
+                isModal={true}
+              />
+            )}
 
-                        {profileStatus?.missingFields?.includes('occupation') && (
-                          <OccupationField
-                            register={register}
-                            errors={errors}
-                            showRequiredAsterisk={true}
-                            isModal={true}
-                          />
-                        )}
-
-                        {profileStatus?.missingFields?.includes('phone') && (
-                          <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
-                              <FiPhone className="inline h-4 w-4 mr-2" />
-                              {t('profile.phone')}
-                            </label>
-                            <input
-                              type="tel"
-                              id="phone"
-                              {...register('phone')}
-                              className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                              placeholder={t('profile.phonePlaceholder')}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-stone-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    disabled={completeProfileMutation.isPending}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand-600 text-base font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {completeProfileMutation.isPending ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        {t('common.saving')}
-                      </>
-                    ) : (
-                      <>
-                        <FiGift className="mr-2 h-4 w-4" />
-                        {t('profile.completeProfile')}
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    disabled={completeProfileMutation.isPending}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-stone-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
-              </form>
-            </div>
+            {profileStatus?.missingFields?.includes('phone') && (
+              <div>
+                <label htmlFor="phone" className="block text-sm font-semibold text-stone-700">
+                  <FiPhone className="inline h-4 w-4 mr-2" />
+                  {t('profile.phone')}
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  {...register('phone')}
+                  className="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+                  placeholder={t('profile.phonePlaceholder')}
+                />
+              </div>
+            )}
           </div>
-        </div>
-      )}
+
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCloseModal}
+              disabled={completeProfileMutation.isPending}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" variant="primary" loading={completeProfileMutation.isPending}>
+              {completeProfileMutation.isPending ? (
+                t('common.saving')
+              ) : (
+                <>
+                  <FiGift className="h-4 w-4" aria-hidden="true" />
+                  {t('profile.completeProfile')}
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

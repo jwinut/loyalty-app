@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FiUsers,
-  FiAward,
   FiPlus,
   FiMinus,
   FiRefreshCw,
@@ -17,8 +16,10 @@ import {
   AdminUserLoyalty,
   PointsTransaction
 } from '../../services/loyaltyService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import { logger } from '../../utils/logger';
+import { tierTheme } from '../../utils/tierTheme';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader, Card, Table, type TableColumn, Badge, Button, Modal, Input, FormField } from '../../components/ui';
 
 interface PointsAdjustmentModal {
   isOpen: boolean;
@@ -30,9 +31,55 @@ interface SpendingConsoleModal {
   isOpen: boolean;
 }
 
+type OAuthBadgeTone = 'success' | 'error' | 'brand';
+
+const OAUTH_BADGE_TONE: Record<string, OAuthBadgeTone> = {
+  line: 'success',
+  google: 'error',
+  facebook: 'brand',
+};
+
+function getOAuthBadgeTone(provider: string): OAuthBadgeTone {
+  return OAUTH_BADGE_TONE[provider] ?? 'brand';
+}
+
+function getUserDisplayName(user: Pick<AdminUserLoyalty, 'first_name' | 'last_name' | 'oauth_provider' | 'email'>): string {
+  if (user.first_name && user.last_name) {
+    return `${user.first_name} ${user.last_name}`;
+  }
+  if (user.oauth_provider === 'line' && user.first_name) {
+    return user.first_name;
+  }
+  return user.email;
+}
+
+function getUserSecondaryLabel(user: Pick<AdminUserLoyalty, 'first_name' | 'oauth_provider' | 'email'>): string {
+  return user.oauth_provider === 'line' && user.first_name ? 'LINE User' : user.email;
+}
+
+function TierBadge({ tierName, tierColor }: { tierName: string; tierColor: string }) {
+  const theme = tierTheme(tierName, tierColor);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-caption font-semibold whitespace-nowrap"
+      style={{ backgroundColor: theme.tintBg, color: theme.onTint }}
+    >
+      {tierName}
+    </span>
+  );
+}
+
+function OAuthBadge({ provider }: { provider: string }) {
+  return (
+    <Badge tone={getOAuthBadgeTone(provider)} size="sm">
+      via {provider.toUpperCase()}
+    </Badge>
+  );
+}
+
 export default function LoyaltyAdminPage() {
   const { t } = useTranslation();
-  
+
   const [users, setUsers] = useState<AdminUserLoyalty[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
@@ -270,11 +317,7 @@ export default function LoyaltyAdminPage() {
       ...spendingForm,
       userId: user.user_id,
       selectedUser: user,
-      userSearchTerm: user.first_name && user.last_name 
-        ? `${user.first_name} ${user.last_name}` 
-        : user.oauth_provider === 'line' && user.first_name
-        ? user.first_name
-        : user.email
+      userSearchTerm: getUserDisplayName(user)
     });
     setUserSearchResults([]);
   };
@@ -292,13 +335,13 @@ export default function LoyaltyAdminPage() {
       const spendingAmount = parseFloat(spendingForm.spendingAmount);
       const nightsStayed = parseInt(spendingForm.nightsStayed) ?? 0;
       const pointsToAward = calculatePoints(spendingAmount);
-      
+
       let description = `Spending points: ${spendingAmount} THB`;
       if (nightsStayed > 0) {
         description += `, ${nightsStayed} ${nightsStayed === 1 ? 'night' : 'nights'}`;
       }
       description += ` (Check-in: ${spendingForm.checkinId})`;
-      
+
       // If nights are provided, use the new method that handles both nights and points
       if (nightsStayed > 0) {
         // We'll need to add a new service method for this
@@ -318,13 +361,13 @@ export default function LoyaltyAdminPage() {
           spendingForm.checkinId
         );
       }
-      
+
       let successMessage = `มอบคะแนน ${pointsToAward} จากการใช้จ่าย ${spendingAmount} บาท`;
       if (nightsStayed > 0) {
         successMessage += ` และ ${nightsStayed} คืน`;
       }
       toast.success(successMessage);
-      
+
       closeSpendingConsole();
       loadUsers();
       if (selectedUser?.user_id === spendingForm.selectedUser.user_id) {
@@ -338,7 +381,6 @@ export default function LoyaltyAdminPage() {
     }
   };
 
-
   const selectUser = (user: AdminUserLoyalty) => {
     setSelectedUser(user);
     loadUserTransactions(user.user_id);
@@ -346,625 +388,501 @@ export default function LoyaltyAdminPage() {
 
   const totalPages = Math.ceil(totalUsers / pageSize);
 
-  return (
-    <div className="min-h-screen bg-stone-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-stone-900 flex items-center">
-                <FiAward className="w-8 h-8 mr-3 text-brand-600" />
-                {t('admin.loyalty.title')}
-              </h1>
-              <p className="text-stone-600 mt-1">
-                {t('admin.loyalty.subtitle')}
-              </p>
+  const columns: TableColumn<AdminUserLoyalty>[] = [
+    {
+      key: 'user',
+      header: t('admin.loyalty.table.user'),
+      cell: (user) => (
+        <div>
+          <div className="text-body font-semibold text-ink">{getUserDisplayName(user)}</div>
+          <div className="text-caption text-ink-muted">{getUserSecondaryLabel(user)}</div>
+          {user.oauth_provider && (
+            <div className="mt-1">
+              <OAuthBadge provider={user.oauth_provider} />
             </div>
-            
-            <div className="mt-4 sm:mt-0 flex space-x-3">
-              <button
-                onClick={openSpendingConsole}
-                className="inline-flex items-center font-medium border border-brand-300 bg-brand-50 text-brand-700 px-4 py-2 text-sm rounded-md hover:bg-brand-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                <FiDollarSign className="w-4 h-4 mr-2" />
-                มอบคะแนนจากการใช้จ่าย
-              </button>
-              
-              <button
-                onClick={loadUsers}
-                disabled={isLoading}
-                className="inline-flex items-center font-medium border border-stone-300 bg-white text-stone-700 px-4 py-2 text-sm rounded-md hover:bg-stone-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                <FiRefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {t('admin.loyalty.refresh')}
-              </button>
-              
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
+          )}
         </div>
+      ),
+    },
+    { key: 'phone', header: t('userManagement.phone'), cell: (user) => user.phone ?? '-' },
+    {
+      key: 'tier',
+      header: t('admin.loyalty.table.tier'),
+      cell: (user) => <TierBadge tierName={user.tier_name} tierColor={user.tier_color} />,
+    },
+    { key: 'nights', header: t('admin.loyalty.table.nights', 'Nights'), align: 'right', cell: (user) => user.total_nights },
+    {
+      key: 'membershipId',
+      header: t('profile.membershipId'),
+      cell: (user) => <span className="font-mono">{user.membership_id ?? '-'}</span>,
+    },
+    { key: 'points', header: t('admin.loyalty.table.points'), align: 'right', cell: (user) => user.current_points.toLocaleString() },
+    {
+      key: 'actions',
+      header: t('admin.loyalty.table.actions'),
+      align: 'right',
+      cell: (user) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-success-700 hover:text-success-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              openPointsModal(user, 'award');
+            }}
+            aria-label={t('admin.loyalty.awardPoints')}
+          >
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-error-700 hover:text-error-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              openPointsModal(user, 'deduct');
+            }}
+            aria-label={t('admin.loyalty.deductPoints')}
+          >
+            <FiMinus className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Users List */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="p-6 border-b border-stone-200">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-stone-900 flex items-center">
-                    <FiUsers className="w-5 h-5 mr-2" />
-                    {t('admin.loyalty.usersList')} ({totalUsers})
-                  </h2>
-                  
-                  <form onSubmit={handleSearch} className="mt-4 sm:mt-0">
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder={t('admin.loyalty.searchPlaceholder')}
-                        className="block w-full px-3 py-2 border border-stone-300 rounded-l-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                      />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center px-3 py-2 border border-l-0 border-stone-300 rounded-r-md bg-stone-50 text-stone-500 hover:bg-stone-100"
-                      >
-                        <FiSearch className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-stone-500 mt-2">{t('admin.loyalty.searchHint', 'Search by name, email, phone, or membership ID')}</p>
-                  </form>
-                </div>
-              </div>
+  return (
+    <AppShell variant="admin" title={t('admin.loyalty.title')}>
+      <PageHeader
+        density="admin"
+        title={t('admin.loyalty.title')}
+        subtitle={t('admin.loyalty.subtitle')}
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={openSpendingConsole}>
+              <FiDollarSign className="h-4 w-4" aria-hidden="true" />
+              มอบคะแนนจากการใช้จ่าย
+            </Button>
+            <Button variant="secondary" size="sm" onClick={loadUsers} disabled={isLoading}>
+              <FiRefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {t('admin.loyalty.refresh')}
+            </Button>
+          </>
+        }
+      />
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-stone-200">
-                  <thead className="bg-stone-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.loyalty.table.user')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('userManagement.phone')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.loyalty.table.tier')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('profile.membershipId')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.loyalty.table.points')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                        {t('admin.loyalty.table.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-stone-200">
-                    {isLoading ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center text-stone-500">
-                          {t('common.loading')}
-                        </td>
-                      </tr>
-                    ) : users.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center text-stone-500">
-                          {t('admin.loyalty.noUsers')}
-                        </td>
-                      </tr>
-                    ) : (
-                      users.map((user) => (
-                        <tr 
-                          key={user.user_id}
-                          className={`hover:bg-stone-50 cursor-pointer ${
-                            selectedUser?.user_id === user.user_id ? 'bg-brand-50' : ''
-                          }`}
-                          onClick={() => selectUser(user)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-stone-900">
-                                {user.first_name && user.last_name 
-                                  ? `${user.first_name} ${user.last_name}`
-                                  : user.oauth_provider === 'line' && user.first_name
-                                  ? user.first_name
-                                  : user.email
-                                }
-                              </div>
-                              <div className="text-sm text-stone-500">
-                                {user.oauth_provider === 'line' && user.first_name ? 'LINE User' : user.email}
-                              </div>
-                              {user.oauth_provider && (
-                                <div className="text-xs mt-1">
-                                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                                    user.oauth_provider === 'line' ? 'bg-green-100 text-green-800' :
-                                    user.oauth_provider === 'google' ? 'bg-red-100 text-red-800' :
-                                    user.oauth_provider === 'facebook' ? 'bg-brand-100 text-brand-800' :
-                                    'bg-stone-100 text-stone-800'
-                                  }`}
-                                  >
-                                    via {user.oauth_provider.toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
-                            {user.phone ?? '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                              style={{
-                                backgroundColor: `${user.tier_color}20`,
-                                color: user.tier_color
-                              }}
-                            >
-                              {user.tier_name}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-stone-900 font-mono">
-                              {user.membership_id ?? '-'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-stone-900">
-                              {user.current_points.toLocaleString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPointsModal(user, 'award');
-                              }}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              <FiPlus className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPointsModal(user, 'deduct');
-                              }}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <FiMinus className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Users List */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card padding="none">
+            <div className="p-4 border-b border-hairline flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 className="text-title text-ink flex items-center gap-2">
+                <FiUsers className="h-5 w-5" aria-hidden="true" />
+                {t('admin.loyalty.usersList')} ({totalUsers})
+              </h2>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="px-6 py-3 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
-                  <div className="text-sm text-stone-700">
-                    {t('admin.loyalty.pagination.showing', {
-                      start: currentPage * pageSize + 1,
-                      end: Math.min((currentPage + 1) * pageSize, totalUsers),
-                      total: totalUsers
-                    })}
-                  </div>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 0}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                    >
-                      {t('common.previous')}
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage >= totalPages - 1}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                    >
-                      {t('common.next')}
-                    </button>
-                  </div>
-                </div>
-              )}
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={t('admin.loyalty.searchPlaceholder')}
+                  aria-label={t('admin.loyalty.searchPlaceholder')}
+                />
+                <Button type="submit" variant="secondary" size="md" aria-label={t('admin.loyalty.searchPlaceholder')}>
+                  <FiSearch className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </form>
             </div>
-          </div>
+            <p className="px-4 pt-3 text-fine text-ink-muted">{t('admin.loyalty.searchHint', 'Search by name, email, phone, or membership ID')}</p>
 
-          {/* User Details */}
-          <div>
-            {selectedUser ? (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-stone-900 mb-4">
-                  {t('admin.loyalty.userDetails')}
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-sm font-medium text-stone-900">
-                      {selectedUser.first_name && selectedUser.last_name 
-                        ? `${selectedUser.first_name} ${selectedUser.last_name}`
-                        : selectedUser.oauth_provider === 'line' && selectedUser.first_name
-                        ? selectedUser.first_name
-                        : selectedUser.email
-                      }
+            <div className="p-4">
+              <Table
+                columns={columns}
+                rows={users}
+                rowKey={(user) => user.user_id}
+                loading={isLoading}
+                onRowClick={selectUser}
+                aria-label={t('admin.loyalty.usersList')}
+                empty={<p className="py-8 text-center text-caption text-ink-muted">{t('admin.loyalty.noUsers')}</p>}
+                mobileCard={(user) => (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-body font-semibold text-ink">{getUserDisplayName(user)}</p>
+                      <TierBadge tierName={user.tier_name} tierColor={user.tier_color} />
                     </div>
-                    <div className="text-sm text-stone-500">
-                      {selectedUser.oauth_provider === 'line' && selectedUser.first_name ? 'LINE User' : selectedUser.email}
+                    <div className="text-caption text-ink-muted">{getUserSecondaryLabel(user)}</div>
+                    {user.oauth_provider && <OAuthBadge provider={user.oauth_provider} />}
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-fine text-ink-muted">{t('profile.membershipId')}</span>
+                      <span className="text-caption text-ink text-right font-mono">{user.membership_id ?? '-'}</span>
                     </div>
-                    {selectedUser.oauth_provider && (
-                      <div className="text-xs mt-1">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          selectedUser.oauth_provider === 'line' ? 'bg-green-100 text-green-800' :
-                          selectedUser.oauth_provider === 'google' ? 'bg-red-100 text-red-800' :
-                          selectedUser.oauth_provider === 'facebook' ? 'bg-brand-100 text-brand-800' :
-                          'bg-stone-100 text-stone-800'
-                        }`}
-                        >
-                          via {selectedUser.oauth_provider.toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <div className="text-xs text-stone-500">{t('profile.membershipId')}</div>
-                    <div className="text-sm font-mono text-stone-900">{selectedUser.membership_id ?? t('admin.coupons.notAssigned')}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-xs text-stone-500">{t('admin.loyalty.currentPoints')}</div>
-                    <div className="text-lg font-semibold">{selectedUser.current_points.toLocaleString()}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-xs text-stone-500">{t('admin.loyalty.currentTier')}</div>
-                    <div 
-                      className="inline-flex px-2 py-1 text-sm font-semibold rounded-full"
-                      style={{ 
-                        backgroundColor: `${selectedUser.tier_color}20`,
-                        color: selectedUser.tier_color
-                      }}
-                    >
-                      {selectedUser.tier_name}
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-fine text-ink-muted">{t('admin.loyalty.table.points')} / {t('admin.loyalty.table.nights', 'Nights')}</span>
+                      <span className="text-caption text-ink text-right">{user.current_points.toLocaleString()} / {user.total_nights}</span>
+                    </div>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-success-700 hover:text-success-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPointsModal(user, 'award');
+                        }}
+                        aria-label={t('admin.loyalty.awardPoints')}
+                      >
+                        <FiPlus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-error-700 hover:text-error-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPointsModal(user, 'deduct');
+                        }}
+                        aria-label={t('admin.loyalty.deductPoints')}
+                      >
+                        <FiMinus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
                     </div>
                   </div>
-                </div>
+                )}
+              />
+            </div>
 
-                {/* Recent Transactions */}
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium text-stone-900 mb-3">
-                    {t('admin.loyalty.recentTransactions')}
-                  </h4>
-                  <div className="max-h-64 overflow-y-auto space-y-3">
-                    {userTransactions.length === 0 ? (
-                      <div className="text-sm text-stone-500">
-                        {t('admin.loyalty.noTransactions')}
-                      </div>
-                    ) : (
-                      userTransactions.slice(0, 10).map((transaction) => (
-                        <div key={transaction.id} className="flex justify-between items-start text-sm border-b border-stone-100 pb-2 last:border-b-0">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <div className={transaction.points > 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                                {transaction.points > 0 ? '+' : ''}{transaction.points.toLocaleString()} pts
-                              </div>
-                              <div className="text-xs text-stone-500 bg-stone-100 px-2 py-1 rounded">
-                                {transaction.type}
-                              </div>
-                            </div>
-                            <div className="mt-1 space-y-1">
-                              <div className="text-xs text-stone-600">
-                                {formatDateTimeToEuropean(transaction.created_at)}
-                              </div>
-                              {transaction.admin_email && (
-                                <div className="flex items-center space-x-1 text-xs text-brand-600">
-                                  <FiUser className="w-3 h-3" />
-                                  <span title={`Adjusted by ${transaction.admin_email}`}>
-                                    Admin: {transaction.admin_email}
-                                  </span>
-                                </div>
-                              )}
-                              {transaction.admin_reason && (
-                                <div className="text-xs text-stone-500 italic">
-                                  &quot;{transaction.admin_reason}&quot;
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-4 py-3 border-t border-hairline flex items-center justify-between">
+                <div className="text-caption text-ink-muted">
+                  {t('admin.loyalty.pagination.showing', {
+                    start: currentPage * pageSize + 1,
+                    end: Math.min((currentPage + 1) * pageSize, totalUsers),
+                    total: totalUsers
+                  })}
                 </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-md p-6 text-center text-stone-500">
-                {t('admin.loyalty.selectUser')}
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 0}>
+                    {t('common.previous')}
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage >= totalPages - 1}>
+                    {t('common.next')}
+                  </Button>
+                </div>
               </div>
             )}
-          </div>
+          </Card>
+        </div>
+
+        {/* User Details */}
+        <div>
+          {selectedUser ? (
+            <Card>
+              <h3 className="text-title text-ink mb-4">
+                {t('admin.loyalty.userDetails')}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="text-body font-semibold text-ink">{getUserDisplayName(selectedUser)}</div>
+                  <div className="text-caption text-ink-muted">{getUserSecondaryLabel(selectedUser)}</div>
+                  {selectedUser.oauth_provider && (
+                    <div className="mt-1">
+                      <OAuthBadge provider={selectedUser.oauth_provider} />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-fine text-ink-muted">{t('profile.membershipId')}</div>
+                  <div className="text-caption font-mono text-ink">{selectedUser.membership_id ?? t('admin.coupons.notAssigned')}</div>
+                </div>
+
+                <div>
+                  <div className="text-fine text-ink-muted">{t('admin.loyalty.currentPoints')}</div>
+                  <div className="text-title text-ink">{selectedUser.current_points.toLocaleString()}</div>
+                </div>
+
+                <div>
+                  <div className="text-fine text-ink-muted mb-1">{t('admin.loyalty.currentTier')}</div>
+                  <TierBadge tierName={selectedUser.tier_name} tierColor={selectedUser.tier_color} />
+                </div>
+              </div>
+
+              {/* Recent Transactions */}
+              <div className="mt-6">
+                <h4 className="text-body font-semibold text-ink mb-3">
+                  {t('admin.loyalty.recentTransactions')}
+                </h4>
+                <div className="max-h-64 overflow-y-auto space-y-3">
+                  {userTransactions.length === 0 ? (
+                    <div className="text-caption text-ink-muted">
+                      {t('admin.loyalty.noTransactions')}
+                    </div>
+                  ) : (
+                    userTransactions.slice(0, 10).map((transaction) => (
+                      <div key={transaction.id} className="flex justify-between items-start text-caption border-b border-hairline pb-2 last:border-b-0">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={transaction.points > 0 ? 'font-semibold text-success-700' : 'font-semibold text-error-700'}>
+                              {transaction.points > 0 ? '+' : ''}{transaction.points.toLocaleString()} pts
+                            </span>
+                            <Badge tone="neutral" size="sm">{transaction.type}</Badge>
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            <div className="text-fine text-ink-muted">
+                              {formatDateTimeToEuropean(transaction.created_at)}
+                            </div>
+                            {transaction.admin_email && (
+                              <div className="flex items-center gap-1 text-fine text-brand-600">
+                                <FiUser className="h-3 w-3" aria-hidden="true" />
+                                <span title={`Adjusted by ${transaction.admin_email}`}>
+                                  Admin: {transaction.admin_email}
+                                </span>
+                              </div>
+                            )}
+                            {transaction.admin_reason && (
+                              <div className="text-fine text-ink-muted italic">
+                                &quot;{transaction.admin_reason}&quot;
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="text-center text-caption text-ink-muted">
+              {t('admin.loyalty.selectUser')}
+            </Card>
+          )}
         </div>
       </div>
 
       {/* Points Adjustment Modal */}
-      {pointsModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-stone-900 mb-4">
-              {pointsModal.type === 'award' 
-                ? t('admin.loyalty.awardPoints')
-                : t('admin.loyalty.deductPoints')
+      <Modal
+        open={pointsModal.isOpen}
+        onClose={closePointsModal}
+        title={pointsModal.type === 'award' ? t('admin.loyalty.awardPoints') : t('admin.loyalty.deductPoints')}
+        size="sm"
+      >
+        <form onSubmit={handlePointsSubmit} className="space-y-4">
+          <FormField label={t('admin.loyalty.pointsAmount')} htmlFor="points-amount">
+            <Input
+              id="points-amount"
+              type="number"
+              min="0"
+              value={pointsForm.points}
+              onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })}
+              placeholder="0"
+            />
+          </FormField>
+          {pointsForm.points && parseInt(pointsForm.points) > 0 && (
+            <p className="-mt-2 text-caption text-success-600">
+              Will award {pointsForm.points} points
+            </p>
+          )}
+
+          {/* Nights field - show for both award and deduct */}
+          <FormField label="จำนวนคืน" htmlFor="points-nights">
+            <Input
+              id="points-nights"
+              type="number"
+              min="0"
+              value={pointsForm.nights}
+              onChange={(e) => setPointsForm({ ...pointsForm, nights: e.target.value })}
+              placeholder="0"
+            />
+          </FormField>
+          {pointsForm.nights && parseInt(pointsForm.nights) > 0 && (
+            <p className={`-mt-2 text-caption ${pointsModal.type === 'award' ? 'text-brand-600' : 'text-error-600'}`}>
+              {pointsModal.type === 'award'
+                ? `จะเพิ่ม ${pointsForm.nights} คืน (tier จะปรับตามจำนวนคืนทั้งหมด)`
+                : `จะหัก ${pointsForm.nights} คืน (tier อาจลดลงหากคืนต่ำกว่าเกณฑ์)`
               }
-            </h3>
-            
-            <form onSubmit={handlePointsSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  {t('admin.loyalty.pointsAmount')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={pointsForm.points}
-                  onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                  placeholder="0"
-                />
-                {pointsForm.points && parseInt(pointsForm.points) > 0 && (
-                  <p className="mt-1 text-sm text-green-600">
-                    Will award {pointsForm.points} points
-                  </p>
-                )}
-              </div>
+            </p>
+          )}
 
-              {/* Nights field - show for both award and deduct */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  จำนวนคืน
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={pointsForm.nights}
-                  onChange={(e) => setPointsForm({ ...pointsForm, nights: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                  placeholder="0"
-                />
-                {pointsForm.nights && parseInt(pointsForm.nights) > 0 && (
-                  <p className={`mt-1 text-sm ${pointsModal.type === 'award' ? 'text-brand-600' : 'text-red-600'}`}>
-                    {pointsModal.type === 'award'
-                      ? `จะเพิ่ม ${pointsForm.nights} คืน (tier จะปรับตามจำนวนคืนทั้งหมด)`
-                      : `จะหัก ${pointsForm.nights} คืน (tier อาจลดลงหากคืนต่ำกว่าเกณฑ์)`
-                    }
-                  </p>
-                )}
-              </div>
+          <FormField label={t('admin.loyalty.description')} htmlFor="points-description">
+            <Input
+              id="points-description"
+              type="text"
+              value={pointsForm.description}
+              onChange={(e) => setPointsForm({ ...pointsForm, description: e.target.value })}
+            />
+          </FormField>
 
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  {t('admin.loyalty.description')}
-                </label>
-                <textarea
-                  value={pointsForm.description}
-                  onChange={(e) => setPointsForm({ ...pointsForm, description: e.target.value })}
-                  rows={3}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  {t('admin.loyalty.referenceId')}
-                </label>
-                <input
-                  type="text"
-                  value={pointsForm.referenceId}
-                  onChange={(e) => setPointsForm({ ...pointsForm, referenceId: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closePointsModal}
-                  className="px-4 py-2 text-sm font-medium text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoadingAction}
-                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    pointsModal.type === 'award'
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-red-600 hover:bg-red-700'
-                  } disabled:opacity-50`}
-                >
-                  {isLoadingAction ? t('common.processing') : (
-                    pointsModal.type === 'award' 
-                      ? t('admin.loyalty.awardPoints')
-                      : t('admin.loyalty.deductPoints')
-                  )}
-                </button>
-              </div>
-            </form>
+          <FormField label={t('admin.loyalty.referenceId')} htmlFor="points-reference">
+            <Input
+              id="points-reference"
+              type="text"
+              value={pointsForm.referenceId}
+              onChange={(e) => setPointsForm({ ...pointsForm, referenceId: e.target.value })}
+            />
+          </FormField>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={closePointsModal}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              variant={pointsModal.type === 'award' ? 'primary' : 'destructive'}
+              disabled={isLoadingAction}
+              loading={isLoadingAction}
+            >
+              {isLoadingAction ? t('common.processing') : (
+                pointsModal.type === 'award'
+                  ? t('admin.loyalty.awardPoints')
+                  : t('admin.loyalty.deductPoints')
+              )}
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Spending Console Modal */}
-      {spendingModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h3 className="text-lg font-semibold text-stone-900 mb-4">
-              <FiDollarSign className="w-5 h-5 inline mr-2" />
-              มอบคะแนนจากการใช้จ่าย
-            </h3>
+      <Modal
+        open={spendingModal.isOpen}
+        onClose={closeSpendingConsole}
+        title={
+          <span className="flex items-center gap-2">
+            <FiDollarSign className="h-5 w-5" aria-hidden="true" />
+            มอบคะแนนจากการใช้จ่าย
+          </span>
+        }
+      >
+        <form onSubmit={handleSpendingSubmit} className="space-y-4">
+          {/* User Selection */}
+          <div>
+            <FormField label="เลือกลูกค้า" htmlFor="spending-user-search">
+              <Input
+                id="spending-user-search"
+                type="text"
+                value={spendingForm.userSearchTerm}
+                onChange={(e) => handleUserSearchChange(e.target.value)}
+                placeholder="ค้นหาด้วยชื่อ, อีเมล หรือเบอร์โทร..."
+                required
+                trailingSlot={isSearchingUsers ? <FiRefreshCw className="mr-3 h-4 w-4 animate-spin text-ink-faint" aria-hidden="true" /> : undefined}
+              />
+            </FormField>
 
-            <form onSubmit={handleSpendingSubmit} className="space-y-4">
-              {/* User Selection */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  เลือกลูกค้า
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={spendingForm.userSearchTerm}
-                    onChange={(e) => handleUserSearchChange(e.target.value)}
-                    placeholder="ค้นหาด้วยชื่อ, อีเมล หรือเบอร์โทร..."
-                    className="block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                    required
-                  />
-                  {isSearchingUsers && (
-                    <div className="absolute right-3 top-2.5">
-                      <FiRefreshCw className="w-4 h-4 animate-spin text-stone-400" />
+            {/* User Search Results */}
+            {userSearchResults.length > 0 && !spendingForm.selectedUser && (
+              <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-hairline bg-surface-card">
+                {userSearchResults.map((user) => (
+                  <button
+                    key={user.user_id}
+                    type="button"
+                    onClick={() => selectUserForSpending(user)}
+                    className="w-full text-left px-3 py-2 hover:bg-surface-sunken focus:bg-surface-sunken border-b border-hairline last:border-b-0"
+                  >
+                    <div className="text-caption font-semibold text-ink">{getUserDisplayName(user)}</div>
+                    <div className="text-fine text-ink-muted">
+                      {user.oauth_provider === 'line' && user.first_name ? 'ผู้ใช้ LINE' : user.email}
                     </div>
-                  )}
+                    <div className="text-fine text-ink-faint">
+                      {user.tier_name} • {user.current_points} คะแนน • {t('profile.membershipId')}: {user.membership_id ?? 'N/A'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Selected User Display */}
+            {spendingForm.selectedUser && (
+              <div className="mt-2 p-3 rounded-lg border border-brand-600 bg-brand-50">
+                <div className="flex justify-between items-center gap-2">
+                  <div>
+                    <div className="text-caption font-semibold text-brand-700">{getUserDisplayName(spendingForm.selectedUser)}</div>
+                    <div className="text-fine text-brand-700">
+                      {spendingForm.selectedUser.oauth_provider === 'line' && spendingForm.selectedUser.first_name ? 'ผู้ใช้ LINE' : spendingForm.selectedUser.email}
+                    </div>
+                    <div className="text-fine text-brand-600">
+                      {spendingForm.selectedUser.tier_name} • {spendingForm.selectedUser.current_points} คะแนน
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-brand-700"
+                    onClick={() => setSpendingForm({ ...spendingForm, selectedUser: null, userSearchTerm: '' })}
+                  >
+                    เปลี่ยน
+                  </Button>
                 </div>
-                
-                {/* User Search Results */}
-                {userSearchResults.length > 0 && !spendingForm.selectedUser && (
-                  <div className="mt-1 max-h-40 overflow-y-auto border border-stone-200 rounded-md bg-white shadow-sm">
-                    {userSearchResults.map((user) => (
-                      <button
-                        key={user.user_id}
-                        type="button"
-                        onClick={() => selectUserForSpending(user)}
-                        className="w-full text-left px-3 py-2 hover:bg-stone-50 focus:bg-stone-50 border-b border-stone-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-sm">
-                          {user.first_name && user.last_name 
-                            ? `${user.first_name} ${user.last_name}`
-                            : user.oauth_provider === 'line' && user.first_name
-                            ? user.first_name
-                            : user.email
-                          }
-                        </div>
-                        <div className="text-xs text-stone-500">
-                          {user.oauth_provider === 'line' && user.first_name ? 'ผู้ใช้ LINE' : user.email}
-                        </div>
-                        <div className="text-xs text-stone-400">
-                          {user.tier_name} • {user.current_points} คะแนน • {t('profile.membershipId')}: {user.membership_id ?? 'N/A'}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Selected User Display */}
-                {spendingForm.selectedUser && (
-                  <div className="mt-2 p-3 bg-brand-50 border border-brand-200 rounded-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium text-sm text-brand-900">
-                          {spendingForm.selectedUser.first_name && spendingForm.selectedUser.last_name 
-                            ? `${spendingForm.selectedUser.first_name} ${spendingForm.selectedUser.last_name}`
-                            : spendingForm.selectedUser.oauth_provider === 'line' && spendingForm.selectedUser.first_name
-                            ? spendingForm.selectedUser.first_name
-                            : spendingForm.selectedUser.email
-                          }
-                        </div>
-                        <div className="text-xs text-brand-700">
-                          {spendingForm.selectedUser.oauth_provider === 'line' && spendingForm.selectedUser.first_name ? 'ผู้ใช้ LINE' : spendingForm.selectedUser.email}
-                        </div>
-                        <div className="text-xs text-brand-600">
-                          {spendingForm.selectedUser.tier_name} • {spendingForm.selectedUser.current_points} คะแนน
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSpendingForm({ ...spendingForm, selectedUser: null, userSearchTerm: '' })}
-                        className="text-brand-600 hover:text-brand-800"
-                      >
-                        เปลี่ยน
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              {/* Spending Amount */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  ยอดการใช้จ่าย (บาท)
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={spendingForm.spendingAmount}
-                  onChange={(e) => setSpendingForm({ ...spendingForm, spendingAmount: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                  placeholder="0.00"
-                  required
-                />
-                {spendingForm.spendingAmount && (
-                  <div className="mt-1 text-sm text-green-600">
-                    คะแนนที่จะได้รับ: {calculatePoints(parseFloat(spendingForm.spendingAmount) ?? 0)}
-                  </div>
-                )}
-              </div>
-
-              {/* Nights Stayed */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  จำนวนคืน
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={spendingForm.nightsStayed}
-                  onChange={(e) => setSpendingForm({ ...spendingForm, nightsStayed: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                  placeholder="0"
-                />
-                {spendingForm.nightsStayed && parseInt(spendingForm.nightsStayed) > 0 && (
-                  <div className="mt-1 text-sm text-brand-600">
-                    จะเพิ่ม {spendingForm.nightsStayed} คืนให้ผู้ใช้
-                  </div>
-                )}
-              </div>
-
-              {/* Check-in ID */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700">
-                  รหัสเช็คอิน (อ้างอิง)
-                </label>
-                <input
-                  type="text"
-                  value={spendingForm.checkinId}
-                  onChange={(e) => setSpendingForm({ ...spendingForm, checkinId: e.target.value })}
-                  className="mt-1 block w-full border border-stone-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
-                  placeholder="เช่น CHK-2024-001"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeSpendingConsole}
-                  className="px-4 py-2 text-sm font-medium text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoadingAction || !spendingForm.selectedUser || !spendingForm.spendingAmount || !spendingForm.checkinId}
-                  className="px-4 py-2 text-sm font-medium text-white rounded-md bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
-                >
-                  {isLoadingAction ? 'กำลังดำเนินการ...' : 'มอบคะแนน'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
-    </div>
+
+          {/* Spending Amount */}
+          <FormField label="ยอดการใช้จ่าย (บาท)" htmlFor="spending-amount">
+            <Input
+              id="spending-amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={spendingForm.spendingAmount}
+              onChange={(e) => setSpendingForm({ ...spendingForm, spendingAmount: e.target.value })}
+              placeholder="0.00"
+              required
+            />
+          </FormField>
+          {spendingForm.spendingAmount && (
+            <p className="-mt-2 text-caption text-success-600">
+              คะแนนที่จะได้รับ: {calculatePoints(parseFloat(spendingForm.spendingAmount) ?? 0)}
+            </p>
+          )}
+
+          {/* Nights Stayed */}
+          <FormField label="จำนวนคืน" htmlFor="spending-nights">
+            <Input
+              id="spending-nights"
+              type="number"
+              min="0"
+              value={spendingForm.nightsStayed}
+              onChange={(e) => setSpendingForm({ ...spendingForm, nightsStayed: e.target.value })}
+              placeholder="0"
+            />
+          </FormField>
+          {spendingForm.nightsStayed && parseInt(spendingForm.nightsStayed) > 0 && (
+            <p className="-mt-2 text-caption text-brand-600">
+              จะเพิ่ม {spendingForm.nightsStayed} คืนให้ผู้ใช้
+            </p>
+          )}
+
+          {/* Check-in ID */}
+          <FormField label="รหัสเช็คอิน (อ้างอิง)" htmlFor="spending-checkin-id">
+            <Input
+              id="spending-checkin-id"
+              type="text"
+              value={spendingForm.checkinId}
+              onChange={(e) => setSpendingForm({ ...spendingForm, checkinId: e.target.value })}
+              placeholder="เช่น CHK-2024-001"
+              required
+            />
+          </FormField>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={closeSpendingConsole}>
+              ยกเลิก
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoadingAction || !spendingForm.selectedUser || !spendingForm.spendingAmount || !spendingForm.checkinId}
+              loading={isLoadingAction}
+            >
+              {isLoadingAction ? 'กำลังดำเนินการ...' : 'มอบคะแนน'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </AppShell>
   );
 }

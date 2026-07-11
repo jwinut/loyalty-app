@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   FiCheck,
   FiAlertTriangle,
-  FiRefreshCw,
   FiEdit,
   FiClock,
   FiImage,
@@ -17,6 +16,7 @@ import {
 import { formatDateTimeToEuropean } from '../../utils/dateFormatter';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import { Badge, Button, type BadgeTone } from '../ui';
 
 // Types matching BookingManagement
 interface BookingUser {
@@ -105,6 +105,9 @@ interface SlipViewerSidebarProps {
   onEdit: (booking: Booking) => void;
   onRefresh: () => void;
 }
+
+const ICON_BUTTON_CLASSES =
+  'flex h-11 w-11 items-center justify-center rounded-full bg-ink/50 text-white transition hover:bg-ink/70 disabled:opacity-30 disabled:cursor-not-allowed';
 
 const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   booking,
@@ -259,22 +262,20 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
     status,
     verifiedAt
   }) => {
-    const badges: Record<string, { className: string; text: string }> = {
-      verified: { className: 'bg-green-100 text-green-800', text: t('admin.booking.bookingManagement.slipStatus.verified') },
-      failed: { className: 'bg-red-100 text-red-800', text: t('admin.booking.bookingManagement.slipStatus.failed') },
-      pending: { className: 'bg-yellow-100 text-yellow-800', text: t('admin.booking.bookingManagement.slipStatus.pending') },
-      quota_exceeded: { className: 'bg-orange-100 text-orange-800', text: t('admin.booking.bookingManagement.slipStatus.quotaExceeded') }
+    const badges: Record<string, { tone: BadgeTone; text: string }> = {
+      verified: { tone: 'success', text: t('admin.booking.bookingManagement.slipStatus.verified') },
+      failed: { tone: 'error', text: t('admin.booking.bookingManagement.slipStatus.failed') },
+      pending: { tone: 'warning', text: t('admin.booking.bookingManagement.slipStatus.pending') },
+      quota_exceeded: { tone: 'warning', text: t('admin.booking.bookingManagement.slipStatus.quotaExceeded') }
     };
 
     const badge = badges[status] ?? badges.pending;
 
     return (
-      <div className="flex flex-col">
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${badge?.className ?? ''}`}>
-          {badge?.text ?? ''}
-        </span>
+      <div className="flex flex-col gap-1">
+        <Badge tone={badge?.tone ?? 'warning'}>{badge?.text ?? ''}</Badge>
         {verifiedAt && (
-          <span className="text-xs text-stone-500 mt-1">
+          <span className="text-fine text-ink-muted">
             {formatDateTimeToEuropean(verifiedAt)}
           </span>
         )}
@@ -287,26 +288,24 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
     verifiedAt: string | null;
     verifiedByName?: string | null;
   }> = ({ status, verifiedAt, verifiedByName }) => {
-    const badges: Record<string, { className: string; text: string }> = {
-      verified: { className: 'bg-green-100 text-green-800', text: t('admin.booking.bookingManagement.adminStatus.verified') },
-      needs_action: { className: 'bg-orange-100 text-orange-800', text: t('admin.booking.bookingManagement.adminStatus.needsAction') },
-      pending: { className: 'bg-yellow-100 text-yellow-800', text: t('admin.booking.bookingManagement.adminStatus.pending') }
+    const badges: Record<string, { tone: BadgeTone; text: string }> = {
+      verified: { tone: 'success', text: t('admin.booking.bookingManagement.adminStatus.verified') },
+      needs_action: { tone: 'error', text: t('admin.booking.bookingManagement.adminStatus.needsAction') },
+      pending: { tone: 'warning', text: t('admin.booking.bookingManagement.adminStatus.pending') }
     };
 
     const badge = badges[status] ?? badges.pending;
 
     return (
-      <div className="flex flex-col">
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${badge?.className ?? ''}`}>
-          {badge?.text ?? ''}
-        </span>
+      <div className="flex flex-col gap-1">
+        <Badge tone={badge?.tone ?? 'warning'}>{badge?.text ?? ''}</Badge>
         {verifiedAt && (
-          <span className="text-xs text-stone-500 mt-1">
+          <span className="text-fine text-ink-muted">
             {formatDateTimeToEuropean(verifiedAt)}
           </span>
         )}
         {verifiedByName && (
-          <span className="text-xs text-stone-500">
+          <span className="text-fine text-ink-muted">
             {t('admin.booking.bookingManagement.by')}: {verifiedByName}
           </span>
         )}
@@ -332,15 +331,15 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   // No booking selected state
   if (!booking) {
     return (
-      <div className="bg-white rounded-lg shadow h-full">
-        <div className="p-4 border-b border-stone-200">
-          <h3 className="text-lg font-semibold text-stone-900">
+      <div className="h-full rounded-card border border-hairline bg-surface-card">
+        <div className="border-b border-hairline p-4">
+          <h3 className="text-body font-semibold text-ink">
             {t('admin.booking.bookingManagement.slipViewer.title')}
           </h3>
         </div>
-        <div className="p-6 flex flex-col items-center justify-center text-stone-500 h-64">
-          <FiImage className="w-12 h-12 mb-4 opacity-50" />
-          <p className="text-center">{t('admin.booking.bookingManagement.slipViewer.selectBooking')}</p>
+        <div className="flex h-64 flex-col items-center justify-center p-6 text-ink-muted">
+          <FiImage className="mb-4 h-12 w-12 opacity-50" aria-hidden="true" />
+          <p className="text-center text-caption">{t('admin.booking.bookingManagement.slipViewer.selectBooking')}</p>
         </div>
       </div>
     );
@@ -349,14 +348,14 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
   const recentAudit = booking.auditHistory?.slice(0, 3) ?? [];
 
   return (
-    <div className="bg-white rounded-lg shadow h-full flex flex-col">
+    <div className="flex h-full flex-col rounded-card border border-hairline bg-surface-card">
       {/* Header */}
-      <div className="p-4 border-b border-stone-200">
-        <h3 className="text-lg font-semibold text-stone-900">
+      <div className="border-b border-hairline p-4">
+        <h3 className="text-body font-semibold text-ink">
           {t('admin.booking.bookingManagement.slipViewer.title')}
         </h3>
         {slips.length > 0 && slips[0] && (
-          <p className="text-sm text-stone-500 mt-1">
+          <p className="mt-1 text-caption text-ink-muted">
             {slips.length > 1
               ? t('admin.booking.bookingManagement.slipViewer.slipCount', { count: slips.length })
               : t('admin.booking.bookingManagement.slipViewer.uploaded') + ': ' + formatDateTimeToEuropean(slips[0].uploadedAt)
@@ -367,15 +366,15 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
       {/* Status Section - Show current slip status */}
       {currentSlip && (
-        <div className="p-4 border-b border-stone-200 grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 border-b border-hairline p-4">
           <div>
-            <p className="text-xs text-stone-500 mb-1">
+            <p className="mb-1 text-fine text-ink-muted">
               {t('admin.booking.bookingManagement.slipViewer.slipokStatus')}
             </p>
             <SlipStatusBadge status={currentSlip.slipokStatus} verifiedAt={currentSlip.slipokVerifiedAt} />
           </div>
           <div>
-            <p className="text-xs text-stone-500 mb-1">
+            <p className="mb-1 text-fine text-ink-muted">
               {t('admin.booking.bookingManagement.slipViewer.adminStatus')}
             </p>
             <AdminStatusBadge
@@ -388,32 +387,32 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       )}
 
       {/* Image Section - Gallery View for Multiple Slips */}
-      <div className="p-4 border-b border-stone-200 flex-1 flex flex-col min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col border-b border-hairline p-4">
         {slips.length > 0 ? (
           <>
-          <div className="relative flex-1 min-h-[300px]">
+          <div className="relative min-h-[300px] flex-1 rounded-lg border border-hairline bg-surface-card p-2">
             {/* Main Image */}
             <img
               src={currentSlip?.slipUrl}
               alt={t('admin.booking.bookingManagement.slipViewer.slipImage')}
-              className="w-full h-full object-contain rounded-lg cursor-pointer"
+              className="h-full w-full cursor-pointer object-contain rounded-lg"
               onClick={() => currentSlip && openFullscreen(currentSlip.slipUrl)}
             />
 
             {/* Fullscreen Button */}
             <button
               onClick={() => currentSlip && openFullscreen(currentSlip.slipUrl)}
-              className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white hover:bg-black/70"
+              className={`absolute right-2 top-2 ${ICON_BUTTON_CLASSES}`}
               title={t('admin.booking.bookingManagement.slipViewer.fullscreen')}
             >
-              <FiMaximize2 className="w-4 h-4" />
+              <FiMaximize2 className="h-4 w-4" aria-hidden="true" />
             </button>
 
             {/* Multi-slip Navigation */}
             {hasMultipleSlips && (
               <>
                 {/* Slip Counter */}
-                <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 rounded text-white text-sm">
+                <div className="absolute left-2 top-2 rounded bg-ink/50 px-2 py-1 text-caption text-white">
                   {currentSlipIndex + 1} / {slips.length}
                 </div>
 
@@ -421,32 +420,32 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                 <button
                   onClick={() => setCurrentSlipIndex(prev => Math.max(0, prev - 1))}
                   disabled={currentSlipIndex === 0}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className={`absolute left-2 top-1/2 -translate-y-1/2 ${ICON_BUTTON_CLASSES}`}
                 >
-                  <FiChevronLeft className="w-5 h-5" />
+                  <FiChevronLeft className="h-5 w-5" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setCurrentSlipIndex(prev => Math.min(slips.length - 1, prev + 1))}
                   disabled={currentSlipIndex === slips.length - 1}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 ${ICON_BUTTON_CLASSES}`}
                 >
-                  <FiChevronRight className="w-5 h-5" />
+                  <FiChevronRight className="h-5 w-5" aria-hidden="true" />
                 </button>
 
                 {/* Thumbnail Strip */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 bg-black/30 p-1 rounded">
+                <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1 rounded bg-ink/40 p-1 backdrop-blur-sm">
                   {slips.map((slip, index) => (
                     <button
                       key={slip.id}
                       onClick={() => setCurrentSlipIndex(index)}
-                      className={`w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                      className={`h-11 w-11 overflow-hidden rounded border-2 transition-all ${
                         index === currentSlipIndex ? 'border-white' : 'border-transparent opacity-70 hover:opacity-100'
                       }`}
                     >
                       <img
                         src={slip.slipUrl}
                         alt={`Slip ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     </button>
                   ))}
@@ -457,13 +456,13 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
           {/* Pagination Dots - Always visible below image */}
           {hasMultipleSlips && (
-            <div className="flex justify-center items-center gap-2 mt-3">
+            <div className="mt-3 flex items-center justify-center gap-2">
               <button
                 onClick={() => setCurrentSlipIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentSlipIndex === 0}
-                className="p-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex h-11 w-11 items-center justify-center text-ink-faint transition hover:text-ink-muted disabled:cursor-not-allowed disabled:opacity-30"
               >
-                <FiChevronLeft className="w-5 h-5" />
+                <FiChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
 
               <div className="flex items-center gap-1.5">
@@ -471,10 +470,10 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                   <button
                     key={index}
                     onClick={() => setCurrentSlipIndex(index)}
-                    className={`transition-all duration-200 rounded-full ${
+                    className={`rounded-full transition-all duration-200 ${
                       currentSlipIndex === index
-                        ? 'w-6 h-2 bg-primary-600'
-                        : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'
+                        ? 'h-2 w-6 bg-brand-600'
+                        : 'h-2 w-2 bg-hairline-strong hover:bg-ink-faint'
                     }`}
                     aria-label={`Go to slip ${index + 1}`}
                   />
@@ -484,87 +483,89 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
               <button
                 onClick={() => setCurrentSlipIndex(prev => Math.min(slips.length - 1, prev + 1))}
                 disabled={currentSlipIndex === slips.length - 1}
-                className="p-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex h-11 w-11 items-center justify-center text-ink-faint transition hover:text-ink-muted disabled:cursor-not-allowed disabled:opacity-30"
               >
-                <FiChevronRight className="w-5 h-5" />
+                <FiChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>
 
-              <span className="text-sm text-stone-500 ml-2">
+              <span className="ml-2 text-caption text-ink-muted">
                 {currentSlipIndex + 1} / {slips.length}
               </span>
             </div>
           )}
           </>
         ) : (
-          <div className="h-48 bg-stone-100 rounded-lg flex flex-col items-center justify-center text-stone-400">
-            <FiImage className="w-12 h-12 mb-2" />
-            <p className="text-sm">{t('admin.booking.bookingManagement.slipViewer.noSlip')}</p>
+          <div className="flex h-48 flex-col items-center justify-center rounded-lg bg-surface-sunken text-ink-faint">
+            <FiImage className="mb-2 h-12 w-12" aria-hidden="true" />
+            <p className="text-caption">{t('admin.booking.bookingManagement.slipViewer.noSlip')}</p>
           </div>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="p-4 border-b border-stone-200 space-y-2">
+      <div className="space-y-2 border-b border-hairline p-4">
         {currentSlip ? (
           <>
             {/* Multi-slip actions - operate on current slip */}
-            <button
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full bg-success-600 hover:bg-success-700"
               onClick={() => handleVerifySlip(currentSlip.id)}
-              disabled={verifySlipByIdMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={verifySlipByIdMutation.isPending}
             >
-              {verifySlipByIdMutation.isPending ? (
-                <FiRefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <FiCheck className="w-4 h-4" />
-              )}
+              {!verifySlipByIdMutation.isPending && <FiCheck className="h-4 w-4" aria-hidden="true" />}
               {hasMultipleSlips
                 ? t('admin.booking.bookingManagement.actions.verifySlip', { number: currentSlipIndex + 1 })
                 : t('admin.booking.bookingManagement.actions.verify')
               }
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full bg-warning-600 hover:bg-warning-700"
               onClick={() => handleNeedsActionClick(currentSlip.id)}
-              disabled={markSlipNeedsActionMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={markSlipNeedsActionMutation.isPending}
             >
-              <FiAlertTriangle className="w-4 h-4" />
+              {!markSlipNeedsActionMutation.isPending && <FiAlertTriangle className="h-4 w-4" aria-hidden="true" />}
               {t('admin.booking.bookingManagement.actions.needsAction')}
-            </button>
+            </Button>
           </>
         ) : (
           <>
             {/* Legacy single slip actions */}
-            <button
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full bg-success-600 hover:bg-success-700"
               onClick={handleLegacyVerifyClick}
               disabled={true}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FiCheck className="w-4 h-4" />
+              <FiCheck className="h-4 w-4" aria-hidden="true" />
               {t('admin.booking.bookingManagement.actions.verify')}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full bg-warning-600 hover:bg-warning-700"
               onClick={() => handleNeedsActionClick()}
               disabled={true}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FiAlertTriangle className="w-4 h-4" />
+              <FiAlertTriangle className="h-4 w-4" aria-hidden="true" />
               {t('admin.booking.bookingManagement.actions.needsAction')}
-            </button>
+            </Button>
           </>
         )}
-        <button
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={isUploading}
         >
-          {isUploading ? (
-            <FiRefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <FiUpload className="w-4 h-4" />
-          )}
+          {!isUploading && <FiUpload className="h-4 w-4" aria-hidden="true" />}
           {t('admin.booking.bookingManagement.actions.replaceSlip')}
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -572,25 +573,22 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
           onChange={handleReplaceSlip}
           className="hidden"
         />
-        <button
-          onClick={() => onEdit(booking)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-100 text-brand-700 rounded-md hover:bg-brand-200"
-        >
-          <FiEdit className="w-4 h-4" />
+        <Button type="button" variant="ghost" className="w-full" onClick={() => onEdit(booking)}>
+          <FiEdit className="h-4 w-4" aria-hidden="true" />
           {t('admin.booking.bookingManagement.actions.edit')}
-        </button>
+        </Button>
       </div>
 
       {/* Audit Summary */}
       <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-stone-900">
+        <div className="mb-2 flex items-center justify-between">
+          <h4 className="text-caption font-semibold text-ink">
             {t('admin.booking.bookingManagement.slipViewer.auditSummary')}
           </h4>
           {booking.auditHistory && booking.auditHistory.length > 0 && (
             <button
               onClick={() => setShowAuditModal(true)}
-              className="text-xs text-brand-600 hover:text-brand-800"
+              className="text-fine text-brand-600 hover:text-brand-800"
             >
               {t('admin.booking.bookingManagement.slipViewer.viewFullHistory')}
             </button>
@@ -599,16 +597,16 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
         {recentAudit.length > 0 ? (
           <div className="space-y-2">
             {recentAudit.map((entry) => (
-              <div key={entry.id} className="text-xs border-l-2 border-stone-200 pl-2">
-                <p className="font-medium text-stone-900">{formatAuditAction(entry.action)}</p>
-                <p className="text-stone-500">
+              <div key={entry.id} className="border-l-2 border-hairline pl-2 text-fine">
+                <p className="font-semibold text-ink">{formatAuditAction(entry.action)}</p>
+                <p className="text-ink-muted">
                   {entry.adminName} - {formatDateTimeToEuropean(entry.createdAt)}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-stone-500">
+          <p className="text-fine text-ink-muted">
             {t('admin.booking.bookingManagement.slipViewer.noAuditHistory')}
           </p>
         )}
@@ -617,7 +615,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
       {/* Fullscreen Modal */}
       {isFullscreen && fullscreenSlipUrl && (
         <div
-          className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink"
           onClick={() => {
             setIsFullscreen(false);
             setFullscreenSlipUrl(null);
@@ -628,14 +626,14 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
               setIsFullscreen(false);
               setFullscreenSlipUrl(null);
             }}
-            className="absolute top-4 right-4 p-2 bg-white/20 rounded-full text-white hover:bg-white/30"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30"
           >
-            <FiX className="w-6 h-6" />
+            <FiX className="h-6 w-6" aria-hidden="true" />
           </button>
           <img
             src={fullscreenSlipUrl}
             alt={t('admin.booking.bookingManagement.slipViewer.slipImage')}
-            className="max-w-full max-h-full object-contain p-4"
+            className="max-h-full max-w-full object-contain p-4"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -643,39 +641,38 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
       {/* Notes Modal */}
       {showNotesModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-stone-900 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-card border border-hairline bg-surface-card p-6">
+            <h3 className="mb-4 text-body font-semibold text-ink">
               {t('admin.booking.bookingManagement.modals.needsAction.title')}
             </h3>
             <textarea
               value={notesInput}
               onChange={(e) => setNotesInput(e.target.value)}
               placeholder={t('admin.booking.bookingManagement.modals.needsAction.placeholder')}
-              className="w-full border border-stone-300 rounded-md p-3 h-32 resize-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="h-32 w-full resize-none rounded-lg border border-hairline-strong bg-surface-card p-3 text-body text-ink focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600"
             />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
+            <div className="mt-4 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
                 onClick={() => {
                   setShowNotesModal(false);
                   setNotesInput('');
                   setActiveSlipId(null);
                 }}
-                className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
               >
                 {t('common.cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                className="bg-warning-600 hover:bg-warning-700"
                 onClick={handleNotesSubmit}
-                disabled={!notesInput.trim() || markSlipNeedsActionMutation.isPending}
-                className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50"
+                disabled={!notesInput.trim()}
+                loading={markSlipNeedsActionMutation.isPending}
               >
-                {markSlipNeedsActionMutation.isPending ? (
-                  <FiRefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  t('admin.booking.bookingManagement.modals.needsAction.submit')
-                )}
-              </button>
+                {t('admin.booking.bookingManagement.modals.needsAction.submit')}
+              </Button>
             </div>
           </div>
         </div>
@@ -683,55 +680,55 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
 
       {/* Audit History Modal */}
       {showAuditModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-stone-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-stone-900 flex items-center gap-2">
-                <FiList className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-card border border-hairline bg-surface-card">
+            <div className="flex items-center justify-between border-b border-hairline p-4">
+              <h3 className="flex items-center gap-2 text-body font-semibold text-ink">
+                <FiList className="h-5 w-5" aria-hidden="true" />
                 {t('admin.booking.bookingManagement.modals.auditHistory.title')}
               </h3>
               <button
                 onClick={() => setShowAuditModal(false)}
-                className="text-stone-400 hover:text-stone-600"
+                className="flex h-11 w-11 items-center justify-center text-ink-faint hover:text-ink-muted"
               >
-                <FiX className="w-5 h-5" />
+                <FiX className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
+            <div className="max-h-[60vh] overflow-y-auto p-4">
               {booking.auditHistory && booking.auditHistory.length > 0 ? (
                 <div className="space-y-4">
                   {booking.auditHistory.map((entry) => (
                     <div
                       key={entry.id}
-                      className="border-l-4 border-brand-500 pl-4 py-2"
+                      className="border-l-4 border-brand-500 py-2 pl-4"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-stone-900">
+                          <p className="font-semibold text-ink">
                             {formatAuditAction(entry.action)}
                           </p>
-                          <p className="text-sm text-stone-600">
+                          <p className="text-caption text-ink-muted">
                             {entry.adminName}
                           </p>
                         </div>
-                        <span className="text-xs text-stone-500 flex items-center gap-1">
-                          <FiClock className="w-3 h-3" />
+                        <span className="flex items-center gap-1 text-fine text-ink-muted">
+                          <FiClock className="h-3 w-3" aria-hidden="true" />
                           {formatDateTimeToEuropean(entry.createdAt)}
                         </span>
                       </div>
                       {(entry.oldValue ?? entry.newValue) && (
-                        <div className="mt-2 text-sm">
+                        <div className="mt-2 text-caption">
                           {entry.oldValue && (
-                            <p className="text-red-600">
-                              <span className="font-medium">
+                            <p className="text-error-600">
+                              <span className="font-semibold">
                                 {t('admin.booking.bookingManagement.modals.auditHistory.oldValue')}:
                               </span>{' '}
                               {entry.oldValue}
                             </p>
                           )}
                           {entry.newValue && (
-                            <p className="text-green-600">
-                              <span className="font-medium">
+                            <p className="text-success-600">
+                              <span className="font-semibold">
                                 {t('admin.booking.bookingManagement.modals.auditHistory.newValue')}:
                               </span>{' '}
                               {entry.newValue}
@@ -740,7 +737,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                         </div>
                       )}
                       {entry.notes && (
-                        <p className="mt-1 text-sm text-stone-500 italic">
+                        <p className="mt-1 text-caption italic text-ink-muted">
                           &quot;{entry.notes}&quot;
                         </p>
                       )}
@@ -748,7 +745,7 @@ const SlipViewerSidebar: React.FC<SlipViewerSidebarProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-stone-500 text-center py-8">
+                <p className="py-8 text-center text-ink-muted">
                   {t('admin.booking.bookingManagement.slipViewer.noAuditHistory')}
                 </p>
               )}

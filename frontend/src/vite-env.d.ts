@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_TRANSLATION_ENABLED?: string
+  readonly VITE_LIFF_ID?: string
   readonly DEV: boolean
   readonly PROD: boolean
   readonly MODE: string

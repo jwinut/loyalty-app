@@ -118,13 +118,13 @@ export default function ProtectedRoute({
       return (
         <div className="min-h-screen bg-stone-50 flex items-center justify-center">
           <div className="text-center">
-            <h3 className="text-lg font-medium text-stone-900">Access Denied</h3>
+            <h3 className="text-lg font-semibold text-stone-900">Access Denied</h3>
             <p className="mt-2 text-sm text-stone-500">
               You need {requiredRole.replace('_', ' ')} privileges to access this page.
             </p>
             <button
               onClick={() => window.history.back()}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
             >
               Go Back
             </button>

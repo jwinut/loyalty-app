@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO line_friendships (line_user_id, property, is_friend, followed_at, updated_at)\n                    VALUES ($1, $2, FALSE, NOW(), NOW())\n                    ON CONFLICT (line_user_id, property)\n                    DO UPDATE SET is_friend = FALSE, updated_at = NOW()\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "49ec8372aa6380f69e79d08142702296ca102b5c83aca2a5731f4b53f47aab00"
+}

@@ -11,12 +11,13 @@ import { notify } from '../utils/notificationManager';
 import { logger } from '../utils/logger';
 import { FiCopy, FiSettings, FiLogOut } from 'react-icons/fi';
 import EmailDisplay from '../components/common/EmailDisplay';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
 import { formatDateToDDMMYYYY } from '../utils/dateFormatter';
 import SettingsModal from '../components/profile/SettingsModal';
 import EmojiAvatar from '../components/profile/EmojiAvatar';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import EmailVerificationModal from '../components/profile/EmailVerificationModal';
+import { Badge, Button, Card } from '../components/ui';
 
 const profileSchema = z.object({
   email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
@@ -32,6 +33,11 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+const ROLE_BADGE_TONE = {
+  super_admin: 'gold',
+  admin: 'brand',
+} as const;
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -256,7 +262,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600" />
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600" />
           <p className="mt-4 text-stone-600">{t('profile.loading')}</p>
         </div>
       </div>
@@ -264,171 +270,158 @@ export default function ProfilePage() {
   }
 
   const isSaving = savingProfile || emailMutationPending;
+  const roleBadgeTone = user?.role ? ROLE_BADGE_TONE[user.role as keyof typeof ROLE_BADGE_TONE] : undefined;
 
   return (
-    <MainLayout title={t('profile.title')} showProfileBanner={false}>
+    <AppShell variant="guest" title={t('profile.title')} showProfileBanner={false}>
         {/* Profile Information Section */}
-        <div className="mb-6 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            {/* Profile Header with Settings Button */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-stone-900">
-                {t('profile.personalInformation')}
-              </h2>
-              <button
+        <Card className="mb-6">
+          {/* Profile Header with Settings Button */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-title text-ink">
+              {t('profile.personalInformation')}
+            </h2>
+            <Button variant="primary" size="sm" onClick={() => setShowSettingsModal(true)}>
+              <FiSettings className="h-4 w-4" aria-hidden="true" />
+              {t('profile.editSettings')}
+            </Button>
+          </div>
+
+          {/* Profile Display */}
+          <div className="flex items-start space-x-6">
+            <div className="flex-shrink-0">
+              <EmojiAvatar
+                avatarUrl={profile?.avatarUrl}
+                size="xl"
                 onClick={() => setShowSettingsModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <FiSettings className="mr-2 h-4 w-4" />
-                {t('profile.editSettings')}
-              </button>
+                className="cursor-pointer"
+              />
             </div>
 
-            {/* Profile Display */}
-            <div className="flex items-start space-x-6">
-              <div className="flex-shrink-0">
-                <EmojiAvatar
-                  avatarUrl={profile?.avatarUrl}
-                  size="xl"
-                  onClick={() => setShowSettingsModal(true)}
-                  className="cursor-pointer"
-                />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-3 mb-4">
+                <h3 className="text-body font-semibold text-ink" data-testid="profile-name">
+                  {profile ? `${profile.firstName} ${profile.lastName}` : 'Loading...'}
+                </h3>
+                {user?.role && user.role !== 'customer' && (
+                  <Badge tone={roleBadgeTone ?? 'neutral'}>
+                    {user.role === 'super_admin' ? t('profile.superAdmin') :
+                     user.role === 'admin' ? t('profile.admin') :
+                     t('profile.staff')}
+                  </Badge>
+                )}
               </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-3 mb-4">
-                  <h3 className="text-lg font-medium text-stone-900" data-testid="profile-name">
-                    {profile ? `${profile.firstName} ${profile.lastName}` : 'Loading...'}
-                  </h3>
-                  {user?.role && user.role !== 'customer' && (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === 'super_admin'
-                        ? 'bg-purple-100 text-purple-800'
-                        : user.role === 'admin'
-                        ? 'bg-brand-100 text-brand-800'
-                        : 'bg-stone-100 text-stone-800'
-                    }`}
-                    >
-                      {user.role === 'super_admin' ? t('profile.superAdmin') :
-                       user.role === 'admin' ? t('profile.admin') :
-                       t('profile.staff')}
-                    </span>
-                  )}
+              <dl className="divide-y divide-hairline">
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <dt className="flex items-center gap-2 text-caption text-ink-muted">
+                    {t('profile.email')}
+                    {user?.emailVerified === false && (
+                      <button
+                        onClick={() => {
+                          setPendingEmail(user?.email ?? '');
+                          setShowVerificationModal(true);
+                        }}
+                        className="rounded-lg bg-warning-50 px-2 py-0.5 text-fine text-warning-700 hover:bg-warning-50/70"
+                        data-testid="verify-email-button"
+                      >
+                        {t('profile.verifyNow', 'ยืนยัน')}
+                      </button>
+                    )}
+                  </dt>
+                  <dd className="flex items-center gap-2 text-body text-ink" data-testid="profile-email">
+                    <EmailDisplay
+                      email={user?.email}
+                      linkToProfile={true}
+                      showIcon={false}
+                    />
+                    {user?.emailVerified === false && (
+                      <span className="text-fine text-warning-700">
+                        ({t('profile.notVerified', 'ยังไม่ยืนยัน')})
+                      </span>
+                    )}
+                  </dd>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="font-medium text-stone-500 flex items-center gap-2">
-                      {t('profile.email')}
-                      {user?.emailVerified === false && (
-                        <button
-                          onClick={() => {
-                            setPendingEmail(user?.email ?? '');
-                            setShowVerificationModal(true);
-                          }}
-                          className="text-sm px-2 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200"
-                          data-testid="verify-email-button"
-                        >
-                          {t('profile.verifyNow', 'ยืนยัน')}
-                        </button>
-                      )}
-                    </dt>
-                    <dd className="mt-1 flex items-center gap-2" data-testid="profile-email">
-                      <EmailDisplay
-                        email={user?.email}
-                        linkToProfile={true}
-                        showIcon={false}
-                      />
-                      {user?.emailVerified === false && (
-                        <span className="text-xs text-amber-600">
-                          ({t('profile.notVerified', 'ยังไม่ยืนยัน')})
-                        </span>
-                      )}
+                {profile?.phone && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <dt className="text-caption text-ink-muted">{t('auth.phone')}</dt>
+                    <dd className="text-body text-ink">{profile.phone}</dd>
+                  </div>
+                )}
+
+                {profile?.dateOfBirth && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <dt className="text-caption text-ink-muted">{t('profile.dateOfBirth')}</dt>
+                    <dd className="text-body text-ink">
+                      {formatDateToDDMMYYYY(profile.dateOfBirth)}
                     </dd>
                   </div>
+                )}
 
-                  {profile?.phone && (
-                    <div>
-                      <dt className="font-medium text-stone-500">{t('auth.phone')}</dt>
-                      <dd className="mt-1 text-stone-900">{profile.phone}</dd>
-                    </div>
-                  )}
-
-                  {profile?.dateOfBirth && (
-                    <div>
-                      <dt className="font-medium text-stone-500">{t('profile.dateOfBirth')}</dt>
-                      <dd className="mt-1 text-stone-900">
-                        {formatDateToDDMMYYYY(profile.dateOfBirth)}
-                      </dd>
-                    </div>
-                  )}
-
-                  {profile?.gender && (
-                    <div>
-                      <dt className="font-medium text-stone-500">{t('profile.gender')}</dt>
-                      <dd className="mt-1 text-stone-900">
-                        {profile.gender === 'male' ? t('profile.male') :
-                         profile.gender === 'female' ? t('profile.female') :
-                         profile.gender === 'other' ? t('profile.other') :
-                         profile.gender === 'prefer_not_to_say' ? t('profile.preferNotToSay') :
-                         profile.gender}
-                      </dd>
-                    </div>
-                  )}
-
-                  {profile?.occupation && (
-                    <div>
-                      <dt className="font-medium text-stone-500">{t('profile.occupation')}</dt>
-                      <dd className="mt-1 text-stone-900">{profile.occupation}</dd>
-                    </div>
-                  )}
-
-                  <div>
-                    <dt className="font-medium text-stone-500">{t('profile.memberSince')}</dt>
-                    <dd className="mt-1 text-stone-900">
-                      {profile ? formatDateToDDMMYYYY(profile.createdAt) : '...'}
+                {profile?.gender && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <dt className="text-caption text-ink-muted">{t('profile.gender')}</dt>
+                    <dd className="text-body text-ink">
+                      {profile.gender === 'male' ? t('profile.male') :
+                       profile.gender === 'female' ? t('profile.female') :
+                       profile.gender === 'other' ? t('profile.other') :
+                       profile.gender === 'prefer_not_to_say' ? t('profile.preferNotToSay') :
+                       profile.gender}
                     </dd>
                   </div>
+                )}
 
-                  {profile?.membershipId && (
-                    <div>
-                      <dt className="font-medium text-stone-500">{t('profile.membershipId')}</dt>
-                      <dd className="mt-1 flex items-center space-x-2">
-                        <span className="font-mono bg-stone-100 px-2 py-1 rounded text-stone-800">
-                          {profile.membershipId}
-                        </span>
-                        <button
-                          onClick={() => {
-                            if (profile.membershipId) {
-                              navigator.clipboard.writeText(profile.membershipId);
-                              notify.success(t('profile.membershipIdCopied'));
-                            }
-                          }}
-                          className="text-stone-400 hover:text-stone-600 p-1"
-                          title={t('profile.copyMembershipId')}
-                        >
-                          <FiCopy className="h-3 w-3" />
-                        </button>
-                      </dd>
-                    </div>
-                  )}
+                {profile?.occupation && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <dt className="text-caption text-ink-muted">{t('profile.occupation')}</dt>
+                    <dd className="text-body text-ink">{profile.occupation}</dd>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <dt className="text-caption text-ink-muted">{t('profile.memberSince')}</dt>
+                  <dd className="text-body text-ink">
+                    {profile ? formatDateToDDMMYYYY(profile.createdAt) : '...'}
+                  </dd>
                 </div>
-              </div>
-            </div>
 
-            {/* Logout Section */}
-            <div className="mt-6 pt-6 border-t border-stone-200">
-              <button
-                onClick={logout}
-                data-testid="logout-button"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                <FiLogOut className="mr-2 h-4 w-4" />
-                {t('common.logout')}
-              </button>
+                {profile?.membershipId && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <dt className="text-caption text-ink-muted">{t('profile.membershipId')}</dt>
+                    <dd className="flex items-center space-x-2">
+                      <span className="rounded-lg bg-surface-sunken px-2 py-1 font-mono text-ink">
+                        {profile.membershipId}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (profile.membershipId) {
+                            navigator.clipboard.writeText(profile.membershipId);
+                            notify.success(t('profile.membershipIdCopied'));
+                          }
+                        }}
+                        title={t('profile.copyMembershipId')}
+                        aria-label={t('profile.copyMembershipId')}
+                      >
+                        <FiCopy className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Button>
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </div>
           </div>
-        </div>
+
+          {/* Logout Section */}
+          <div className="mt-6 pt-6 border-t border-hairline">
+            <Button variant="destructive" onClick={logout} data-testid="logout-button">
+              <FiLogOut className="h-4 w-4" aria-hidden="true" />
+              {t('common.logout')}
+            </Button>
+          </div>
+        </Card>
 
         {/* Settings Modal */}
         <SettingsModal
@@ -470,6 +463,6 @@ export default function ProfilePage() {
           onCancel={() => setShowDeleteConfirm(false)}
           variant="danger"
         />
-    </MainLayout>
+    </AppShell>
   );
 }

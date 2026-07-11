@@ -2,7 +2,21 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiUsers, FiStar, FiAlertCircle, FiPlus, FiChevronRight, FiX, FiUpload, FiCheckCircle, FiClock, FiDollarSign, FiDownload } from 'react-icons/fi';
-import MainLayout from '../components/layout/MainLayout';
+import AppShell from '../components/layout/AppShell';
+import {
+  Button,
+  buttonVariants,
+  Card,
+  Badge,
+  Modal,
+  TabNav,
+  EmptyState,
+  PageHeader,
+  FormField,
+  Textarea,
+  type BadgeTone,
+  type TabItem,
+} from '../components/ui';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -13,31 +27,50 @@ import kbankLogo from '../assets/kbank-logo.png';
 
 type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
 type BookingTab = 'current' | 'history';
+type StatusGlyphName = 'clock' | 'check' | 'alert';
 
-const statusColors: Record<BookingStatus | 'cancelledByAdmin', { bg: string; text: string }> = {
-  confirmed: { bg: 'bg-green-100', text: 'text-green-800' },
-  cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
-  completed: { bg: 'bg-brand-100', text: 'text-brand-800' },
-  cancelledByAdmin: { bg: 'bg-amber-100', text: 'text-amber-800' },
+// The four status-color records this page has always kept at the top of the
+// file — now mapping each API status value to a design-system Badge tone
+// (+ optional glyph) instead of a bespoke bg/text class pair. Semantics are
+// unchanged: same states, same grouping, just routed through the shared
+// token grammar.
+const STATUS_BADGE_TONE: Record<BookingStatus | 'cancelledByAdmin', BadgeTone> = {
+  confirmed: 'success',
+  cancelled: 'error',
+  completed: 'brand',
+  cancelledByAdmin: 'warning',
 };
 
-const paymentStatusColors: Record<string, { bg: string; text: string }> = {
-  deposit: { bg: 'bg-orange-100', text: 'text-orange-800' },
-  full: { bg: 'bg-green-100', text: 'text-green-800' },
+const PAYMENT_TYPE_BADGE_TONE: Record<string, BadgeTone> = {
+  deposit: 'warning',
+  full: 'success',
 };
 
-const slipOkStatusColors: Record<string, { bg: string; text: string; icon: 'clock' | 'check' | 'alert' }> = {
-  pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'clock' },
-  verified: { bg: 'bg-green-100', text: 'text-green-800', icon: 'check' },
-  failed: { bg: 'bg-red-100', text: 'text-red-800', icon: 'alert' },
-  quota_exceeded: { bg: 'bg-orange-100', text: 'text-orange-800', icon: 'alert' },
+const SLIP_OK_STATUS: Record<string, { tone: BadgeTone; icon: StatusGlyphName }> = {
+  pending: { tone: 'warning', icon: 'clock' },
+  verified: { tone: 'success', icon: 'check' },
+  failed: { tone: 'error', icon: 'alert' },
+  quota_exceeded: { tone: 'warning', icon: 'alert' },
 };
 
-const adminStatusColors: Record<string, { bg: string; text: string; icon: 'clock' | 'check' | 'alert' }> = {
-  pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'clock' },
-  verified: { bg: 'bg-green-100', text: 'text-green-800', icon: 'check' },
-  needs_action: { bg: 'bg-red-100', text: 'text-red-800', icon: 'alert' },
+const ADMIN_STATUS: Record<string, { tone: BadgeTone; icon: StatusGlyphName }> = {
+  pending: { tone: 'warning', icon: 'clock' },
+  verified: { tone: 'success', icon: 'check' },
+  needs_action: { tone: 'error', icon: 'alert' },
 };
+
+function StatusGlyph({ icon }: { icon?: StatusGlyphName }) {
+  if (icon === 'check') {
+    return <FiCheckCircle className="h-3 w-3" aria-hidden="true" />;
+  }
+  if (icon === 'clock') {
+    return <FiClock className="h-3 w-3" aria-hidden="true" />;
+  }
+  if (icon === 'alert') {
+    return <FiAlertCircle className="h-3 w-3" aria-hidden="true" />;
+  }
+  return null;
+}
 
 export default function MyBookingsPage() {
   const { t } = useTranslation();
@@ -58,6 +91,15 @@ export default function MyBookingsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [showBankDetails, setShowBankDetails] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modals default their initial focus to the first focusable descendant,
+  // which would otherwise be each modal's own icon-only close button —
+  // landing default focus on a dismiss control is bad UX (and, combined
+  // with keyboard-triggered opens, can even race a still-in-flight Enter
+  // keypress into an accidental immediate close). Point initial focus at
+  // the heading instead.
+  const detailsModalHeadingRef = useRef<HTMLHeadingElement>(null);
+  const slipUploadModalHeadingRef = useRef<HTMLHeadingElement>(null);
 
   // QR code URL - use env variable or fallback to bundled image
   const promptPayQRUrl = import.meta.env.VITE_PROMPTPAY_QR_IMAGE_URL ?? companyQRCode;
@@ -304,764 +346,655 @@ export default function MyBookingsPage() {
 
   if (isLoading) {
     return (
-      <MainLayout title={t('booking.myBookings')}>
+      <AppShell variant="guest" title={t('booking.myBookings')}>
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
+  const tabItems: TabItem[] = [
+    { value: 'current', label: `${t('booking.currentBookings')} (${currentBookings.length})` },
+    { value: 'history', label: `${t('booking.bookingHistory')} (${historyBookings.length})` },
+  ];
+
   return (
-    <MainLayout title={t('booking.myBookings')}>
-      {/* Header with Book Button */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">{t('booking.myBookings')}</h2>
-        <Link
-          to="/booking"
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-          data-testid="new-booking-button"
-        >
-          <FiPlus className="mr-2" />
-          {t('booking.bookRoom')}
-        </Link>
+    <AppShell variant="guest" title={t('booking.myBookings')}>
+      <PageHeader
+        title={t('booking.myBookings')}
+        actions={
+          <Link to="/booking" className={buttonVariants({ size: 'sm' })} data-testid="new-booking-button">
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
+            {t('booking.bookRoom')}
+          </Link>
+        }
+      />
+
+      <div className="mb-6">
+        <TabNav
+          items={tabItems}
+          value={activeTab}
+          onChange={(value) => setActiveTab(value as BookingTab)}
+          aria-label={t('booking.myBookings')}
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-stone-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('current')}
-            className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
-              activeTab === 'current'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-            )}
-            data-testid="tab-current"
-          >
-            {t('booking.currentBookings')} ({currentBookings.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={clsx('py-2 px-1 border-b-2 font-medium text-sm',
-              activeTab === 'history'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-            )}
-            data-testid="tab-history"
-          >
-            {t('booking.bookingHistory')} ({historyBookings.length})
-          </button>
-        </nav>
-      </div>
-
-      {/* Empty State */}
       {displayedBookings.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <FiCalendar className="w-16 h-16 text-stone-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-stone-900 mb-2">
-            {activeTab === 'current' ? t('booking.noCurrentBookings') : t('booking.noBookingHistory')}
-          </h3>
-          <p className="text-stone-500 mb-6">
-            {activeTab === 'current'
+        <EmptyState
+          icon={FiCalendar}
+          title={activeTab === 'current' ? t('booking.noCurrentBookings') : t('booking.noBookingHistory')}
+          description={
+            activeTab === 'current'
               ? t('booking.noCurrentBookingsDescription')
-              : t('booking.noBookingHistoryDescription')}
-          </p>
-          {activeTab === 'current' && (
-            <Link
-              to="/booking"
-              className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-            >
-              <FiPlus className="mr-2" />
-              {t('booking.bookYourFirstRoom')}
-            </Link>
-          )}
-        </div>
+              : t('booking.noBookingHistoryDescription')
+          }
+          action={
+            activeTab === 'current' ? (
+              <Link to="/booking" className={buttonVariants()}>
+                <FiPlus className="h-4 w-4" aria-hidden="true" />
+                {t('booking.bookYourFirstRoom')}
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="space-y-4">
-          {displayedBookings.map((booking) => (
-            <div
-              key={booking.id}
-              className="bg-white rounded-lg shadow overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-              data-testid={`booking-card-${booking.id}`}
-              onClick={() => handleCardClick(booking as Booking)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  handleCardClick(booking as Booking);
-                }
-              }}
-            >
-              <div className="p-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  {/* Booking Details */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                      <h3 className="text-lg font-semibold">{booking.roomTypeName}</h3>
-                      {(() => {
-                        const displayStatus = getDisplayStatus(booking as Booking);
-                        return (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[displayStatus.key]?.bg} ${statusColors[displayStatus.key]?.text}`}>
-                            {t(displayStatus.translationKey)}
-                          </span>
-                        );
-                      })()}
-                      {/* Payment Type Badge */}
-                      {(booking as Booking).paymentType && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${paymentStatusColors[(booking as Booking).paymentType as string]?.bg} ${paymentStatusColors[(booking as Booking).paymentType as string]?.text}`}>
-                          <FiDollarSign className="inline w-3 h-3 mr-1" />
-                          {(booking as Booking).paymentType === 'deposit' ? t('payment.deposit') : t('payment.payInFull')}
-                        </span>
-                      )}
-                      {/* SlipOK Status Badge */}
-                      {(booking as Booking).slipOkStatus && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${slipOkStatusColors[(booking as Booking).slipOkStatus as string]?.bg} ${slipOkStatusColors[(booking as Booking).slipOkStatus as string]?.text}`}>
-                          {slipOkStatusColors[(booking as Booking).slipOkStatus as string]?.icon === 'check' && <FiCheckCircle className="inline w-3 h-3 mr-1" />}
-                          {slipOkStatusColors[(booking as Booking).slipOkStatus as string]?.icon === 'clock' && <FiClock className="inline w-3 h-3 mr-1" />}
-                          {slipOkStatusColors[(booking as Booking).slipOkStatus as string]?.icon === 'alert' && <FiAlertCircle className="inline w-3 h-3 mr-1" />}
-                          {t(`payment.slipok.${(booking as Booking).slipOkStatus}`)}
-                        </span>
-                      )}
-                      {/* Admin Status Badge */}
-                      {(booking as Booking).adminVerificationStatus && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${adminStatusColors[(booking as Booking).adminVerificationStatus as string]?.bg} ${adminStatusColors[(booking as Booking).adminVerificationStatus as string]?.text}`}>
-                          {adminStatusColors[(booking as Booking).adminVerificationStatus as string]?.icon === 'check' && <FiCheckCircle className="inline w-3 h-3 mr-1" />}
-                          {adminStatusColors[(booking as Booking).adminVerificationStatus as string]?.icon === 'clock' && <FiClock className="inline w-3 h-3 mr-1" />}
-                          {adminStatusColors[(booking as Booking).adminVerificationStatus as string]?.icon === 'alert' && <FiAlertCircle className="inline w-3 h-3 mr-1" />}
-                          {t(`payment.admin.${(booking as Booking).adminVerificationStatus}`)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-stone-600">
-                      <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-stone-400" />
-                        <div>
-                          <span className="font-medium">{t('booking.checkIn')}:</span>{' '}
-                          {new Date(booking.checkInDate).toLocaleDateString()}
-                        </div>
+          {displayedBookings.map((rawBooking) => {
+            const booking = rawBooking as Booking;
+            const displayStatus = getDisplayStatus(booking);
+            return (
+              <Card
+                key={booking.id}
+                padding="none"
+                data-testid={`booking-card-${booking.id}`}
+                onClick={() => handleCardClick(booking)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleCardClick(booking);
+                  }
+                }}
+                className="cursor-pointer overflow-hidden transition-colors hover:border-hairline-strong"
+              >
+                <div className="p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    {/* Booking Details */}
+                    <div className="flex-1">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <h3 className="text-title text-ink">{booking.roomTypeName}</h3>
+                        <Badge tone={STATUS_BADGE_TONE[displayStatus.key]} size="sm">
+                          {t(displayStatus.translationKey)}
+                        </Badge>
+                        {/* Payment Type Badge */}
+                        {booking.paymentType && (
+                          <Badge tone={PAYMENT_TYPE_BADGE_TONE[booking.paymentType] ?? 'neutral'} size="sm">
+                            <FiDollarSign className="h-3 w-3" aria-hidden="true" />
+                            {booking.paymentType === 'deposit' ? t('payment.deposit') : t('payment.payInFull')}
+                          </Badge>
+                        )}
+                        {/* SlipOK Status Badge */}
+                        {booking.slipOkStatus && (
+                          <Badge tone={SLIP_OK_STATUS[booking.slipOkStatus]?.tone ?? 'neutral'} size="sm">
+                            <StatusGlyph icon={SLIP_OK_STATUS[booking.slipOkStatus]?.icon} />
+                            {t(`payment.slipok.${booking.slipOkStatus}`)}
+                          </Badge>
+                        )}
+                        {/* Admin Status Badge */}
+                        {booking.adminVerificationStatus && (
+                          <Badge tone={ADMIN_STATUS[booking.adminVerificationStatus]?.tone ?? 'neutral'} size="sm">
+                            <StatusGlyph icon={ADMIN_STATUS[booking.adminVerificationStatus]?.icon} />
+                            {t(`payment.admin.${booking.adminVerificationStatus}`)}
+                          </Badge>
+                        )}
                       </div>
 
-                      <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-stone-400" />
-                        <div>
-                          <span className="font-medium">{t('booking.checkOut')}:</span>{' '}
-                          {new Date(booking.checkOutDate).toLocaleDateString()}
+                      <div className="grid grid-cols-1 gap-4 text-caption text-ink-muted md:grid-cols-2">
+                        <div className="flex items-center">
+                          <FiCalendar className="mr-2 h-4 w-4 text-ink-faint" aria-hidden="true" />
+                          <div>
+                            <span className="font-semibold text-ink">{t('booking.checkIn')}:</span>{' '}
+                            {new Date(booking.checkInDate).toLocaleDateString()}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center">
+                          <FiCalendar className="mr-2 h-4 w-4 text-ink-faint" aria-hidden="true" />
+                          <div>
+                            <span className="font-semibold text-ink">{t('booking.checkOut')}:</span>{' '}
+                            {new Date(booking.checkOutDate).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Price, Upload Button and Chevron */}
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary-600">
-                        ฿{Number(booking.totalPrice).toLocaleString()}
-                      </div>
-                      <div className="text-sm text-stone-500">
-                        {calculateNights(booking.checkInDate, booking.checkOutDate)} {t('booking.nights')}
-                      </div>
-                      {/* Payment amount if exists */}
-                      {(booking as Booking).paymentAmount && (
-                        <div className="text-sm text-green-600 font-medium">
-                          {t('payment.paid')}: ฿{((booking as Booking).paymentAmount ?? 0).toLocaleString('th-TH')}
+                    {/* Price, Upload Button and Chevron */}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-title text-brand-600">
+                          ฿{Number(booking.totalPrice).toLocaleString()}
                         </div>
-                      )}
+                        <div className="text-caption text-ink-muted">
+                          {calculateNights(booking.checkInDate, booking.checkOutDate)} {t('booking.nights')}
+                        </div>
+                        {/* Payment amount if exists */}
+                        {booking.paymentAmount && (
+                          <div className="text-caption font-semibold text-success-700">
+                            {t('payment.paid')}: ฿{(booking.paymentAmount ?? 0).toLocaleString('th-TH')}
+                          </div>
+                        )}
+                      </div>
+                      <FiChevronRight className="h-5 w-5 text-ink-faint" aria-hidden="true" />
                     </div>
-                    <FiChevronRight className="text-stone-400 text-xl" />
                   </div>
                 </div>
-              </div>
 
-              {/* Booking Footer */}
-              <div className="bg-stone-50 px-6 py-3 text-sm text-stone-500 flex items-center justify-between">
-                <span>{t('booking.bookedOn')}: {new Date(booking.createdAt).toLocaleDateString()}</span>
-                <span className="text-primary-600">{t('booking.clickForDetails')}</span>
-              </div>
-            </div>
-          ))}
+                {/* Booking Footer */}
+                <div className="flex items-center justify-between border-t border-hairline bg-surface-sunken px-6 py-3 text-caption text-ink-muted">
+                  <span>{t('booking.bookedOn')}: {new Date(booking.createdAt).toLocaleDateString()}</span>
+                  <span className="text-brand-700">{t('booking.clickForDetails')}</span>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       {/* Booking Details Modal */}
-      {selectedBooking && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedBooking(null)}
-          data-testid="booking-details-modal-backdrop"
-        >
-          <div
-            className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="booking-details-modal"
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-semibold">{selectedBooking.roomTypeName}</h3>
-                {(() => {
-                  const displayStatus = getDisplayStatus(selectedBooking);
-                  return (
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[displayStatus.key]?.bg} ${statusColors[displayStatus.key]?.text}`}>
-                      {t(displayStatus.translationKey)}
-                    </span>
-                  );
-                })()}
-              </div>
-              <button
-                onClick={() => setSelectedBooking(null)}
-                className="text-stone-400 hover:text-stone-600"
-                data-testid="booking-details-close"
-              >
-                <FiX className="text-2xl" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              {/* Dates Section */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-stone-500 mb-1">{t('booking.checkIn')}</div>
-                  <div className="font-semibold flex items-center">
-                    <FiCalendar className="mr-2 text-primary-600" />
-                    {new Date(selectedBooking.checkInDate).toLocaleDateString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-stone-500 mb-1">{t('booking.checkOut')}</div>
-                  <div className="font-semibold flex items-center">
-                    <FiCalendar className="mr-2 text-primary-600" />
-                    {new Date(selectedBooking.checkOutDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Nights Count */}
-              <div className="text-center py-3 bg-stone-50 rounded-lg" data-testid="booking-nights-count">
-                <span className="text-lg font-semibold text-primary-600">
-                  {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate)}
-                </span>{' '}
-                <span className="text-stone-600">
-                  {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate) === 1
-                    ? t('booking.night')
-                    : t('booking.nights')}
-                </span>
-              </div>
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center">
-                  <FiUsers className="mr-2 text-stone-400" />
-                  <div>
-                    <div className="text-sm text-stone-500">{t('booking.guests')}</div>
-                    <div className="font-semibold">
-                      {selectedBooking.numGuests} {selectedBooking.numGuests === 1 ? t('booking.guest') : t('booking.guests')}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <FiStar className="mr-2 text-yellow-500" />
-                  <div>
-                    <div className="text-sm text-stone-500">{t('booking.pointsEarned')}</div>
-                    <div className={`font-semibold ${selectedBooking.status === 'cancelled' ? 'text-stone-400' : 'text-yellow-600'}`}>
-                      {selectedBooking.status === 'cancelled' ? (
-                        '-'
-                      ) : (
-                        <>{selectedBooking.pointsEarned.toLocaleString()} {t('loyalty.points')}</>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Price */}
-              <div className="text-center py-4 bg-primary-50 rounded-lg">
-                <div className="text-sm text-stone-500 mb-1">{t('booking.totalPrice')}</div>
-                <div className="text-3xl font-bold text-primary-600">
-                  ฿{Number(selectedBooking.totalPrice).toLocaleString()}
-                </div>
-              </div>
-
-              {/* Payment Button - Only show if no slips uploaded yet */}
-              {canUploadSlip(selectedBooking) && !hasSlips(selectedBooking) && (
-                <button
-                  onClick={() => {
-                    setSelectedBooking(null);
-                    handleUploadSlipClick(selectedBooking.id);
-                  }}
-                  className="w-full py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-center"
-                >
-                  {t('payment.title')}
-                </button>
-              )}
-
-              {/* Uploaded Slips Display (Multi-slip support) */}
-              {hasSlips(selectedBooking) && (
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">{t('payment.uploadedSlips')}</h4>
-                  <div className="space-y-3">
-                    {/* Slip Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {selectedBooking.slips?.map((slip, index) => (
-                        <div key={slip.id} className="relative group">
-                          <img
-                            src={slip.slipUrl}
-                            alt={`${t('payment.slipPreview')} ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(slip.slipUrl, '_blank')}
-                          />
-                          {/* Status badge overlay */}
-                          <div className="absolute bottom-1 right-1">
-                            {slip.slipokStatus && (
-                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${slipOkStatusColors[slip.slipokStatus]?.bg} ${slipOkStatusColors[slip.slipokStatus]?.text}`}>
-                                {slipOkStatusColors[slip.slipokStatus]?.icon === 'check' && <FiCheckCircle className="w-3 h-3" />}
-                                {slipOkStatusColors[slip.slipokStatus]?.icon === 'clock' && <FiClock className="w-3 h-3" />}
-                                {slipOkStatusColors[slip.slipokStatus]?.icon === 'alert' && <FiAlertCircle className="w-3 h-3" />}
-                              </span>
-                            )}
-                          </div>
-                          {/* Upload time tooltip */}
-                          <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-xs bg-black/70 text-white px-1.5 py-0.5 rounded">
-                              {new Date(slip.uploadedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Upload More Button */}
-                    {canUploadSlip(selectedBooking) && (
-                      <button
-                        onClick={() => handleUploadSlipClick(selectedBooking.id)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg border border-primary-200 transition-colors"
-                      >
-                        <FiPlus className="w-4 h-4" />
-                        {t('payment.uploadMore')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {selectedBooking.notes && (
-                <div className="p-4 bg-stone-50 rounded-lg">
-                  <div className="text-sm font-medium text-stone-700 mb-1">{t('booking.notes')}</div>
-                  <div className="text-stone-600">{selectedBooking.notes}</div>
-                </div>
-              )}
-
-              {/* Cancellation Info */}
-              {selectedBooking.status === 'cancelled' && (
-                <div className={`p-4 border rounded-lg ${selectedBooking.cancelledByAdmin ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-                  <div className="flex items-start">
-                    <FiAlertCircle className={`mr-2 mt-0.5 flex-shrink-0 ${selectedBooking.cancelledByAdmin ? 'text-amber-500' : 'text-red-500'}`} />
-                    <div>
-                      {selectedBooking.cancelledByAdmin && (
-                        <div className="text-sm font-medium text-amber-800 mb-2">
-                          {t('booking.cancelledByAdmin')}
-                        </div>
-                      )}
-                      {selectedBooking.cancellationReason && (
-                        <>
-                          <div className={`text-sm font-medium ${selectedBooking.cancelledByAdmin ? 'text-amber-800' : 'text-red-800'}`}>
-                            {t('booking.cancellationReason')}
-                          </div>
-                          <div className={selectedBooking.cancelledByAdmin ? 'text-amber-600' : 'text-red-600'}>
-                            {selectedBooking.cancellationReason}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Booked On */}
-              <div className="text-center text-sm text-stone-500">
-                {t('booking.bookedOn')}: {new Date(selectedBooking.createdAt).toLocaleDateString()}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t bg-stone-50">
-              <button
-                onClick={() => setSelectedBooking(null)}
-                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100"
-              >
+      <Modal
+        open={!!selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        initialFocusRef={detailsModalHeadingRef}
+        footer={
+          selectedBooking && (
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setSelectedBooking(null)}>
                 {t('common.close')}
-              </button>
+              </Button>
               {canCancel(selectedBooking) && (
-                <button
+                <Button
+                  variant="destructive"
                   onClick={() => handleCancelClick(selectedBooking.id)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                   data-testid="booking-details-cancel"
                 >
                   {t('booking.cancelBooking')}
-                </button>
+                </Button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6" data-testid="cancel-modal">
-            <h3 className="text-lg font-semibold mb-4">{t('booking.cancelBookingTitle')}</h3>
-            <p className="text-stone-600 mb-4">{t('booking.cancelBookingConfirm')}</p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t('booking.cancelReason')} ({t('common.optional')})
-              </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                rows={3}
-                placeholder={t('booking.cancelReasonPlaceholder')}
-                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                data-testid="cancel-reason-input"
-              />
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-yellow-800">
-                <FiAlertCircle className="inline mr-1" />
-                {t('booking.cancelWarning')}
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3">
+          )
+        }
+      >
+        {selectedBooking && (
+          <div className="space-y-6">
+            {/* Custom header (kept distinct from Modal's own title slot so the
+                icon-only close button stays name-less, matching the footer's
+                text "Close" button as the only accessible-name match). */}
+            <div className="mb-2 flex items-center justify-between border-b border-hairline pb-4">
+              <div className="flex items-center gap-3">
+                <h3 ref={detailsModalHeadingRef} tabIndex={-1} className="text-title text-ink outline-none">
+                  {selectedBooking.roomTypeName}
+                </h3>
+                <Badge tone={STATUS_BADGE_TONE[getDisplayStatus(selectedBooking).key]} size="sm">
+                  {t(getDisplayStatus(selectedBooking).translationKey)}
+                </Badge>
+              </div>
               <button
-                onClick={() => {
-                  setShowCancelModal(false);
-                  setSelectedBookingId(null);
-                  setCancelReason('');
-                }}
-                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-50"
-                data-testid="cancel-modal-close"
+                type="button"
+                onClick={() => setSelectedBooking(null)}
+                className="text-ink-faint hover:text-ink"
+                data-testid="booking-details-close"
               >
-                {t('common.close')}
-              </button>
-              <button
-                onClick={handleConfirmCancel}
-                disabled={cancelBookingMutation.isPending}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-stone-300"
-                data-testid="confirm-cancel-button"
-              >
-                {cancelBookingMutation.isPending ? (
-                  <span className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    {t('common.processing')}
-                  </span>
-                ) : (
-                  t('booking.confirmCancel')
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Slip Upload Modal */}
-      {showSlipUploadModal && slipUploadBooking && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={closeSlipUploadModal}
-          data-testid="slip-upload-modal-backdrop"
-        >
-          <div
-            className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="slip-upload-modal"
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-xl font-semibold">{t('payment.uploadSlip')}</h3>
-              <button
-                onClick={closeSlipUploadModal}
-                className="text-stone-400 hover:text-stone-600"
-                data-testid="slip-upload-modal-close"
-              >
-                <FiX className="text-2xl" />
+                <FiX className="h-6 w-6" aria-hidden="true" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              {/* Booking Summary */}
-              <div className="bg-stone-50 rounded-lg p-4">
-                <h4 className="font-medium mb-2">{slipUploadBooking.roomTypeName}</h4>
-                <div className="text-sm text-stone-600 grid grid-cols-2 gap-2">
-                  <div>{t('booking.checkIn')}: {new Date(slipUploadBooking.checkInDate).toLocaleDateString()}</div>
-                  <div>{t('booking.checkOut')}: {new Date(slipUploadBooking.checkOutDate).toLocaleDateString()}</div>
-                </div>
-                <div className="mt-2 text-lg font-bold text-primary-600">
-                  ฿{Number(slipUploadBooking.totalPrice).toLocaleString('th-TH')}
+            {/* Dates Section */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="mb-1 text-caption text-ink-muted">{t('booking.checkIn')}</div>
+                <div className="flex items-center font-semibold text-ink">
+                  <FiCalendar className="mr-2 h-4 w-4 text-brand-600" aria-hidden="true" />
+                  {new Date(selectedBooking.checkInDate).toLocaleDateString()}
                 </div>
               </div>
+              <div>
+                <div className="mb-1 text-caption text-ink-muted">{t('booking.checkOut')}</div>
+                <div className="flex items-center font-semibold text-ink">
+                  <FiCalendar className="mr-2 h-4 w-4 text-brand-600" aria-hidden="true" />
+                  {new Date(selectedBooking.checkOutDate).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
 
-              {/* Existing Slips Section - Only show if booking has slips */}
-              {hasSlips(slipUploadBooking) && (
+            {/* Nights Count */}
+            <div className="rounded-lg bg-surface-sunken py-3 text-center" data-testid="booking-nights-count">
+              <span className="text-body font-semibold text-brand-600">
+                {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate)}
+              </span>{' '}
+              <span className="text-ink-muted">
+                {calculateNights(selectedBooking.checkInDate, selectedBooking.checkOutDate) === 1
+                  ? t('booking.night')
+                  : t('booking.nights')}
+              </span>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <FiUsers className="mr-2 h-4 w-4 text-ink-faint" aria-hidden="true" />
                 <div>
-                  <h4 className="font-medium mb-3">{t('payment.yourSlips')}</h4>
+                  <div className="text-caption text-ink-muted">{t('booking.guests')}</div>
+                  <div className="font-semibold text-ink">
+                    {selectedBooking.numGuests} {selectedBooking.numGuests === 1 ? t('booking.guest') : t('booking.guests')}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <FiStar className="mr-2 h-4 w-4 text-gold-600" aria-hidden="true" />
+                <div>
+                  <div className="text-caption text-ink-muted">{t('booking.pointsEarned')}</div>
+                  <div className={clsx('font-semibold', selectedBooking.status === 'cancelled' ? 'text-ink-faint' : 'text-gold-700')}>
+                    {selectedBooking.status === 'cancelled' ? (
+                      '-'
+                    ) : (
+                      <>{selectedBooking.pointsEarned.toLocaleString()} {t('loyalty.points')}</>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Price */}
+            <div className="rounded-lg bg-brand-50 py-4 text-center">
+              <div className="mb-1 text-caption text-ink-muted">{t('booking.totalPrice')}</div>
+              <div className="text-display text-brand-600">
+                ฿{Number(selectedBooking.totalPrice).toLocaleString()}
+              </div>
+            </div>
+
+            {/* Payment Button - Only show if no slips uploaded yet */}
+            {canUploadSlip(selectedBooking) && !hasSlips(selectedBooking) && (
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setSelectedBooking(null);
+                  handleUploadSlipClick(selectedBooking.id);
+                }}
+              >
+                {t('payment.title')}
+              </Button>
+            )}
+
+            {/* Uploaded Slips Display (Multi-slip support) */}
+            {hasSlips(selectedBooking) && (
+              <div className="border-t border-hairline pt-4">
+                <h4 className="mb-3 font-semibold text-ink">{t('payment.uploadedSlips')}</h4>
+                <div className="space-y-3">
+                  {/* Slip Grid */}
                   <div className="grid grid-cols-2 gap-3">
-                    {slipUploadBooking.slips?.map((slip, index) => (
-                      <div key={slip.id} className="relative group">
+                    {selectedBooking.slips?.map((slip, index) => (
+                      <div key={slip.id} className="group relative">
                         <img
                           src={slip.slipUrl}
                           alt={`${t('payment.slipPreview')} ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                          className="h-32 w-full cursor-pointer rounded-lg border border-hairline object-cover transition-opacity hover:opacity-90"
                           onClick={() => window.open(slip.slipUrl, '_blank')}
                         />
                         {/* Status badge overlay */}
                         <div className="absolute bottom-1 right-1">
                           {slip.slipokStatus && (
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${slipOkStatusColors[slip.slipokStatus]?.bg} ${slipOkStatusColors[slip.slipokStatus]?.text}`}>
-                              {slipOkStatusColors[slip.slipokStatus]?.icon === 'check' && <FiCheckCircle className="w-3 h-3" />}
-                              {slipOkStatusColors[slip.slipokStatus]?.icon === 'clock' && <FiClock className="w-3 h-3" />}
-                              {slipOkStatusColors[slip.slipokStatus]?.icon === 'alert' && <FiAlertCircle className="w-3 h-3" />}
-                            </span>
+                            <Badge tone={SLIP_OK_STATUS[slip.slipokStatus]?.tone ?? 'neutral'} size="sm">
+                              <StatusGlyph icon={SLIP_OK_STATUS[slip.slipokStatus]?.icon} />
+                            </Badge>
                           )}
                         </div>
-                        {/* Remove button - only show for non-verified slips */}
-                        {slip.adminStatus !== 'verified' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveSlip(slip.id);
-                            }}
-                            className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                            title={t('payment.removeSlip')}
-                          >
-                            <FiX className="w-3 h-3" />
-                          </button>
-                        )}
+                        {/* Upload time tooltip */}
+                        <div className="absolute left-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <span className="rounded bg-tile/90 px-1.5 py-0.5 text-fine text-tile-text">
+                            {new Date(slip.uploadedAt).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
 
-              {/* Bank/QR Section - Show directly if no slips, or toggle if slips exist */}
-              {hasSlips(slipUploadBooking) ? (
-                <>
-                  {/* Toggle button for bank details */}
-                  <button
-                    onClick={() => setShowBankDetails(!showBankDetails)}
-                    className="w-full py-2 text-sm text-primary-600 hover:text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
-                  >
-                    {showBankDetails ? t('payment.hideBankDetails') : t('payment.showBankDetails')}
-                  </button>
-
-                  {/* Collapsible bank/QR section */}
-                  {showBankDetails && (
-                    <>
-                      {/* Bank Transfer Option */}
-                      <div className="text-center">
-                        <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
-                        <div
-                          className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
-                          onClick={() => {
-                            navigator.clipboard.writeText('0461430473');
-                            toast.success(t('payment.copied'));
-                          }}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-stone-500">{t('payment.bankName')}</span>
-                            <div className="flex items-center gap-2">
-                              <img src={kbankLogo} alt="KBank" className="h-6" />
-                              <span className="font-medium">กสิกรไทย</span>
-                            </div>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-stone-500">{t('payment.accountName')}</span>
-                            <span className="font-medium">บจก. สายชล เฮอริเทจ</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-stone-500">{t('payment.accountNumber')}</span>
-                            <span className="font-medium font-mono">046-1-43047-3</span>
-                          </div>
-                          <p className="text-xs text-stone-400 text-center">{t('payment.clickToCopy')}</p>
-                        </div>
-                      </div>
-
-                      {/* Divider with "or" */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 border-t border-stone-200" />
-                        <span className="text-sm text-stone-400">{t('payment.or')}</span>
-                        <div className="flex-1 border-t border-stone-200" />
-                      </div>
-
-                      {/* QR Code Display */}
-                      <div className="text-center">
-                        <h4 className="font-medium mb-3">{t('payment.scanQRCode')}</h4>
-                        <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm">
-                          <img
-                            src={promptPayQRUrl}
-                            alt="PromptPay QR Code"
-                            className="w-full object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect fill="%23f3f4f6" width="160" height="160"/%3E%3Ctext x="80" y="80" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EQR Code%3C/text%3E%3C/svg%3E';
-                            }}
-                          />
-                          <a
-                            href={promptPayQRUrl}
-                            download="promptpay-qr.png"
-                            className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
-                          >
-                            <FiDownload className="w-4 h-4" />
-                            {t('payment.downloadQR')}
-                          </a>
-                        </div>
-                      </div>
-                    </>
+                  {/* Upload More Button */}
+                  {canUploadSlip(selectedBooking) && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleUploadSlipClick(selectedBooking.id)}
+                    >
+                      <FiPlus className="h-4 w-4" aria-hidden="true" />
+                      {t('payment.uploadMore')}
+                    </Button>
                   )}
-                </>
-              ) : (
-                <>
-                  {/* Bank Transfer Option */}
-                  <div className="text-center">
-                    <h4 className="font-medium mb-3">{t('payment.bankTransfer')}</h4>
-                    <div
-                      className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm text-left space-y-2 cursor-pointer hover:border-primary-300 transition-colors"
-                      onClick={() => {
-                        navigator.clipboard.writeText('0461430473');
-                        toast.success(t('payment.copied'));
-                      }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-500">{t('payment.bankName')}</span>
-                        <div className="flex items-center gap-2">
-                          <img src={kbankLogo} alt="KBank" className="h-6" />
-                          <span className="font-medium">กสิกรไทย</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-stone-500">{t('payment.accountName')}</span>
-                        <span className="font-medium">บจก. สายชล เฮอริเทจ</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-500">{t('payment.accountNumber')}</span>
-                        <span className="font-medium font-mono">046-1-43047-3</span>
-                      </div>
-                      <p className="text-xs text-stone-400 text-center">{t('payment.clickToCopy')}</p>
-                    </div>
-                  </div>
+                </div>
+              </div>
+            )}
 
-                  {/* Divider with "or" */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 border-t border-stone-200" />
-                    <span className="text-sm text-stone-400">{t('payment.or')}</span>
-                    <div className="flex-1 border-t border-stone-200" />
-                  </div>
+            {/* Notes */}
+            {selectedBooking.notes && (
+              <div className="rounded-lg bg-surface-sunken p-4">
+                <div className="mb-1 text-caption font-semibold text-ink">{t('booking.notes')}</div>
+                <div className="text-ink-muted">{selectedBooking.notes}</div>
+              </div>
+            )}
 
-                  {/* QR Code Display */}
-                  <div className="text-center">
-                    <h4 className="font-medium mb-3">{t('payment.scanQRCode')}</h4>
-                    <div className="p-4 bg-white border-2 border-stone-200 rounded-lg shadow-sm">
-                      <img
-                        src={promptPayQRUrl}
-                        alt="PromptPay QR Code"
-                        className="w-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect fill="%23f3f4f6" width="160" height="160"/%3E%3Ctext x="80" y="80" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EQR Code%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
-                      <a
-                        href={promptPayQRUrl}
-                        download="promptpay-qr.png"
-                        className="inline-flex items-center justify-center gap-2 mt-3 w-full py-2 text-sm text-stone-500 hover:text-primary-600 transition-colors"
-                      >
-                        <FiDownload className="w-4 h-4" />
-                        {t('payment.downloadQR')}
-                      </a>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Slip Upload Section */}
-              <div>
-                <h4 className="font-medium mb-3">{t('payment.uploadSlipDescription')}</h4>
-
-                {!slipPreview ? (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                      isDragging ? 'border-primary-500 bg-primary-50' : 'border-stone-300 hover:border-primary-400'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    data-testid="slip-upload-dropzone"
-                  >
-                    <FiUpload className="w-10 h-10 text-stone-400 mx-auto mb-3" />
-                    <p className="text-stone-600 mb-2">{t('payment.dragDropSlip')}</p>
-                    <p className="text-xs text-stone-400">JPG, PNG (max 10MB)</p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={handleFileInputChange}
-                      className="hidden"
-                      data-testid="slip-upload-input"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative border rounded-lg overflow-hidden">
-                    <img
-                      src={slipPreview}
-                      alt="Transfer slip preview"
-                      className="w-full max-h-48 object-contain bg-stone-100"
-                    />
-                    <button
-                      onClick={removeSlip}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      data-testid="slip-upload-remove"
-                    >
-                      <FiX className="w-4 h-4" />
-                    </button>
-                  </div>
+            {/* Cancellation Info */}
+            {selectedBooking.status === 'cancelled' && (
+              <div
+                className={clsx(
+                  'rounded-lg border p-4',
+                  selectedBooking.cancelledByAdmin ? 'border-warning-600 bg-warning-50' : 'border-error-600 bg-error-50'
                 )}
+              >
+                <div className="flex items-start">
+                  <FiAlertCircle
+                    className={clsx(
+                      'mr-2 mt-0.5 h-4 w-4 flex-shrink-0',
+                      selectedBooking.cancelledByAdmin ? 'text-warning-700' : 'text-error-600'
+                    )}
+                    aria-hidden="true"
+                  />
+                  <div>
+                    {selectedBooking.cancelledByAdmin && (
+                      <div className="mb-2 text-caption font-semibold text-warning-700">
+                        {t('booking.cancelledByAdmin')}
+                      </div>
+                    )}
+                    {selectedBooking.cancellationReason && (
+                      <>
+                        <div className={clsx('text-caption font-semibold', selectedBooking.cancelledByAdmin ? 'text-warning-700' : 'text-error-700')}>
+                          {t('booking.cancellationReason')}
+                        </div>
+                        <div className={selectedBooking.cancelledByAdmin ? 'text-warning-700' : 'text-error-600'}>
+                          {selectedBooking.cancellationReason}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Booked On */}
+            <div className="text-center text-caption text-ink-muted">
+              {t('booking.bookedOn')}: {new Date(selectedBooking.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Cancel Modal */}
+      <Modal
+        open={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setSelectedBookingId(null);
+          setCancelReason('');
+        }}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowCancelModal(false);
+                setSelectedBookingId(null);
+                setCancelReason('');
+              }}
+              data-testid="cancel-modal-close"
+            >
+              {t('common.close')}
+            </Button>
+            <Button
+              variant="destructive"
+              loading={cancelBookingMutation.isPending}
+              onClick={handleConfirmCancel}
+              data-testid="confirm-cancel-button"
+            >
+              {t('booking.confirmCancel')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <h3 className="text-title text-ink">{t('booking.cancelBookingTitle')}</h3>
+          <p className="text-caption text-ink-muted">{t('booking.cancelBookingConfirm')}</p>
+
+          <FormField label={`${t('booking.cancelReason')} (${t('common.optional')})`} htmlFor="cancel-reason-input">
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              placeholder={t('booking.cancelReasonPlaceholder')}
+              data-testid="cancel-reason-input"
+            />
+          </FormField>
+
+          <Badge tone="warning" className="w-full gap-2 py-3">
+            <FiAlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{t('booking.cancelWarning')}</span>
+          </Badge>
+        </div>
+      </Modal>
+
+      {/* Slip Upload Modal */}
+      <Modal
+        open={showSlipUploadModal && !!slipUploadBooking}
+        onClose={closeSlipUploadModal}
+        initialFocusRef={slipUploadModalHeadingRef}
+        footer={
+          slipUploadBooking && (
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={closeSlipUploadModal}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                loading={isUploading}
+                disabled={!slipFile}
+                onClick={handleSlipUpload}
+                data-testid="slip-upload-submit"
+              >
+                <FiUpload className="h-4 w-4" aria-hidden="true" />
+                {t('payment.submitSlip')}
+              </Button>
+            </div>
+          )
+        }
+      >
+        {slipUploadBooking && (
+          <div className="space-y-6">
+            <div className="mb-2 flex items-center justify-between border-b border-hairline pb-4">
+              <h3 ref={slipUploadModalHeadingRef} tabIndex={-1} className="text-title text-ink outline-none">
+                {t('payment.uploadSlip')}
+              </h3>
+              <button
+                type="button"
+                onClick={closeSlipUploadModal}
+                className="text-ink-faint hover:text-ink"
+                data-testid="slip-upload-modal-close"
+              >
+                <FiX className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Booking Summary */}
+            <div className="rounded-lg bg-surface-sunken p-4">
+              <h4 className="mb-2 font-semibold text-ink">{slipUploadBooking.roomTypeName}</h4>
+              <div className="grid grid-cols-2 gap-2 text-caption text-ink-muted">
+                <div>{t('booking.checkIn')}: {new Date(slipUploadBooking.checkInDate).toLocaleDateString()}</div>
+                <div>{t('booking.checkOut')}: {new Date(slipUploadBooking.checkOutDate).toLocaleDateString()}</div>
+              </div>
+              <div className="mt-2 text-title text-brand-600">
+                ฿{Number(slipUploadBooking.totalPrice).toLocaleString('th-TH')}
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t bg-stone-50">
-              <button
-                onClick={closeSlipUploadModal}
-                className="px-4 py-2 text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleSlipUpload}
-                disabled={!slipFile || isUploading}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-stone-300 disabled:cursor-not-allowed flex items-center"
-                data-testid="slip-upload-submit"
-              >
-                {isUploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    {t('common.processing')}
-                  </>
-                ) : (
-                  <>
-                    <FiUpload className="mr-2" />
-                    {t('payment.submitSlip')}
-                  </>
-                )}
-              </button>
+            {/* Existing Slips Section - Only show if booking has slips */}
+            {hasSlips(slipUploadBooking) && (
+              <div>
+                <h4 className="mb-3 font-semibold text-ink">{t('payment.yourSlips')}</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {slipUploadBooking.slips?.map((slip, index) => (
+                    <div key={slip.id} className="group relative">
+                      <img
+                        src={slip.slipUrl}
+                        alt={`${t('payment.slipPreview')} ${index + 1}`}
+                        className="h-32 w-full cursor-pointer rounded-lg border border-hairline object-cover transition-opacity hover:opacity-90"
+                        onClick={() => window.open(slip.slipUrl, '_blank')}
+                      />
+                      {/* Status badge overlay */}
+                      <div className="absolute bottom-1 right-1">
+                        {slip.slipokStatus && (
+                          <Badge tone={SLIP_OK_STATUS[slip.slipokStatus]?.tone ?? 'neutral'} size="sm">
+                            <StatusGlyph icon={SLIP_OK_STATUS[slip.slipokStatus]?.icon} />
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Remove button - only show for non-verified slips */}
+                      {slip.adminStatus !== 'verified' && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute right-1 top-1 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveSlip(slip.id);
+                          }}
+                          aria-label={t('payment.removeSlip')}
+                        >
+                          <FiX className="h-3 w-3" aria-hidden="true" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bank/QR Section - Show directly if no slips, or toggle if slips exist */}
+            {hasSlips(slipUploadBooking) && (
+              <Button variant="secondary" className="w-full" onClick={() => setShowBankDetails(!showBankDetails)}>
+                {showBankDetails ? t('payment.hideBankDetails') : t('payment.showBankDetails')}
+              </Button>
+            )}
+
+            {(!hasSlips(slipUploadBooking) || showBankDetails) && (
+              <>
+                {/* Bank Transfer Option */}
+                <div className="text-center">
+                  <h4 className="mb-3 font-semibold text-ink">{t('payment.bankTransfer')}</h4>
+                  <div
+                    className="cursor-pointer space-y-2 rounded-lg border border-hairline bg-white p-4 text-left shadow-soft transition-colors hover:border-brand-300"
+                    onClick={() => {
+                      navigator.clipboard.writeText('0461430473');
+                      toast.success(t('payment.copied'));
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-muted">{t('payment.bankName')}</span>
+                      <div className="flex items-center gap-2">
+                        <img src={kbankLogo} alt="KBank" className="h-6" />
+                        <span className="font-semibold text-ink">กสิกรไทย</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">{t('payment.accountName')}</span>
+                      <span className="font-semibold text-ink">บจก. สายชล เฮอริเทจ</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-muted">{t('payment.accountNumber')}</span>
+                      <span className="font-mono font-semibold text-ink">046-1-43047-3</span>
+                    </div>
+                    <p className="text-center text-fine text-ink-faint">{t('payment.clickToCopy')}</p>
+                  </div>
+                </div>
+
+                {/* Divider with "or" */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 border-t border-hairline" />
+                  <span className="text-caption text-ink-faint">{t('payment.or')}</span>
+                  <div className="flex-1 border-t border-hairline" />
+                </div>
+
+                {/* QR Code Display */}
+                <div className="text-center">
+                  <h4 className="mb-3 font-semibold text-ink">{t('payment.scanQRCode')}</h4>
+                  <div className="rounded-lg bg-white p-4 shadow-soft">
+                    <img
+                      src={promptPayQRUrl}
+                      alt="PromptPay QR Code"
+                      className="w-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect fill="%23f3f4f6" width="160" height="160"/%3E%3Ctext x="80" y="80" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EQR Code%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                    <a
+                      href={promptPayQRUrl}
+                      download="promptpay-qr.png"
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 py-2 text-caption text-ink-muted transition-colors hover:text-brand-600"
+                    >
+                      <FiDownload className="h-4 w-4" aria-hidden="true" />
+                      {t('payment.downloadQR')}
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Slip Upload Section */}
+            <div>
+              <h4 className="mb-3 font-semibold text-ink">{t('payment.uploadSlipDescription')}</h4>
+
+              {!slipPreview ? (
+                <div
+                  className={clsx(
+                    'cursor-pointer rounded-card border-2 border-dashed bg-surface-sunken p-8 text-center transition-colors',
+                    isDragging ? 'border-brand-600' : 'border-hairline-strong hover:border-brand-600'
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  data-testid="slip-upload-dropzone"
+                >
+                  <FiUpload className="mx-auto mb-3 h-10 w-10 text-ink-faint" aria-hidden="true" />
+                  <p className="mb-2 text-body text-ink-muted">{t('payment.dragDropSlip')}</p>
+                  <p className="text-fine text-ink-faint">JPG, PNG (max 10MB)</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    data-testid="slip-upload-input"
+                  />
+                </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-card border border-hairline">
+                  <img
+                    src={slipPreview}
+                    alt="Transfer slip preview"
+                    className="max-h-48 w-full bg-surface-sunken object-contain"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={removeSlip}
+                    className="absolute right-2 top-2 h-9 w-9"
+                    data-testid="slip-upload-remove"
+                  >
+                    <FiX className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
-    </MainLayout>
+        )}
+      </Modal>
+    </AppShell>
   );
 }

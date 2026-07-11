@@ -179,8 +179,8 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
-// Mock MainLayout
-vi.mock('../../components/layout/MainLayout', () => ({
+// Mock AppShell
+vi.mock('../../components/layout/AppShell', () => ({
   default: ({ children, title }: { children: React.ReactNode; title: string }) => (
     <div>
       <h1>{title}</h1>
@@ -195,7 +195,7 @@ import MyBookingsPage from '../MyBookingsPage';
 /** Wait for the query to resolve and bookings UI to render */
 async function waitForBookingsLoaded() {
   await waitFor(() => {
-    expect(screen.getByTestId('tab-current')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Current Bookings/ })).toBeInTheDocument();
   });
 }
 
@@ -256,7 +256,7 @@ describe('MyBookingsPage', () => {
       expect(screen.getByText('Confirmed')).toBeInTheDocument();
 
       // Switch to history tab for completed and cancelled bookings
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // Check second booking (completed)
       expect(screen.getByTestId('booking-card-booking-2')).toBeInTheDocument();
@@ -276,7 +276,7 @@ describe('MyBookingsPage', () => {
       expect(screen.getByText('฿4,500')).toBeInTheDocument();
 
       // History tab shows booking-2 and booking-3
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
       expect(screen.getByText('฿2,000')).toBeInTheDocument();
       expect(screen.getByText('฿6,000')).toBeInTheDocument();
     });
@@ -290,7 +290,7 @@ describe('MyBookingsPage', () => {
       expect(screen.getAllByText('Click for details').length).toBe(1);
 
       // History tab has 4 bookings (booking-2, booking-3, booking-4, booking-5)
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
       expect(screen.getAllByText('Click for details').length).toBe(4);
     });
   });
@@ -304,7 +304,7 @@ describe('MyBookingsPage', () => {
       const card = screen.getByTestId('booking-card-booking-1');
       await user.click(card);
 
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should open details modal on Enter key', async () => {
@@ -316,7 +316,7 @@ describe('MyBookingsPage', () => {
       card.focus();
       await user.keyboard('{Enter}');
 
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
 
@@ -329,7 +329,7 @@ describe('MyBookingsPage', () => {
       // Open modal for first booking
       await user.click(screen.getByTestId('booking-card-booking-1'));
 
-      const modal = screen.getByTestId('booking-details-modal');
+      const modal = screen.getByRole('dialog');
       expect(modal).toBeInTheDocument();
 
       // Check room type name
@@ -357,10 +357,10 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       await user.click(screen.getByTestId('booking-card-booking-1'));
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       await user.click(screen.getByTestId('booking-details-close'));
-      expect(screen.queryByTestId('booking-details-modal')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('should close modal when clicking backdrop', async () => {
@@ -369,10 +369,14 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       await user.click(screen.getByTestId('booking-card-booking-1'));
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
 
-      await user.click(screen.getByTestId('booking-details-modal-backdrop'));
-      expect(screen.queryByTestId('booking-details-modal')).not.toBeInTheDocument();
+      // Modal's backdrop is the dialog panel's portal parent — clicking it
+      // (not the panel itself) is what triggers the dismiss-on-backdrop
+      // behavior baked into the shared Modal primitive.
+      await user.click(dialog.parentElement as HTMLElement);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('should close modal when clicking Close button in footer', async () => {
@@ -381,10 +385,10 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       await user.click(screen.getByTestId('booking-card-booking-1'));
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: 'Close' }));
-      expect(screen.queryByTestId('booking-details-modal')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('should show cancellation reason for cancelled bookings', async () => {
@@ -393,10 +397,10 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // booking-3 is cancelled and in history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
       await user.click(screen.getByTestId('booking-card-booking-3'));
 
-      const modal = screen.getByTestId('booking-details-modal');
+      const modal = screen.getByRole('dialog');
       expect(within(modal).getByText('Change of plans')).toBeInTheDocument();
       expect(within(modal).getByText('Cancellation reason')).toBeInTheDocument();
     });
@@ -414,7 +418,7 @@ describe('MyBookingsPage', () => {
       await user.click(screen.getByTestId('booking-details-close'));
 
       // Switch to history tab for completed and cancelled bookings
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // Open completed booking modal - should NOT have cancel button
       await user.click(screen.getByTestId('booking-card-booking-2'));
@@ -434,11 +438,14 @@ describe('MyBookingsPage', () => {
       await user.click(screen.getByTestId('booking-card-booking-1'));
       await user.click(screen.getByTestId('booking-details-cancel'));
 
-      // Details modal should close
-      expect(screen.queryByTestId('booking-details-modal')).not.toBeInTheDocument();
+      // Details modal should close — its content is gone, replaced by the
+      // cancel-confirmation dialog (both render as role="dialog", so content
+      // unique to the details modal body — not also shown on the booking
+      // card underneath — is the reliable way to tell them apart here).
+      expect(screen.queryByTestId('booking-nights-count')).not.toBeInTheDocument();
 
       // Cancel confirmation modal should open
-      expect(screen.getByTestId('cancel-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Cancel Booking')).toBeInTheDocument();
       expect(screen.getByText('Are you sure?')).toBeInTheDocument();
     });
@@ -451,10 +458,10 @@ describe('MyBookingsPage', () => {
       await user.click(screen.getByTestId('booking-card-booking-1'));
       await user.click(screen.getByTestId('booking-details-cancel'));
 
-      expect(screen.getByTestId('cancel-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       await user.click(screen.getByTestId('cancel-modal-close'));
-      expect(screen.queryByTestId('cancel-modal')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('should call mutate when confirming cancellation', async () => {
@@ -494,7 +501,7 @@ describe('MyBookingsPage', () => {
 
       const card = screen.getByTestId('booking-card-booking-1');
       const badge = within(card).getByText('Confirmed');
-      expect(badge).toHaveClass('bg-green-100', 'text-green-800');
+      expect(badge).toHaveAttribute('data-tone', 'success');
     });
 
     it('should display cancelled status with red badge', async () => {
@@ -503,11 +510,11 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // booking-3 is cancelled and in history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       const card = screen.getByTestId('booking-card-booking-3');
       const badge = within(card).getByText('Cancelled');
-      expect(badge).toHaveClass('bg-red-100', 'text-red-800');
+      expect(badge).toHaveAttribute('data-tone', 'error');
     });
 
     it('should display completed status with blue badge', async () => {
@@ -516,11 +523,11 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // booking-2 is completed and in history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       const card = screen.getByTestId('booking-card-booking-2');
       const badge = within(card).getByText('Completed');
-      expect(badge).toHaveClass('bg-brand-100', 'text-brand-800');
+      expect(badge).toHaveAttribute('data-tone', 'brand');
     });
   });
 
@@ -547,19 +554,19 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      expect(screen.getByTestId('tab-current')).toBeInTheDocument();
-      expect(screen.getByTestId('tab-history')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Current Bookings/ })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Booking History/ })).toBeInTheDocument();
     });
 
     it('should show Current Bookings tab as active by default', async () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      const currentTab = screen.getByTestId('tab-current');
-      const historyTab = screen.getByTestId('tab-history');
+      const currentTab = screen.getByRole('tab', { name: /Current Bookings/ });
+      const historyTab = screen.getByRole('tab', { name: /Booking History/ });
 
-      expect(currentTab).toHaveClass('border-primary-500', 'text-primary-600');
-      expect(historyTab).toHaveClass('border-transparent', 'text-stone-500');
+      expect(currentTab).toHaveAttribute('aria-selected', 'true');
+      expect(historyTab).toHaveAttribute('aria-selected', 'false');
     });
 
     it('should display booking counts in tab labels', async () => {
@@ -572,8 +579,8 @@ describe('MyBookingsPage', () => {
       // booking-4 is confirmed + past = history
       // booking-5 is cancelled by admin = history
       // So: current = 1, history = 4
-      expect(screen.getByTestId('tab-current')).toHaveTextContent('Current Bookings (1)');
-      expect(screen.getByTestId('tab-history')).toHaveTextContent('Booking History (4)');
+      expect(screen.getByRole('tab', { name: /Current Bookings/ })).toHaveTextContent('Current Bookings (1)');
+      expect(screen.getByRole('tab', { name: /Booking History/ })).toHaveTextContent('Booking History (4)');
     });
   });
 
@@ -583,10 +590,10 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      const historyTab = screen.getByTestId('tab-history');
+      const historyTab = screen.getByRole('tab', { name: /Booking History/ });
       await user.click(historyTab);
 
-      expect(historyTab).toHaveClass('border-primary-500', 'text-primary-600');
+      expect(historyTab).toHaveAttribute('aria-selected', 'true');
     });
 
     it('should update active tab styling on switch', async () => {
@@ -594,22 +601,22 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      const currentTab = screen.getByTestId('tab-current');
-      const historyTab = screen.getByTestId('tab-history');
+      const currentTab = screen.getByRole('tab', { name: /Current Bookings/ });
+      const historyTab = screen.getByRole('tab', { name: /Booking History/ });
 
       // Initially current is active
-      expect(currentTab).toHaveClass('border-primary-500');
-      expect(historyTab).toHaveClass('border-transparent');
+      expect(currentTab).toHaveAttribute('aria-selected', 'true');
+      expect(historyTab).toHaveAttribute('aria-selected', 'false');
 
       // Switch to history
       await user.click(historyTab);
-      expect(historyTab).toHaveClass('border-primary-500');
-      expect(currentTab).toHaveClass('border-transparent');
+      expect(historyTab).toHaveAttribute('aria-selected', 'true');
+      expect(currentTab).toHaveAttribute('aria-selected', 'false');
 
       // Switch back to current
       await user.click(currentTab);
-      expect(currentTab).toHaveClass('border-primary-500');
-      expect(historyTab).toHaveClass('border-transparent');
+      expect(currentTab).toHaveAttribute('aria-selected', 'true');
+      expect(historyTab).toHaveAttribute('aria-selected', 'false');
     });
   });
 
@@ -658,7 +665,7 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-2 is completed
       expect(screen.getByTestId('booking-card-booking-2')).toBeInTheDocument();
@@ -669,7 +676,7 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-3 is cancelled
       expect(screen.getByTestId('booking-card-booking-3')).toBeInTheDocument();
@@ -680,7 +687,7 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-4 is confirmed but past (2025-12-01)
       expect(screen.getByTestId('booking-card-booking-4')).toBeInTheDocument();
@@ -691,7 +698,7 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-1 is confirmed + future
       expect(screen.queryByTestId('booking-card-booking-1')).not.toBeInTheDocument();
@@ -746,7 +753,7 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       expect(screen.getByText('No past bookings')).toBeInTheDocument();
     });
@@ -760,7 +767,7 @@ describe('MyBookingsPage', () => {
 
       await user.click(screen.getByTestId('booking-card-booking-1'));
 
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should open details modal when clicking card in history tab', async () => {
@@ -768,10 +775,10 @@ describe('MyBookingsPage', () => {
       render(<MyBookingsPage />, { wrapper });
       await waitForBookingsLoaded();
 
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
       await user.click(screen.getByTestId('booking-card-booking-2'));
 
-      expect(screen.getByTestId('booking-details-modal')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should show cancel button only for current bookings in modal', async () => {
@@ -785,7 +792,7 @@ describe('MyBookingsPage', () => {
       await user.click(screen.getByTestId('booking-details-close'));
 
       // Open history booking - should NOT have cancel button
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
       await user.click(screen.getByTestId('booking-card-booking-2'));
       expect(screen.queryByTestId('booking-details-cancel')).not.toBeInTheDocument();
     });
@@ -798,7 +805,7 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // Switch to history tab to see the admin-cancelled booking
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-5 is cancelled by admin
       const adminCancelledCard = screen.getByTestId('booking-card-booking-5');
@@ -815,7 +822,7 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // Switch to history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-3 is cancelled by user (cancelledByAdmin=false)
       const userCancelledCard = screen.getByTestId('booking-card-booking-3');
@@ -832,12 +839,12 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // Switch to history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // Click on the admin-cancelled booking
       await user.click(screen.getByTestId('booking-card-booking-5'));
 
-      const modal = screen.getByTestId('booking-details-modal');
+      const modal = screen.getByRole('dialog');
 
       // Should show the cancellation reason
       expect(within(modal).getByText('Policy violation - no show')).toBeInTheDocument();
@@ -850,17 +857,17 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // Switch to history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // booking-3 (user cancelled) should have red badge
       const userCancelledCard = screen.getByTestId('booking-card-booking-3');
       const userBadge = within(userCancelledCard).getByText('Cancelled');
-      expect(userBadge).toHaveClass('bg-red-100', 'text-red-800');
+      expect(userBadge).toHaveAttribute('data-tone', 'error');
 
       // booking-5 (admin cancelled) should have amber/orange badge
       const adminCancelledCard = screen.getByTestId('booking-card-booking-5');
       const adminBadge = within(adminCancelledCard).getByText('Cancelled by Admin');
-      expect(adminBadge).toHaveClass('bg-amber-100', 'text-amber-800');
+      expect(adminBadge).toHaveAttribute('data-tone', 'warning');
     });
 
     it('should differentiate admin and user cancelled bookings in the modal', async () => {
@@ -869,17 +876,17 @@ describe('MyBookingsPage', () => {
       await waitForBookingsLoaded();
 
       // Switch to history tab
-      await user.click(screen.getByTestId('tab-history'));
+      await user.click(screen.getByRole('tab', { name: /Booking History/ }));
 
       // Open user-cancelled booking modal
       await user.click(screen.getByTestId('booking-card-booking-3'));
-      let modal = screen.getByTestId('booking-details-modal');
+      let modal = screen.getByRole('dialog');
       expect(within(modal).getByText('Cancelled')).toBeInTheDocument();
       await user.click(screen.getByTestId('booking-details-close'));
 
       // Open admin-cancelled booking modal
       await user.click(screen.getByTestId('booking-card-booking-5'));
-      modal = screen.getByTestId('booking-details-modal');
+      modal = screen.getByRole('dialog');
       expect(within(modal).getByText('Cancelled by Admin')).toBeInTheDocument();
     });
   });

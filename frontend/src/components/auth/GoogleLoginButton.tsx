@@ -2,78 +2,30 @@ import { useTranslation } from 'react-i18next';
 import { initiateOAuth, checkPWAInstallPrompt } from '../../utils/pwaUtils';
 
 interface GoogleLoginButtonProps {
-  theme?: 'light' | 'dark' | 'neutral';
   variant?: 'signIn' | 'continue';
 }
 
-export default function GoogleLoginButton({ theme = 'light', variant = 'signIn' }: GoogleLoginButtonProps) {
+export default function GoogleLoginButton({ variant = 'signIn' }: GoogleLoginButtonProps) {
   const { t } = useTranslation();
-  
+
   const handleGoogleClick = () => {
     // Check for PWA install prompt availability
     checkPWAInstallPrompt();
-    
+
     // Use PWA-aware OAuth initiation
     initiateOAuth('google');
   };
 
-  // Official Google branding guidelines colors and styles
-  const getThemeStyles = () => {
-    switch (theme) {
-      case 'dark':
-        return {
-          background: '#131314',
-          border: '#8E918F',
-          text: '#E3E3E3',
-          hover: '#292a2d'
-        };
-      case 'neutral':
-        return {
-          background: '#F2F2F2',
-          border: 'transparent',
-          text: '#1F1F1F',
-          hover: '#e8e8e8'
-        };
-      default: // light
-        return {
-          background: '#FFFFFF',
-          border: '#747775',
-          text: '#1F1F1F',
-          hover: '#F8F9FA'
-        };
-    }
-  };
-
-  const themeStyles = getThemeStyles();
-
   return (
     <button
+      type="button"
       onClick={handleGoogleClick}
-      className="w-full flex justify-center items-center px-3 py-2 rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-      style={{
-        backgroundColor: themeStyles.background,
-        border: `1px solid ${themeStyles.border}`,
-        color: themeStyles.text,
-        fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        fontSize: '14px',
-        fontWeight: '500',
-        height: '44px'
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.backgroundColor = themeStyles.hover;
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.backgroundColor = themeStyles.background;
-      }}
+      className="flex h-11 w-full items-center justify-center gap-3 rounded-full border border-hairline-strong bg-surface-card px-5.5 text-body text-ink transition hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
     >
-      {/* Official Google "G" logo SVG */}
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        className="mr-3"
-        style={{ flexShrink: 0 }}
-      >
+      {/* Official Google "G" logo SVG — brand colors are mandated and kept
+          exactly as Google's guidelines specify, independent of the button
+          chrome around it. */}
+      <svg width="20" height="20" viewBox="0 0 24 24" className="flex-shrink-0" aria-hidden="true">
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

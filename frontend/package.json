@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --report-unused-disable-directives",
+    "lint": "eslint . --report-unused-disable-directives && node scripts/check-design.cjs",
     "lint:strict": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@line/liff": "^2.29.1",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.90.11",
     "axios": "^1.16.0",
@@ -42,6 +43,7 @@
     "react-i18next": "^16.5.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.15.0",
+    "tailwind-merge": "^3.6.0",
     "zod": "^4.1.13",
     "zustand": "^4.4.7"
   },

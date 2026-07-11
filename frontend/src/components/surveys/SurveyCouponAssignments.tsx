@@ -12,6 +12,17 @@ import { Coupon } from '../../types/coupon';
 import { surveyService } from '../../services/surveyService';
 import { couponService } from '../../services/couponService';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
+import { FormField } from '../ui/FormField';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
+import { Skeleton } from '../ui/Skeleton';
+import { EmptyState } from '../ui/EmptyState';
+import { Table, type TableColumn } from '../ui/Table';
 
 interface SurveyCouponAssignmentsProps {
   surveyId: string;
@@ -35,6 +46,9 @@ interface EditAssignmentModalProps {
   assignment: SurveyCouponDetails | null;
 }
 
+const ASSIGN_COUPON_FORM_ID = 'assign-coupon-form';
+const EDIT_ASSIGNMENT_FORM_ID = 'edit-assignment-form';
+
 const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
   isOpen,
   onClose,
@@ -51,7 +65,7 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
   const [assignedReason, setAssignedReason] = useState('Survey completion reward');
 
   const assignedCouponIds = new Set(existingAssignments.map(a => a.coupon_id));
-  const availableCoupons = coupons.filter(c => 
+  const availableCoupons = coupons.filter(c =>
     c.status === 'active' && !assignedCouponIds.has(c.id)
   );
 
@@ -77,127 +91,99 @@ const AssignCouponModal: React.FC<AssignCouponModalProps> = ({
     setAssignedReason('Survey completion reward');
   };
 
-  if (!isOpen) {return null;}
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-stone-900 mb-4">
-            {t('surveys.admin.couponAssignment.assignCoupon')}
-          </h3>
-
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              {/* Coupon Selection */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('coupons.coupon')} *
-                </label>
-                <select
-                  value={selectedCouponId}
-                  onChange={(e) => setSelectedCouponId(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  required
-                >
-                  <option value="">{t('surveys.admin.couponAssignment.selectCoupon')}</option>
-                  {availableCoupons.map(coupon => (
-                    <option key={coupon.id} value={coupon.id}>
-                      {coupon.code} - {coupon.name}
-                      {coupon.type === 'percentage' && ` (${coupon.value}% off)`}
-                      {coupon.type === 'fixed_amount' && ` (${coupon.currency} ${coupon.value} off)`}
-                    </option>
-                  ))}
-                </select>
-                {availableCoupons.length === 0 && (
-                  <p className="text-sm text-stone-500 mt-1">
-                    {t('surveys.admin.couponAssignment.noAvailableCoupons')}
-                  </p>
-                )}
-              </div>
-
-              {/* Award Condition - Always completion */}
-              <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-brand-900 mb-2 flex items-center">
-                  <FiGift className="mr-2" />
-                  {t('surveys.admin.couponAssignment.rewardCondition')}
-                </h4>
-                <p className="text-sm text-brand-700">
-                  {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
-                </p>
-              </div>
-
-              {/* Max Awards */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.maxAwards')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={maxAwards ?? ''}
-                  onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={t('surveys.admin.couponAssignment.unlimited')}
-                />
-                <p className="text-xs text-stone-500 mt-1">
-                  {t('surveys.admin.couponAssignment.maxAwardsHelp')}
-                </p>
-              </div>
-
-              {/* Custom Expiry */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.customExpiry')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={customExpiryDays ?? ''}
-                  onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
-                />
-                <p className="text-xs text-stone-500 mt-1">
-                  {t('surveys.admin.couponAssignment.customExpiryHelp')}
-                </p>
-              </div>
-
-              {/* Assigned Reason */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.reason')}
-                </label>
-                <textarea
-                  value={assignedReason}
-                  onChange={(e) => setAssignedReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  rows={2}
-                  placeholder={t('surveys.admin.couponAssignment.reasonPlaceholder')}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-stone-700 bg-stone-200 rounded-md hover:bg-stone-300 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={!selectedCouponId}
-                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {t('surveys.admin.couponAssignment.assign')}
-              </button>
-            </div>
-          </form>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={t('surveys.admin.couponAssignment.assignCoupon')}
+      size="md"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" form={ASSIGN_COUPON_FORM_ID} variant="primary" disabled={!selectedCouponId}>
+            {t('surveys.admin.couponAssignment.assign')}
+          </Button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <form id={ASSIGN_COUPON_FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+        {/* Coupon Selection */}
+        <FormField label={`${t('coupons.coupon')} *`} htmlFor="assign-coupon-select">
+          <Select
+            value={selectedCouponId}
+            onChange={(e) => setSelectedCouponId(e.target.value)}
+            required
+          >
+            <option value="">{t('surveys.admin.couponAssignment.selectCoupon')}</option>
+            {availableCoupons.map(coupon => (
+              <option key={coupon.id} value={coupon.id}>
+                {coupon.code} - {coupon.name}
+                {coupon.type === 'percentage' && ` (${coupon.value}% off)`}
+                {coupon.type === 'fixed_amount' && ` (${coupon.currency} ${coupon.value} off)`}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+        {availableCoupons.length === 0 && (
+          <p className="-mt-2 text-caption text-ink-muted">
+            {t('surveys.admin.couponAssignment.noAvailableCoupons')}
+          </p>
+        )}
+
+        {/* Award Condition - Always completion */}
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4">
+          <h4 className="mb-2 flex items-center gap-2 text-caption font-semibold text-brand-900">
+            <FiGift className="h-4 w-4" aria-hidden="true" />
+            {t('surveys.admin.couponAssignment.rewardCondition')}
+          </h4>
+          <p className="text-caption text-brand-700">
+            {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
+          </p>
+        </div>
+
+        {/* Max Awards */}
+        <FormField
+          label={t('surveys.admin.couponAssignment.maxAwards')}
+          htmlFor="assign-max-awards"
+          hint={t('surveys.admin.couponAssignment.maxAwardsHelp')}
+        >
+          <Input
+            type="number"
+            min="1"
+            value={maxAwards ?? ''}
+            onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
+            placeholder={t('surveys.admin.couponAssignment.unlimited')}
+          />
+        </FormField>
+
+        {/* Custom Expiry */}
+        <FormField
+          label={t('surveys.admin.couponAssignment.customExpiry')}
+          htmlFor="assign-custom-expiry"
+          hint={t('surveys.admin.couponAssignment.customExpiryHelp')}
+        >
+          <Input
+            type="number"
+            min="1"
+            value={customExpiryDays ?? ''}
+            onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
+            placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
+          />
+        </FormField>
+
+        {/* Assigned Reason */}
+        <FormField label={t('surveys.admin.couponAssignment.reason')} htmlFor="assign-reason">
+          <Textarea
+            value={assignedReason}
+            onChange={(e) => setAssignedReason(e.target.value)}
+            rows={2}
+            placeholder={t('surveys.admin.couponAssignment.reasonPlaceholder')}
+          />
+        </FormField>
+      </form>
+    </Modal>
   );
 };
 
@@ -233,112 +219,109 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({
     });
   };
 
-  if (!isOpen || !assignment) {return null;}
+  if (!assignment) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-stone-900 mb-4">
-            {t('surveys.couponAssignment.editAssignment')}
-          </h3>
-          <p className="text-sm text-stone-600 mb-4">
-            {t('coupons.coupon')}: <strong>{assignment.coupon_code} - {assignment.coupon_name}</strong>
-          </p>
-
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              {/* Active Status */}
-              <div>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    className="rounded border-stone-300 text-brand-600 shadow-sm focus:border-brand-300 focus:ring focus:ring-brand-200 focus:ring-opacity-50"
-                  />
-                  <span className="ml-2 text-sm text-stone-700">
-                    {t('common.active')}
-                  </span>
-                </label>
-              </div>
-
-              {/* Award Condition - Always completion */}
-              <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-brand-900 mb-2 flex items-center">
-                  <FiGift className="mr-2" />
-                  {t('surveys.admin.couponAssignment.rewardCondition')}
-                </h4>
-                <p className="text-sm text-brand-700">
-                  {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
-                </p>
-              </div>
-
-              {/* Max Awards */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.maxAwards')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={maxAwards ?? ''}
-                  onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={t('surveys.admin.couponAssignment.unlimited')}
-                />
-              </div>
-
-              {/* Custom Expiry */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.customExpiry')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={customExpiryDays ?? ''}
-                  onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
-                />
-              </div>
-
-              {/* Assigned Reason */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  {t('surveys.admin.couponAssignment.reason')}
-                </label>
-                <textarea
-                  value={assignedReason}
-                  onChange={(e) => setAssignedReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-stone-700 bg-stone-200 rounded-md hover:bg-stone-300 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
-              >
-                {t('common.save')}
-              </button>
-            </div>
-          </form>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={t('surveys.couponAssignment.editAssignment')}
+      size="md"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" form={EDIT_ASSIGNMENT_FORM_ID} variant="primary">
+            {t('common.save')}
+          </Button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="mb-4 text-caption text-ink-muted">
+        {t('coupons.coupon')}: <strong className="text-ink">{assignment.coupon_code} - {assignment.coupon_name}</strong>
+      </p>
+
+      <form id={EDIT_ASSIGNMENT_FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+        {/* Active Status */}
+        <div className="flex items-center">
+          <input
+            id="edit-assignment-active"
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600"
+          />
+          <label htmlFor="edit-assignment-active" className="ml-2 text-caption text-ink">
+            {t('common.active')}
+          </label>
+        </div>
+
+        {/* Award Condition - Always completion */}
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4">
+          <h4 className="mb-2 flex items-center gap-2 text-caption font-semibold text-brand-900">
+            <FiGift className="h-4 w-4" aria-hidden="true" />
+            {t('surveys.admin.couponAssignment.rewardCondition')}
+          </h4>
+          <p className="text-caption text-brand-700">
+            {t('surveys.admin.couponAssignment.alwaysOnCompletion')}
+          </p>
+        </div>
+
+        {/* Max Awards */}
+        <FormField label={t('surveys.admin.couponAssignment.maxAwards')} htmlFor="edit-max-awards">
+          <Input
+            type="number"
+            min="1"
+            value={maxAwards ?? ''}
+            onChange={(e) => setMaxAwards(e.target.value ? parseInt(e.target.value) : undefined)}
+            placeholder={t('surveys.admin.couponAssignment.unlimited')}
+          />
+        </FormField>
+
+        {/* Custom Expiry */}
+        <FormField label={t('surveys.admin.couponAssignment.customExpiry')} htmlFor="edit-custom-expiry">
+          <Input
+            type="number"
+            min="1"
+            value={customExpiryDays ?? ''}
+            onChange={(e) => setCustomExpiryDays(e.target.value ? parseInt(e.target.value) : undefined)}
+            placeholder={t('surveys.admin.couponAssignment.useCouponExpiry')}
+          />
+        </FormField>
+
+        {/* Assigned Reason */}
+        <FormField label={t('surveys.admin.couponAssignment.reason')} htmlFor="edit-reason">
+          <Textarea
+            value={assignedReason}
+            onChange={(e) => setAssignedReason(e.target.value)}
+            rows={2}
+          />
+        </FormField>
+      </form>
+    </Modal>
   );
 };
+
+function couponValueLabel(
+  t: (key: string) => string,
+  assignment: SurveyCouponDetails
+): string {
+  switch (assignment.coupon_type) {
+    case 'percentage':
+      return `${assignment.coupon_value}% off`;
+    case 'fixed_amount':
+      return `${assignment.coupon_currency} ${assignment.coupon_value} off`;
+    case 'free_upgrade':
+      return t('coupons.freeUpgrade');
+    case 'free_service':
+      return t('coupons.freeService');
+    default:
+      return '';
+  }
+}
 
 const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
   surveyId,
@@ -445,132 +428,183 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-stone-200 rounded w-1/4 mb-4" />
-          <div className="space-y-3">
-            <div className="h-4 bg-stone-200 rounded" />
-            <div className="h-4 bg-stone-200 rounded w-5/6" />
-            <div className="h-4 bg-stone-200 rounded w-4/6" />
-          </div>
+      <Card>
+        <Skeleton className="mb-4 h-6 w-1/4" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
         </div>
-      </div>
+      </Card>
     );
   }
 
+  const columns: TableColumn<SurveyCouponDetails>[] = [
+    {
+      key: 'coupon',
+      header: t('coupons.coupon'),
+      cell: (assignment) => (
+        <div>
+          <p className="font-semibold text-ink">{assignment.coupon_code} - {assignment.coupon_name}</p>
+          {assignment.assigned_reason && (
+            <p className="mt-1 text-fine text-ink-muted">
+              {t('surveys.admin.couponAssignment.reason')}: {assignment.assigned_reason}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'value',
+      header: t('surveys.admin.couponAssignment.valueColumn'),
+      cell: (assignment) => (
+        <div className="flex items-center gap-2">
+          <FiGift className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
+          <span>{couponValueLabel(t, assignment)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'awarded',
+      header: t('surveys.admin.couponAssignment.awarded'),
+      cell: (assignment) => (
+        <div className="flex items-center gap-2">
+          <FiUsers className="h-4 w-4 flex-shrink-0 text-success-600" aria-hidden="true" />
+          <span>
+            {t('surveys.admin.couponAssignment.awarded')}: {assignment.awarded_count}
+            {assignment.max_awards ? ` / ${assignment.max_awards}` : ''}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('surveys.stats.status'),
+      cell: (assignment) => (
+        <Badge tone={assignment.is_active ? 'success' : 'neutral'}>
+          {assignment.is_active ? t('common.active') : t('common.inactive')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      cell: (assignment) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openEditModal(assignment)}
+            title={t('common.edit')}
+            aria-label={t('common.edit')}
+          >
+            <FiEdit className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setAssignmentToRemove(assignment.coupon_id);
+              setShowRemoveConfirm(true);
+            }}
+            title={t('common.remove')}
+            aria-label={t('common.remove')}
+          >
+            <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-stone-200">
-        <div className="flex justify-between items-center">
+    <Card padding="none">
+      <div className="border-b border-hairline p-6">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-medium text-stone-900">
+            <h3 className="text-title text-ink">
               {t('surveys.admin.couponAssignment.title')}
             </h3>
-            <p className="text-sm text-stone-500 mt-1">
+            <p className="mt-1 text-caption text-ink-muted">
               {t('surveys.admin.couponAssignment.description')}
             </p>
           </div>
-          <button
+          <Button
+            variant="primary"
             onClick={() => setShowAssignModal(true)}
-            className="flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
             disabled={surveyStatus !== 'active'}
           >
-            <FiPlus className="mr-2" />
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
             {t('surveys.admin.couponAssignment.assignCoupon')}
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="p-6">
-        {assignments.length === 0 ? (
-          <div className="text-center py-8">
-            <FiGift className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-            <p className="text-stone-500">{t('surveys.admin.couponAssignment.noAssignments')}</p>
-            <p className="text-sm text-stone-400 mt-2">
-              {t('surveys.admin.couponAssignment.noAssignmentsHelp')}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {assignments.map((assignment) => (
-              <div
-                key={assignment.assignment_id}
-                className="border border-stone-200 rounded-lg p-4 hover:bg-stone-50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h4 className="font-medium text-stone-900">
-                        {assignment.coupon_code} - {assignment.coupon_name}
-                      </h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        assignment.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-stone-100 text-stone-800'
-                      }`}
-                      >
-                        {assignment.is_active ? t('common.active') : t('common.inactive')}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-stone-600">
-                      <div className="flex items-center">
-                        <FiGift className="mr-2 text-brand-500" />
-                        <span>
-                          {assignment.coupon_type === 'percentage' && `${assignment.coupon_value}% off`}
-                          {assignment.coupon_type === 'fixed_amount' && `${assignment.coupon_currency} ${assignment.coupon_value} off`}
-                          {assignment.coupon_type === 'free_upgrade' && t('coupons.freeUpgrade')}
-                          {assignment.coupon_type === 'free_service' && t('coupons.freeService')}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <FiUsers className="mr-2 text-green-500" />
-                        <span>
-                          {t('surveys.admin.couponAssignment.awarded')}: {assignment.awarded_count}
-                          {assignment.max_awards && ` / ${assignment.max_awards}`}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <FiGift className="mr-2 text-orange-500" />
-                        <span>
-                          {t('surveys.admin.couponAssignment.awardedOnCompletion')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {assignment.assigned_reason && (
-                      <p className="text-sm text-stone-500 mt-2">
-                        {t('surveys.admin.couponAssignment.reason')}: {assignment.assigned_reason}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => openEditModal(assignment)}
-                      className="p-2 text-stone-400 hover:text-brand-600 transition-colors"
-                      title={t('common.edit')}
-                    >
-                      <FiEdit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setAssignmentToRemove(assignment.coupon_id);
-                        setShowRemoveConfirm(true);
-                      }}
-                      className="p-2 text-stone-400 hover:text-red-600 transition-colors"
-                      title={t('common.remove')}
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+        <Table
+          columns={columns}
+          rows={assignments}
+          rowKey={(assignment) => assignment.assignment_id}
+          empty={
+            <EmptyState
+              icon={FiGift}
+              title={t('surveys.admin.couponAssignment.noAssignments')}
+              description={t('surveys.admin.couponAssignment.noAssignmentsHelp')}
+            />
+          }
+          mobileCard={(assignment) => (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-body font-semibold text-ink">
+                  {assignment.coupon_code} - {assignment.coupon_name}
+                </p>
+                <Badge tone={assignment.is_active ? 'success' : 'neutral'}>
+                  {assignment.is_active ? t('common.active') : t('common.inactive')}
+                </Badge>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex items-center gap-2 text-caption text-ink">
+                <FiGift className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
+                <span>{couponValueLabel(t, assignment)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-caption text-ink-muted">
+                <FiUsers className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>
+                  {t('surveys.admin.couponAssignment.awarded')}: {assignment.awarded_count}
+                  {assignment.max_awards ? ` / ${assignment.max_awards}` : ''}
+                </span>
+              </div>
+              {assignment.assigned_reason && (
+                <p className="text-fine text-ink-muted">
+                  {t('surveys.admin.couponAssignment.reason')}: {assignment.assigned_reason}
+                </p>
+              )}
+              <div className="flex justify-end gap-1 pt-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEditModal(assignment)}
+                  title={t('common.edit')}
+                  aria-label={t('common.edit')}
+                >
+                  <FiEdit className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setAssignmentToRemove(assignment.coupon_id);
+                    setShowRemoveConfirm(true);
+                  }}
+                  title={t('common.remove')}
+                  aria-label={t('common.remove')}
+                >
+                  <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          )}
+        />
       </div>
 
       <AssignCouponModal
@@ -606,7 +640,7 @@ const SurveyCouponAssignments: React.FC<SurveyCouponAssignmentsProps> = ({
         }}
         variant="danger"
       />
-    </div>
+    </Card>
   );
 };
 

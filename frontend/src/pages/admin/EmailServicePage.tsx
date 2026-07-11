@@ -1,34 +1,51 @@
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import DashboardButton from '../../components/navigation/DashboardButton';
-import { FiMail, FiCheck, FiX, FiRefreshCw } from 'react-icons/fi';
+import { FiMail, FiCheck, FiX } from 'react-icons/fi';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader, Card, Button, Badge } from '../../components/ui';
+
+// Backend endpoint missing. Tracked in docs/admin-backend-gaps.md.
+// TODO: Replace with REST service when Rust admin email endpoints are implemented
+interface EmailStatus {
+  configured: boolean;
+  smtpConnected: boolean;
+  imapConnected: boolean;
+  lastTestResult?: {
+    success: boolean;
+    timestamp: string;
+    deliveryTimeMs?: number;
+    error?: string;
+  };
+}
+
+interface TestResult {
+  success: boolean;
+  testId?: string;
+  smtpSent?: boolean;
+  imapReceived?: boolean;
+  deliveryTimeMs?: number;
+  error?: string;
+}
+
+function StatusRow({ label, description, isConnected }: { label: string; description: string; isConnected: boolean }) {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-lg bg-surface-sunken">
+      <div>
+        <div className="font-semibold text-ink">{label}</div>
+        <div className="text-caption text-ink-muted">{description}</div>
+      </div>
+      {isConnected ? (
+        <FiCheck className="h-6 w-6 text-success-700" aria-hidden="true" />
+      ) : (
+        <FiX className="h-6 w-6 text-error-700" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
 
 export default function EmailServicePage() {
   const { t } = useTranslation();
-
-  // Backend endpoint missing. Tracked in docs/admin-backend-gaps.md.
-  // TODO: Replace with REST service when Rust admin email endpoints are implemented
-  interface EmailStatus {
-    configured: boolean;
-    smtpConnected: boolean;
-    imapConnected: boolean;
-    lastTestResult?: {
-      success: boolean;
-      timestamp: string;
-      deliveryTimeMs?: number;
-      error?: string;
-    };
-  }
-
-  interface TestResult {
-    success: boolean;
-    testId?: string;
-    smtpSent?: boolean;
-    imapReceived?: boolean;
-    deliveryTimeMs?: number;
-    error?: string;
-  }
 
   // Fetch email service status
   const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery<EmailStatus | null>({
@@ -65,220 +82,132 @@ export default function EmailServicePage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-stone-900 flex items-center">
-                <FiMail className="w-8 h-8 mr-3 text-brand-600" />
-                {t('emailService.title')}
-              </h1>
-              <p className="text-stone-600 mt-1">
-                {t('emailService.description')}
-              </p>
-            </div>
+    <AppShell variant="admin" title={t('emailService.title')}>
+      <PageHeader density="admin" title={t('emailService.title')} subtitle={t('emailService.description')} />
 
-            <div className="mt-4 sm:mt-0">
-              <DashboardButton variant="outline" size="md" />
-            </div>
+      {/* Status Card */}
+      <Card className="mb-6">
+        <h2 className="text-title text-ink mb-4">{t('emailService.status.title')}</h2>
+
+        {statusLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
+            <p className="mt-4 text-caption text-ink-muted">{t('common.loading')}</p>
           </div>
-        </div>
+        ) : status ? (
+          <div className="space-y-4">
+            <StatusRow
+              label="Email Configuration"
+              description={status.configured ? t('emailService.status.configured') : t('emailService.status.notConfigured')}
+              isConnected={status.configured}
+            />
+            <StatusRow
+              label="SMTP Connection"
+              description={status.smtpConnected ? t('emailService.status.smtpConnected') : t('emailService.status.smtpDisconnected')}
+              isConnected={status.smtpConnected}
+            />
+            <StatusRow
+              label="IMAP Connection"
+              description={status.imapConnected ? t('emailService.status.imapConnected') : t('emailService.status.imapDisconnected')}
+              isConnected={status.imapConnected}
+            />
 
-        {/* Status Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-4">
-            {t('emailService.status.title')}
-          </h2>
-
-          {statusLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
-              <p className="mt-4 text-stone-600">{t('common.loading')}</p>
-            </div>
-          ) : status ? (
-            <div className="space-y-4">
-              {/* Configuration Status */}
-              <div className="flex items-center justify-between p-4 bg-stone-50 rounded-lg">
-                <div>
-                  <div className="font-medium text-stone-900">
-                    Email Configuration
+            {/* Last Test Result */}
+            {status.lastTestResult && (
+              <Card surface="sunken" padding="md" className={status.lastTestResult.success ? 'border border-success-600' : 'border border-error-600'}>
+                <div className="font-semibold text-ink mb-2">{t('emailService.lastTest')}</div>
+                <div className="grid grid-cols-2 gap-2 text-caption">
+                  <div>
+                    <span className="text-ink-muted">Status:</span>
+                    <Badge tone={status.lastTestResult.success ? 'success' : 'error'} size="sm" className="ml-2">
+                      {status.lastTestResult.success ? 'Passed' : 'Failed'}
+                    </Badge>
                   </div>
-                  <div className="text-sm text-stone-500">
-                    {status.configured
-                      ? t('emailService.status.configured')
-                      : t('emailService.status.notConfigured')
-                    }
+                  <div>
+                    <span className="text-ink-muted">Time:</span>
+                    <span className="ml-2 text-ink">
+                      {new Date(status.lastTestResult.timestamp).toLocaleString()}
+                    </span>
                   </div>
-                </div>
-                {status.configured ? (
-                  <FiCheck className="w-6 h-6 text-green-600" />
-                ) : (
-                  <FiX className="w-6 h-6 text-red-600" />
-                )}
-              </div>
-
-              {/* SMTP Status */}
-              <div className="flex items-center justify-between p-4 bg-stone-50 rounded-lg">
-                <div>
-                  <div className="font-medium text-stone-900">
-                    SMTP Connection
-                  </div>
-                  <div className="text-sm text-stone-500">
-                    {status.smtpConnected
-                      ? t('emailService.status.smtpConnected')
-                      : t('emailService.status.smtpDisconnected')
-                    }
-                  </div>
-                </div>
-                {status.smtpConnected ? (
-                  <FiCheck className="w-6 h-6 text-green-600" />
-                ) : (
-                  <FiX className="w-6 h-6 text-red-600" />
-                )}
-              </div>
-
-              {/* IMAP Status */}
-              <div className="flex items-center justify-between p-4 bg-stone-50 rounded-lg">
-                <div>
-                  <div className="font-medium text-stone-900">
-                    IMAP Connection
-                  </div>
-                  <div className="text-sm text-stone-500">
-                    {status.imapConnected
-                      ? t('emailService.status.imapConnected')
-                      : t('emailService.status.imapDisconnected')
-                    }
-                  </div>
-                </div>
-                {status.imapConnected ? (
-                  <FiCheck className="w-6 h-6 text-green-600" />
-                ) : (
-                  <FiX className="w-6 h-6 text-red-600" />
-                )}
-              </div>
-
-              {/* Last Test Result */}
-              {status.lastTestResult && (
-                <div
-                  className={`p-4 rounded-lg border ${
-                    status.lastTestResult.success
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}
-                >
-                  <div className="font-medium text-stone-900 mb-2">
-                    {t('emailService.lastTest')}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  {status.lastTestResult.deliveryTimeMs && (
                     <div>
-                      <span className="text-stone-500">Status:</span>
-                      <span className={`ml-2 font-medium ${status.lastTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
-                        {status.lastTestResult.success ? 'Passed' : 'Failed'}
-                      </span>
+                      <span className="text-ink-muted">Delivery:</span>
+                      <span className="ml-2 text-ink">{status.lastTestResult.deliveryTimeMs}ms</span>
                     </div>
-                    <div>
-                      <span className="text-stone-500">Time:</span>
-                      <span className="ml-2 text-stone-900">
-                        {new Date(status.lastTestResult.timestamp).toLocaleString()}
-                      </span>
+                  )}
+                  {status.lastTestResult.error && (
+                    <div className="col-span-2">
+                      <span className="text-ink-muted">Error:</span>
+                      <span className="ml-2 text-error-700">{status.lastTestResult.error}</span>
                     </div>
-                    {status.lastTestResult.deliveryTimeMs && (
-                      <div>
-                        <span className="text-stone-500">Delivery:</span>
-                        <span className="ml-2 text-stone-900">{status.lastTestResult.deliveryTimeMs}ms</span>
-                      </div>
-                    )}
-                    {status.lastTestResult.error && (
-                      <div className="col-span-2">
-                        <span className="text-stone-500">Error:</span>
-                        <span className="ml-2 text-red-600">{status.lastTestResult.error}</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-caption text-ink-muted">
+            {t('common.error')}
+          </div>
+        )}
+      </Card>
+
+      {/* Test Controls */}
+      <Card>
+        <h2 className="text-title text-ink mb-4">Email Test</h2>
+
+        <p className="text-caption text-ink-muted mb-4">
+          Run a complete end-to-end test that sends an email via SMTP and verifies receipt via IMAP.
+        </p>
+
+        <Button onClick={handleRunTest} loading={testMutation.isPending}>
+          <FiMail className="h-4 w-4" aria-hidden="true" />
+          {testMutation.isPending ? t('emailService.test.running') : t('emailService.test.button')}
+        </Button>
+
+        {/* Test Results */}
+        {testMutation.data && (
+          <Card
+            surface="sunken"
+            padding="md"
+            className={`mt-4 border ${testMutation.data.success ? 'border-success-600' : 'border-error-600'}`}
+          >
+            <h3 className="font-semibold text-ink mb-2">
+              {t('emailService.results.title')}
+            </h3>
+            <div className="space-y-2 text-caption">
+              <div className="flex justify-between">
+                <span className="text-ink-muted">{t('emailService.results.testId')}:</span>
+                <span className="font-mono text-ink">{testMutation.data.testId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">{t('emailService.results.smtpSent')}:</span>
+                <span className={testMutation.data.smtpSent ? 'text-success-700' : 'text-error-700'}>
+                  {testMutation.data.smtpSent ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">{t('emailService.results.imapReceived')}:</span>
+                <span className={testMutation.data.imapReceived ? 'text-success-700' : 'text-error-700'}>
+                  {testMutation.data.imapReceived ? 'Yes' : 'No'}
+                </span>
+              </div>
+              {testMutation.data.deliveryTimeMs && (
+                <div className="flex justify-between">
+                  <span className="text-ink-muted">{t('emailService.results.deliveryTime')}:</span>
+                  <span className="text-ink">{testMutation.data.deliveryTimeMs}ms</span>
+                </div>
+              )}
+              {testMutation.data.error && (
+                <div className="mt-2 pt-2 border-t border-hairline">
+                  <span className="text-ink-muted">{t('emailService.results.error')}:</span>
+                  <p className="text-error-700 mt-1">{testMutation.data.error}</p>
                 </div>
               )}
             </div>
-          ) : (
-            <div className="text-center py-8 text-stone-500">
-              {t('common.error')}
-            </div>
-          )}
-        </div>
-
-        {/* Test Controls */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-stone-900 mb-4">
-            Email Test
-          </h2>
-
-          <p className="text-stone-600 mb-4">
-            Run a complete end-to-end test that sends an email via SMTP and verifies receipt via IMAP.
-          </p>
-
-          <button
-            onClick={handleRunTest}
-            disabled={testMutation.isPending}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {testMutation.isPending ? (
-              <>
-                <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                {t('emailService.test.running')}
-              </>
-            ) : (
-              <>
-                <FiMail className="w-4 h-4 mr-2" />
-                {t('emailService.test.button')}
-              </>
-            )}
-          </button>
-
-          {/* Test Results */}
-          {testMutation.data && (
-            <div
-              className={`mt-4 p-4 rounded-lg ${
-                testMutation.data.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-              }`}
-            >
-              <h3 className="font-medium mb-2 text-stone-900">
-                {t('emailService.results.title')}
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-stone-600">{t('emailService.results.testId')}:</span>
-                  <span className="font-mono text-stone-900">{testMutation.data.testId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-stone-600">{t('emailService.results.smtpSent')}:</span>
-                  <span className={testMutation.data.smtpSent ? 'text-green-600' : 'text-red-600'}>
-                    {testMutation.data.smtpSent ? 'Yes' : 'No'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-stone-600">{t('emailService.results.imapReceived')}:</span>
-                  <span className={testMutation.data.imapReceived ? 'text-green-600' : 'text-red-600'}>
-                    {testMutation.data.imapReceived ? 'Yes' : 'No'}
-                  </span>
-                </div>
-                {testMutation.data.deliveryTimeMs && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-600">{t('emailService.results.deliveryTime')}:</span>
-                    <span className="text-stone-900">{testMutation.data.deliveryTimeMs}ms</span>
-                  </div>
-                )}
-                {testMutation.data.error && (
-                  <div className="mt-2 pt-2 border-t border-red-300">
-                    <span className="text-stone-600">{t('emailService.results.error')}:</span>
-                    <p className="text-red-600 mt-1">{testMutation.data.error}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </Card>
+        )}
+      </Card>
+    </AppShell>
   );
 }

@@ -1,4 +1,4 @@
-/* eslint-disable curly, @typescript-eslint/no-non-null-assertion -- Test file uses single-line conditionals and non-null assertions */
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- Test file uses non-null assertions */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -37,6 +37,7 @@ const mockTranslate = vi.fn((key: string) => {
     'common.cancel': 'Cancel',
     'common.save': 'Save',
     'common.saving': 'Saving...',
+    'common.close': 'Close',
     'profile.dateOfBirth': 'Date of Birth',
     'profile.gender': 'Gender',
     'profile.occupation': 'Occupation',
@@ -185,9 +186,7 @@ describe('SettingsModal', () => {
     it('should render modal with backdrop', () => {
       render(<SettingsModal {...defaultProps} />, { wrapper });
 
-      const backdrop = document.querySelector('.bg-stone-500');
-      expect(backdrop).toBeInTheDocument();
-      expect(backdrop).toHaveClass('bg-opacity-75');
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should render modal title', () => {
@@ -196,10 +195,10 @@ describe('SettingsModal', () => {
       expect(screen.getByText('Edit Profile')).toBeInTheDocument();
     });
 
-    it('should render close button with X icon', () => {
+    it('should render a close button', () => {
       render(<SettingsModal {...defaultProps} />, { wrapper });
 
-      expect(screen.getByTestId('x-icon')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     });
   });
 
@@ -467,8 +466,7 @@ describe('SettingsModal', () => {
 
       expect(screen.getByTestId('emoji-selector')).toBeInTheDocument();
 
-      const closeButtons = screen.getAllByTestId('x-icon');
-      const selectorCloseButton = closeButtons[1]!;
+      const selectorCloseButton = screen.getByTestId('x-icon');
       await user.click(selectorCloseButton.parentElement!);
 
       await waitFor(() => {
@@ -693,8 +691,7 @@ describe('SettingsModal', () => {
       const onClose = vi.fn();
       render(<SettingsModal {...defaultProps} onClose={onClose} />, { wrapper });
 
-      const closeButton = screen.getByTestId('x-icon').parentElement;
-      if (!closeButton) throw new Error('Close button not found');
+      const closeButton = screen.getByRole('button', { name: 'Close' });
       await user.click(closeButton);
 
       expect(onClose).toHaveBeenCalled();
@@ -705,7 +702,7 @@ describe('SettingsModal', () => {
       const onClose = vi.fn();
       render(<SettingsModal {...defaultProps} onClose={onClose} />, { wrapper });
 
-      const backdrop = document.querySelector('.bg-stone-500') as HTMLElement;
+      const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
       await user.click(backdrop);
 
       expect(onClose).toHaveBeenCalled();

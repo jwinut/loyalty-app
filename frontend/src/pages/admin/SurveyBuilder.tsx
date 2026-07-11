@@ -5,12 +5,33 @@ import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSave, FiEye } from 'react-icons/fi';
 import { Survey, SurveyQuestion, CreateSurveyRequest, QuestionType, SurveyAccessType, SurveyStatus } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';
-import DashboardButton from '../../components/navigation/DashboardButton';
 import QuestionEditor from '../../components/surveys/QuestionEditor';
 import SurveyPreview from '../../components/surveys/SurveyPreview';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
+import AppShell from '../../components/layout/AppShell';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { FormField } from '../../components/ui/FormField';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Textarea } from '../../components/ui/Textarea';
+
+// Add-question palette: one entry per SurveyQuestion type this builder
+// supports. Rendered as a grid of tiles below the question list.
+const QUESTION_TYPE_BUTTONS: { type: QuestionType; labelKey: string }[] = [
+  { type: 'single_choice', labelKey: 'surveys.admin.questions.questionTypes.singleChoice' },
+  { type: 'multiple_choice', labelKey: 'surveys.admin.questions.questionTypes.multipleChoice' },
+  { type: 'text', labelKey: 'surveys.admin.questions.questionTypes.text' },
+  { type: 'textarea', labelKey: 'surveys.admin.questions.questionTypes.textarea' },
+  { type: 'rating_5', labelKey: 'surveys.admin.questions.questionTypes.rating5' },
+  { type: 'rating_10', labelKey: 'surveys.admin.questions.questionTypes.rating10' },
+  { type: 'yes_no', labelKey: 'surveys.admin.questions.questionTypes.yesNo' },
+];
 
 // Validation utility types and functions
 interface QuestionValidationError {
@@ -237,79 +258,11 @@ const SurveyBuilder: React.FC = () => {
     }
   }, [survey.questions, t]);
 
-  // Inject validation error highlighting CSS
-  useEffect(() => {
-    const styleId = 'validation-highlighting-styles';
-    
-    // Check if styles already exist
-    if (document.getElementById(styleId)) {
-      return;
-    }
-
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .validation-error-highlight {
-        border: 3px solid #ef4444 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
-        transition: all 0.3s ease-in-out !important;
-        animation: validation-pulse 0.5s ease-in-out !important;
-      }
-      
-      @keyframes validation-pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
-      }
-      
-      .validation-error-highlight textarea {
-        border-color: #ef4444 !important;
-        background-color: #fef2f2 !important;
-      }
-      
-      .validation-field-error {
-        border: 2px solid #ef4444 !important;
-        background-color: #fef2f2 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-        animation: field-error-pulse 0.6s ease-in-out !important;
-      }
-      
-      @keyframes field-error-pulse {
-        0% { 
-          transform: scale(1);
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-        }
-        50% { 
-          transform: scale(1.01);
-          box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.2);
-        }
-        100% { 
-          transform: scale(1);
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-        }
-      }
-      
-      .validation-field-error:focus {
-        border-color: #dc2626 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
-        background-color: #ffffff !important;
-      }
-      
-      .validation-error-highlight:hover {
-        border-color: #dc2626 !important;
-      }
-    `;
-
-    document.head.appendChild(style);
-
-    // Cleanup function to remove styles when component unmounts
-    return () => {
-      const existingStyle = document.getElementById(styleId);
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    };
-  }, []);
+  // Validation error highlighting: .validation-error-highlight /
+  // .validation-field-error and their keyframes now live as static,
+  // build-time CSS in src/styles/index.css (colors resolve through
+  // Tailwind's theme() there instead of hardcoded hex) — this component
+  // only toggles those class names, it no longer injects a <style> tag.
 
   const handleSurveyChange = (field: string, value: unknown) => {
     setSurvey(prev => ({
@@ -465,133 +418,101 @@ const SurveyBuilder: React.FC = () => {
     }
   };
 
+  const pageTitle = isEditing
+    ? t('surveys.admin.surveyBuilder.pageTitle.edit')
+    : t('surveys.admin.surveyBuilder.pageTitle.create');
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500" />
-            <span className="ml-3 text-stone-600">{t('surveys.admin.surveyBuilder.loading')}</span>
-          </div>
+      <AppShell variant="admin" title={pageTitle}>
+        <div className="mx-auto max-w-text space-y-6">
+          <Card><Skeleton className="h-40 w-full" /></Card>
+          <Card><Skeleton className="h-64 w-full" /></Card>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-stone-900">
-                {isEditing ? t('surveys.admin.surveyBuilder.pageTitle.edit') : t('surveys.admin.surveyBuilder.pageTitle.create')}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="inline-flex items-center px-3 py-2 border border-stone-300 shadow-sm text-sm leading-4 font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-              >
-                <FiEye className="mr-2 h-4 w-4" />
-                {showPreview ? t('surveys.admin.surveyBuilder.hidePreview') : t('surveys.admin.surveyBuilder.preview')}
-              </button>
-              <LanguageSwitcher />
-              <DashboardButton variant="outline" size="md" />
-            </div>
-          </div>
-        </div>
-      </header>
+    <AppShell variant="admin" title={pageTitle}>
+      <div className="mx-auto max-w-text">
+        <PageHeader
+          density="admin"
+          title={pageTitle}
+          backTo="/admin/surveys"
+          actions={
+            <Button variant="secondary" onClick={() => setShowPreview(!showPreview)}>
+              <FiEye className="h-4 w-4" aria-hidden="true" />
+              {showPreview ? t('surveys.admin.surveyBuilder.hidePreview') : t('surveys.admin.surveyBuilder.preview')}
+            </Button>
+          }
+        />
 
-      <div className="max-w-4xl mx-auto p-4">
         {showPreview ? (
           <SurveyPreview survey={survey as Survey} onClose={() => setShowPreview(false)} />
         ) : (
           <div className="space-y-6">
             {/* Basic Information */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-stone-900 mb-4">{t('surveys.admin.basicInfo.title')}</h2>
-              
+            <Card>
+              <h2 className="mb-4 text-title text-ink">{t('surveys.admin.basicInfo.title')}</h2>
+
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-stone-700">
-                    {t('surveys.admin.basicInfo.surveyTitle')}
-                  </label>
-                  <input
+                <FormField label={t('surveys.admin.basicInfo.surveyTitle')} htmlFor="title">
+                  <Input
                     type="text"
-                    id="title"
                     value={survey.title ?? ''}
                     onChange={(e) => handleSurveyChange('title', e.target.value)}
-                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('surveys.admin.basicInfo.surveyTitlePlaceholder')}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-stone-700">
-                    {t('surveys.admin.basicInfo.description')}
-                  </label>
-                  <textarea
-                    id="description"
+                <FormField label={t('surveys.admin.basicInfo.description')} htmlFor="description">
+                  <Textarea
                     rows={3}
                     value={survey.description ?? ''}
                     onChange={(e) => handleSurveyChange('description', e.target.value)}
-                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                     placeholder={t('surveys.admin.basicInfo.descriptionPlaceholder')}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-stone-700">
-                    {t('surveys.admin.basicInfo.status')}
-                  </label>
-                  <select
-                    id="status"
+                <FormField label={t('surveys.admin.basicInfo.status')} htmlFor="status">
+                  <Select
                     value={survey.status ?? 'draft'}
                     onChange={(e) => handleSurveyChange('status', e.target.value)}
-                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   >
                     <option value="draft">{t('surveys.admin.basicInfo.statusOptions.draft')}</option>
                     <option value="active">{t('surveys.admin.basicInfo.statusOptions.active')}</option>
                     <option value="paused">{t('surveys.admin.basicInfo.statusOptions.paused')}</option>
                     <option value="completed">{t('surveys.admin.basicInfo.statusOptions.completed')}</option>
                     <option value="archived">{t('surveys.admin.basicInfo.statusOptions.archived')}</option>
-                  </select>
-                </div>
+                  </Select>
+                </FormField>
 
-                <div>
-                  <label htmlFor="access_type" className="block text-sm font-medium text-stone-700">
-                    {t('surveys.admin.basicInfo.accessType')}
-                  </label>
-                  <select
-                    id="access_type"
+                <FormField
+                  label={t('surveys.admin.basicInfo.accessType')}
+                  htmlFor="access_type"
+                  hint={
+                    survey.access_type === 'public'
+                      ? t('surveys.admin.basicInfo.accessTypeDescriptions.public')
+                      : t('surveys.admin.basicInfo.accessTypeDescriptions.inviteOnly')
+                  }
+                >
+                  <Select
                     value={survey.access_type ?? 'public'}
                     onChange={(e) => handleSurveyChange('access_type', e.target.value)}
-                    className="mt-1 block w-full border-stone-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
                   >
                     <option value="public">{t('surveys.admin.basicInfo.accessTypeOptions.public')}</option>
                     <option value="invite_only">{t('surveys.admin.basicInfo.accessTypeOptions.inviteOnly')}</option>
-                  </select>
-                  <p className="mt-2 text-sm text-stone-500">
-                    {survey.access_type === 'public' 
-                      ? t('surveys.admin.basicInfo.accessTypeDescriptions.public')
-                      : t('surveys.admin.basicInfo.accessTypeDescriptions.inviteOnly')
-                    }
-                  </p>
-                </div>
+                  </Select>
+                </FormField>
               </div>
-            </div>
+            </Card>
 
             {/* Questions */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-stone-900">{t('surveys.admin.questions.title')}</h2>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-stone-500">
-                    {t('surveys.admin.questions.count', { count: survey.questions?.length ?? 0 })}
-                  </span>
-                </div>
+            <Card>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-title text-ink">{t('surveys.admin.questions.title')}</h2>
+                <Badge tone="neutral">{t('surveys.admin.questions.count', { count: survey.questions?.length ?? 0 })}</Badge>
               </div>
 
               <div className="space-y-4">
@@ -609,124 +530,61 @@ const SurveyBuilder: React.FC = () => {
                 ))}
 
                 {survey.questions?.length === 0 && (
-                  <div className="text-center py-8 border-2 border-dashed border-stone-300 rounded-lg">
-                    <p className="text-stone-500 mb-4">{t('surveys.admin.questions.noQuestions')}</p>
-                  </div>
+                  <EmptyState title={t('surveys.admin.questions.noQuestions')} />
                 )}
               </div>
 
               {/* Add Question Buttons */}
-              <div className="mt-6 pt-6 border-t border-stone-200">
-                <h3 className="text-sm font-medium text-stone-700 mb-3">{t('surveys.admin.questions.addQuestion')}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => addQuestion('single_choice')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.singleChoice')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('multiple_choice')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.multipleChoice')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('text')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.text')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('textarea')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.textarea')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('rating_5')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.rating5')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('rating_10')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.rating10')}
-                  </button>
-                  <button
-                    onClick={() => addQuestion('yes_no')}
-                    className="flex items-center justify-center px-4 py-3 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                  >
-                    <FiPlus className="mr-2 h-4 w-4" />
-                    {t('surveys.admin.questions.questionTypes.yesNo')}
-                  </button>
+              <div className="mt-6 border-t border-hairline pt-6">
+                <h3 className="mb-3 text-caption font-semibold text-ink">{t('surveys.admin.questions.addQuestion')}</h3>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  {QUESTION_TYPE_BUTTONS.map(({ type, labelKey }) => (
+                    <Button key={type} variant="secondary" onClick={() => addQuestion(type)}>
+                      <FiPlus className="h-4 w-4" aria-hidden="true" />
+                      {t(labelKey)}
+                    </Button>
+                  ))}
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Save Actions */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => navigate('/admin/surveys')}
-                  className="px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50"
-                >
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button variant="ghost" onClick={() => navigate('/admin/surveys')}>
                   {t('surveys.admin.surveyBuilder.cancel')}
-                </button>
-                
-                <div className="flex items-center space-x-3">
+                </Button>
+
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Validation Status Indicator */}
                   {survey.questions && survey.questions.length > 0 && (
-                    <div className="flex items-center text-sm">
-                      {validationState.isValid ? (
-                        <span className="flex items-center text-green-600">
-                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2" />
-                          {t('surveys.admin.validation.readyToSave')}
-                        </span>
-                      ) : (
-                        <span className="flex items-center text-amber-600">
-                          <span className="w-2 h-2 bg-amber-500 rounded-full mr-2" />
-                          {validationState.emptyQuestions.length === 1 
-                            ? t('surveys.admin.validation.needsAttention', { count: validationState.emptyQuestions.length })
-                            : t('surveys.admin.validation.needsAttentionPlural', { count: validationState.emptyQuestions.length })
-                          }
-                        </span>
-                      )}
-                    </div>
+                    validationState.isValid ? (
+                      <Badge tone="success">{t('surveys.admin.validation.readyToSave')}</Badge>
+                    ) : (
+                      <Badge tone="warning">
+                        {validationState.emptyQuestions.length === 1
+                          ? t('surveys.admin.validation.needsAttention', { count: validationState.emptyQuestions.length })
+                          : t('surveys.admin.validation.needsAttentionPlural', { count: validationState.emptyQuestions.length })
+                        }
+                      </Badge>
+                    )
                   )}
-                  
-                  <button
-                    onClick={() => saveSurvey('draft')}
-                    disabled={saving}
-                    className="inline-flex items-center px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50"
-                  >
-                    <FiSave className="mr-2 h-4 w-4" />
+
+                  <Button variant="secondary" onClick={() => saveSurvey('draft')} disabled={saving}>
+                    <FiSave className="h-4 w-4" aria-hidden="true" />
                     {t('surveys.admin.saveDraft')}
-                  </button>
-                  
-                  <button
-                    onClick={() => saveSurvey('active')}
-                    disabled={saving}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
+                  </Button>
+
+                  <Button variant="primary" onClick={() => saveSurvey('active')} loading={saving}>
                     {isEditing ? t('surveys.admin.updateAndPublish') : t('surveys.admin.createAndPublish')}
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 };
 

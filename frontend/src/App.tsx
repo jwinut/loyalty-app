@@ -38,6 +38,8 @@ const AdminTransactionHistoryPage = lazy(() => import('./pages/admin/AdminTransa
 const EmailServicePage = lazy(() => import('./pages/admin/EmailServicePage'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
 const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage'));
+const MemberCardPage = lazy(() => import('./pages/MemberCardPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const RoomTypeManagement = lazy(() => import('./pages/admin/RoomTypeManagement'));
 const RoomManagement = lazy(() => import('./pages/admin/RoomManagement'));
 const RoomAvailability = lazy(() => import('./pages/admin/RoomAvailability'));
@@ -47,6 +49,7 @@ import { checkPWAInstallPrompt } from './utils/pwaUtils';
 import { notificationService } from './services/notificationService';
 import { logger } from './utils/logger';
 import { migrateAuthStorageForCookieRefreshToken } from './utils/authStorageMigration';
+import { initLiffAutoLogin } from './utils/liffAuth';
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -166,6 +169,14 @@ function App() {
           }
         }
         
+        // LIFF silent auto-login: only inside the LINE in-app browser and
+        // only when no session was rehydrated above. Outside LINE this is
+        // a strict no-op (the SDK isn't even downloaded), so the web
+        // behaviour is unchanged.
+        if (!useAuthStore.getState().accessToken) {
+          await initLiffAutoLogin();
+        }
+
         // Only log in development mode
         if (import.meta.env?.DEV) {
           const finalState = useAuthStore.getState();
@@ -240,10 +251,11 @@ function App() {
             position="top-center"
             toastOptions={{
               duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
+              // react-hot-toast renders via a portal outside the component
+              // tree, but still accepts a plain Tailwind class list — reuse
+              // the design system's near-black "tile" surface instead of a
+              // bespoke inline color.
+              className: 'bg-tile text-tile-text',
             }}
           />
           <Routes>
@@ -264,6 +276,10 @@ function App() {
           path="/oauth/success"
           element={<OAuthSuccessPage />}
         />
+        <Route
+          path="/privacy"
+          element={<PrivacyPage />}
+        />
 
         {/* Protected routes */}
         <Route
@@ -279,6 +295,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member-card"
+          element={
+            <ProtectedRoute>
+              <MemberCardPage />
             </ProtectedRoute>
           }
         />

@@ -9,7 +9,8 @@ import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import LineLoginButton from '../../components/auth/LineLoginButton';
 import { notify } from '../../utils/notificationManager';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
+import { Button, FormField, Input } from '../../components/ui';
+import AppShell from '../../components/layout/AppShell';
 
 type LoginFormData = {
   email: string;
@@ -19,7 +20,7 @@ type LoginFormData = {
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  
+
   const loginSchema = z.object({
     email: z.string().email(t('auth.invalidEmail')),
     password: z.string().min(1, t('auth.passwordRequired')),
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
   const [showPassword, setShowPassword] = useState(false);
-  
+
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -56,7 +57,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await login(data.email, data.password, data.rememberMe);
-      
+
       // Check for returnUrl in query params
       const returnUrl = searchParams.get('returnUrl');
       if (returnUrl) {
@@ -72,83 +73,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
-      <div className="max-w-md w-full space-y-8">
+    <AppShell variant="minimal">
+      <div className="w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
+          <h2 className="text-center text-display text-ink">
             {t('auth.signIn')}
           </h2>
-          <p className="mt-2 text-center text-sm text-stone-600">
+          <p className="mt-2 text-center text-body text-ink-muted">
             {t('common.or')}{' '}
             <Link
               to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500"
+              className="font-semibold text-brand-600 hover:text-brand-700"
             >
               {t('auth.createAccount')}
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                {t('auth.email')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...register('email')}
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  data-testid="login-email"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-stone-300 placeholder-stone-500 text-stone-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                  placeholder={t('auth.email')}
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                {t('auth.password')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...register('password')}
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  data-testid="login-password"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 placeholder-stone-500 text-stone-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                  placeholder={t('auth.password')}
-                />
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <FormField label={t('auth.email')} htmlFor="email" required error={errors.email?.message}>
+            <Input
+              {...register('email')}
+              type="email"
+              autoComplete="email"
+              data-testid="login-email"
+              leadingIcon={<FiMail className="h-5 w-5" />}
+              placeholder={t('auth.email')}
+            />
+          </FormField>
+
+          <FormField label={t('auth.password')} htmlFor="password" required error={errors.password?.message}>
+            <Input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              data-testid="login-password"
+              leadingIcon={<FiLock className="h-5 w-5" />}
+              trailingSlot={
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                  className="flex h-11 w-11 items-center justify-center text-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-lg"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-stone-400" />
+                    <FiEyeOff className="h-5 w-5" />
                   ) : (
-                    <FiEye className="h-5 w-5 text-stone-400" />
+                    <FiEye className="h-5 w-5" />
                   )}
                 </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-          </div>
+              }
+              placeholder={t('auth.password')}
+            />
+          </FormField>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -156,42 +132,35 @@ export default function LoginPage() {
                 {...register('rememberMe')}
                 id="rememberMe"
                 type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-stone-300 rounded"
+                className="h-4 w-4 rounded border-hairline-strong text-brand-600 focus:ring-brand-600"
               />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-stone-900">
+              <label htmlFor="rememberMe" className="ml-2 text-caption text-ink">
                 {t('auth.rememberMe')}
               </label>
             </div>
-            <div className="text-sm">
+            <div className="text-caption">
               <Link
                 to="/reset-password"
-                className="font-medium text-primary-600 hover:text-primary-500"
+                className="font-semibold text-brand-600 hover:text-brand-700"
               >
                 {t('auth.forgotPassword')}
               </Link>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              data-testid="login-submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? t('common.loading') : t('common.login')}
-            </button>
-          </div>
+          <Button type="submit" loading={isLoading} className="w-full" data-testid="login-submit">
+            {t('common.login')}
+          </Button>
         </form>
 
         {/* Social Login Section */}
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-300" />
+              <div className="w-full border-t border-hairline" />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-stone-50 text-stone-500">{t('auth.continueWith')}</span>
+            <div className="relative flex justify-center text-caption">
+              <span className="px-2 bg-surface-page text-ink-muted">{t('auth.continueWith')}</span>
             </div>
           </div>
 
@@ -201,6 +170,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -4,8 +4,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import AppShell from '../../components/layout/AppShell';
 import { useAuthStore } from '../../store/authStore';
 import { FiMail, FiLock, FiUser, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi';
+import { Button, FormField, Input } from '../../components/ui';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -48,17 +50,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <AppShell variant="minimal">
+      <div className="w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
+          <h2 className="mt-6 text-center text-display text-ink">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-stone-600">
+          <p className="mt-2 text-center text-body text-ink-muted">
             Or{' '}
             <Link
               to="/login"
-              className="font-medium text-primary-600 hover:text-primary-500"
+              className="font-semibold text-brand-600 hover:text-brand-700"
             >
               sign in to your existing account
             </Link>
@@ -67,169 +69,107 @@ export default function RegisterPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-stone-700">
-                  First Name
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    {...registerField('firstName')}
-                    id="firstName"
-                    type="text"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder={t('profile.firstNamePlaceholder')}
-                  />
-                </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-stone-700">
-                  Last Name
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    {...registerField('lastName')}
-                    id="lastName"
-                    type="text"
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder={t('profile.lastNamePlaceholder')}
-                  />
-                </div>
-                {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-stone-700">
-                Email Address
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...registerField('email')}
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="john@example.com"
+              <FormField label={t('auth.firstName')} htmlFor="firstName" required error={errors.firstName?.message}>
+                <Input
+                  {...registerField('firstName')}
+                  type="text"
+                  leadingIcon={<FiUser className="h-5 w-5" />}
+                  placeholder={t('profile.firstNamePlaceholder')}
                 />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
+              </FormField>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
-                Phone Number (Optional)
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiPhone className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...registerField('phone')}
-                  id="phone"
-                  type="tel"
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="+1 (555) 123-4567"
+              <FormField label={t('auth.lastName')} htmlFor="lastName" required error={errors.lastName?.message}>
+                <Input
+                  {...registerField('lastName')}
+                  type="text"
+                  leadingIcon={<FiUser className="h-5 w-5" />}
+                  placeholder={t('profile.lastNamePlaceholder')}
                 />
-              </div>
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-              )}
+              </FormField>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-stone-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...registerField('password')}
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-stone-400" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-stone-400" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
+            <FormField label={t('auth.email')} htmlFor="email" required error={errors.email?.message}>
+              <Input
+                {...registerField('email')}
+                type="email"
+                autoComplete="email"
+                leadingIcon={<FiMail className="h-5 w-5" />}
+                placeholder="john@example.com"
+              />
+            </FormField>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700">
-                Confirm Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-stone-400" />
-                </div>
-                <input
-                  {...registerField('confirmPassword')}
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-stone-400" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-stone-400" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            <FormField
+              label={`${t('auth.phone')} (${t('common.optional')})`}
+              htmlFor="phone"
+              error={errors.phone?.message}
             >
-              {isLoading ? 'Creating account...' : 'Create account'}
-            </button>
+              <Input
+                {...registerField('phone')}
+                type="tel"
+                leadingIcon={<FiPhone className="h-5 w-5" />}
+                placeholder="+1 (555) 123-4567"
+              />
+            </FormField>
+
+            <FormField label={t('auth.password')} htmlFor="password" required error={errors.password?.message}>
+              <Input
+                {...registerField('password')}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                leadingIcon={<FiLock className="h-5 w-5" />}
+                trailingSlot={
+                  <button
+                    type="button"
+                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    className="flex h-11 w-11 items-center justify-center text-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-lg"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className="h-5 w-5" />
+                    ) : (
+                      <FiEye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+                placeholder="••••••••"
+              />
+            </FormField>
+
+            <FormField
+              label={t('auth.confirmPassword')}
+              htmlFor="confirmPassword"
+              required
+              error={errors.confirmPassword?.message}
+            >
+              <Input
+                {...registerField('confirmPassword')}
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                leadingIcon={<FiLock className="h-5 w-5" />}
+                trailingSlot={
+                  <button
+                    type="button"
+                    aria-label={showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    className="flex h-11 w-11 items-center justify-center text-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-lg"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <FiEyeOff className="h-5 w-5" />
+                    ) : (
+                      <FiEye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+                placeholder="••••••••"
+              />
+            </FormField>
           </div>
+
+          <Button type="submit" loading={isLoading} className="w-full">
+            {t('auth.createAccount')}
+          </Button>
         </form>
       </div>
-    </div>
+    </AppShell>
   );
 }

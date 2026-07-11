@@ -20,6 +20,7 @@ const mockTranslate = vi.fn((key: string, defaultValue?: string) => {
     'surveys.admin.couponAssignment.awarded': 'Awarded',
     'surveys.admin.couponAssignment.awardedOnCompletion': 'Awarded on completion',
     'surveys.admin.couponAssignment.reason': 'Reason',
+    'surveys.admin.couponAssignment.valueColumn': 'Value',
     'surveys.admin.couponAssignment.loadError': 'Failed to load coupon assignments',
     'surveys.admin.couponAssignment.assignSuccess': 'Coupon assigned successfully',
     'surveys.admin.couponAssignment.assignError': 'Failed to assign coupon',
@@ -41,6 +42,7 @@ const mockTranslate = vi.fn((key: string, defaultValue?: string) => {
     'surveys.admin.couponAssignment.customExpiryHelp': 'Override coupon expiry with custom days',
     'surveys.admin.couponAssignment.reasonPlaceholder': 'e.g., Survey completion reward',
     'surveys.admin.couponAssignment.assign': 'Assign',
+    'surveys.stats.status': 'Status',
     'surveys.couponAssignment.editAssignment': 'Edit Assignment',
     'coupons.coupon': 'Coupon',
     'coupons.freeUpgrade': 'Free Upgrade',
@@ -119,6 +121,10 @@ vi.mock('../../common/ConfirmDialog', () => ({
     );
   },
 }));
+
+function getDesktopTable() {
+  return screen.getByRole('table');
+}
 
 describe('SurveyCouponAssignments', () => {
   const mockAssignment: SurveyCouponDetails = {
@@ -282,12 +288,12 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('No coupon assignments yet')).toBeInTheDocument();
-        expect(screen.getByText('Click "Assign Coupon" to add a coupon reward')).toBeInTheDocument();
+        expect(screen.getAllByText('No coupon assignments yet').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Click "Assign Coupon" to add a coupon reward').length).toBeGreaterThan(0);
       });
     });
 
-    it('should show gift icon in empty state', async () => {
+    it('should show an icon in the empty state', async () => {
       vi.mocked(surveyService.getSurveyCouponAssignments).mockResolvedValue({
         assignments: [],
         total: 0,
@@ -305,8 +311,8 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        const icon = container.querySelector('svg.text-stone-400');
-        expect(icon).toBeInTheDocument();
+        expect(screen.getAllByText('No coupon assignments yet').length).toBeGreaterThan(0);
+        expect(container.querySelectorAll('svg').length).toBeGreaterThan(0);
       });
     });
   });
@@ -322,8 +328,8 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
-        expect(screen.getByText('FIXED50 - 50 THB Off')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('FIXED50 - 50 THB Off').length).toBeGreaterThan(0);
       });
     });
 
@@ -337,7 +343,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('20% off')).toBeInTheDocument();
+        expect(screen.getAllByText('20% off').length).toBeGreaterThan(0);
       });
     });
 
@@ -351,7 +357,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('THB 50 off')).toBeInTheDocument();
+        expect(screen.getAllByText('THB 50 off').length).toBeGreaterThan(0);
       });
     });
 
@@ -365,8 +371,8 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/Awarded: 15 \/ 100/)).toBeInTheDocument();
-        expect(screen.getByText(/Awarded: 5$/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Awarded: 15 \/ 100/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Awarded: 5$/).length).toBeGreaterThan(0);
       });
     });
 
@@ -382,7 +388,7 @@ describe('SurveyCouponAssignments', () => {
       await waitFor(() => {
         const badges = screen.getAllByText('Active');
         expect(badges.length).toBeGreaterThan(0);
-        expect(badges[0]!).toHaveClass('bg-green-100', 'text-green-800');
+        badges.forEach((badge) => expect(badge).toHaveAttribute('data-tone', 'success'));
       });
     });
 
@@ -396,8 +402,9 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Inactive')).toBeInTheDocument();
-        expect(screen.getByText('Inactive')).toHaveClass('bg-stone-100', 'text-stone-800');
+        const badges = screen.getAllByText('Inactive');
+        expect(badges.length).toBeGreaterThan(0);
+        badges.forEach((badge) => expect(badge).toHaveAttribute('data-tone', 'neutral'));
       });
     });
 
@@ -411,8 +418,8 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/Reason: Survey completion reward/)).toBeInTheDocument();
-        expect(screen.getByText(/Reason: Special reward/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Reason: Survey completion reward/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Reason: Special reward/).length).toBeGreaterThan(0);
       });
     });
 
@@ -444,7 +451,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Free Upgrade')).toBeInTheDocument();
+        expect(screen.getAllByText('Free Upgrade').length).toBeGreaterThan(0);
       });
     });
 
@@ -476,13 +483,13 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Free Service')).toBeInTheDocument();
+        expect(screen.getAllByText('Free Service').length).toBeGreaterThan(0);
       });
     });
   });
 
   describe('Edit Button Functionality', () => {
-    it('should show edit button for each assignment', async () => {
+    it('should show an edit button for each assignment', async () => {
       render(
         <SurveyCouponAssignments
           surveyId="survey-1"
@@ -492,7 +499,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        const editButtons = screen.getAllByTitle('Edit');
+        const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
         expect(editButtons).toHaveLength(2);
       });
     });
@@ -509,10 +516,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const editButtons = screen.getAllByTitle('Edit');
+      const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
       await user.click(editButtons[0]!);
 
       await waitFor(() => {
@@ -524,7 +531,7 @@ describe('SurveyCouponAssignments', () => {
   });
 
   describe('Delete Button Functionality', () => {
-    it('should show delete button for each assignment', async () => {
+    it('should show a delete button for each assignment', async () => {
       render(
         <SurveyCouponAssignments
           surveyId="survey-1"
@@ -534,7 +541,7 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        const deleteButtons = screen.getAllByTitle('Remove');
+        const deleteButtons = within(getDesktopTable()).getAllByTitle('Remove');
         expect(deleteButtons).toHaveLength(2);
       });
     });
@@ -551,10 +558,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const deleteButtons = screen.getAllByTitle('Remove');
+      const deleteButtons = within(getDesktopTable()).getAllByTitle('Remove');
       await user.click(deleteButtons[0]!);
 
       await waitFor(() => {
@@ -840,10 +847,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const editButtons = screen.getAllByTitle('Edit');
+      const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
       await user.click(editButtons[0]!);
 
       await waitFor(() => {
@@ -877,10 +884,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const editButtons = screen.getAllByTitle('Edit');
+      const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
       await user.click(editButtons[0]!);
 
       await waitFor(() => {
@@ -926,10 +933,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const editButtons = screen.getAllByTitle('Edit');
+      const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
       await user.click(editButtons[0]!);
 
       await waitFor(() => {
@@ -956,10 +963,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const editButtons = screen.getAllByTitle('Edit');
+      const editButtons = within(getDesktopTable()).getAllByTitle('Edit');
       await user.click(editButtons[0]!);
 
       await waitFor(() => {
@@ -988,10 +995,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const deleteButtons = screen.getAllByTitle('Remove');
+      const deleteButtons = within(getDesktopTable()).getAllByTitle('Remove');
       await user.click(deleteButtons[0]!);
 
       await waitFor(() => {
@@ -1019,10 +1026,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const deleteButtons = screen.getAllByTitle('Remove');
+      const deleteButtons = within(getDesktopTable()).getAllByTitle('Remove');
       await user.click(deleteButtons[0]!);
 
       await waitFor(() => {
@@ -1053,10 +1060,10 @@ describe('SurveyCouponAssignments', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('SAVE20 - 20% Off Coupon')).toBeInTheDocument();
+        expect(screen.getAllByText('SAVE20 - 20% Off Coupon').length).toBeGreaterThan(0);
       });
 
-      const deleteButtons = screen.getAllByTitle('Remove');
+      const deleteButtons = within(getDesktopTable()).getAllByTitle('Remove');
       await user.click(deleteButtons[0]!);
 
       await waitFor(() => {

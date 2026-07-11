@@ -7,13 +7,17 @@ import { couponService } from '../../../services/couponService';
 import * as dateFormatter from '../../../utils/dateFormatter';
 
 // Mock dependencies
-const mockTranslate = vi.fn((key: string) => {
+const mockTranslate = vi.fn((key: string, fallback?: string) => {
   const translations: Record<string, string> = {
     'coupons.expiringSoon': 'Expiring Soon',
     'coupons.useCoupon': 'Use Coupon',
     'coupons.viewDetails': 'View Details',
+    'coupons.statuses.available': 'Available',
+    'coupons.statuses.used': 'Used',
+    'coupons.statuses.expired': 'Expired',
+    'coupons.statuses.revoked': 'Revoked',
   };
-  return translations[key] || key;
+  return translations[key] ?? fallback ?? key;
 });
 
 vi.mock('react-i18next', () => ({
@@ -27,6 +31,7 @@ vi.mock('../../../services/couponService', () => ({
     getExpiryDate: vi.fn(),
     isExpiringSoon: vi.fn(),
     formatMinimumSpend: vi.fn(),
+    formatCouponValue: vi.fn(),
   },
 }));
 
@@ -64,122 +69,51 @@ describe('CouponCard', () => {
     vi.mocked(couponService.getExpiryDate).mockReturnValue(new Date('2024-12-31T23:59:59Z'));
     vi.mocked(couponService.isExpiringSoon).mockReturnValue(false);
     vi.mocked(couponService.formatMinimumSpend).mockReturnValue('Min. spend: ฿1,000');
+    vi.mocked(couponService.formatCouponValue).mockReturnValue('20%');
     vi.mocked(dateFormatter.formatExpiryDateWithRelative).mockReturnValue('Expires on 31 Dec 2024');
   });
 
   describe('Basic Rendering', () => {
-    it('should render the component', () => {
+    it('renders the coupon card', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
+      expect(screen.getByTestId('coupon-card')).toBeInTheDocument();
     });
 
-    it('should render without crashing', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      expect(container).toBeTruthy();
-    });
-
-    it('should have proper container structure', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('bg-white', 'rounded-lg', 'shadow-md');
-    });
-  });
-
-  describe('Expiring Soon Badge', () => {
-    it('should not display expiring soon badge by default', () => {
+    it('exposes the coupon status as a data attribute', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
-      expect(screen.queryByText('Expiring Soon')).not.toBeInTheDocument();
+      expect(screen.getByTestId('coupon-card')).toHaveAttribute('data-status', 'available');
     });
 
-    it('should display expiring soon badge when coupon is expiring', () => {
-      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
+    it('forwards a caller-supplied className', () => {
+      render(<CouponCard coupon={mockCoupon} className="promo-card-marker" />);
 
-      render(<CouponCard coupon={mockCoupon} />);
-
-      expect(screen.getByText('Expiring Soon')).toBeInTheDocument();
-    });
-
-    it('should style expiring soon badge correctly', () => {
-      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
-
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const badge = screen.getByText('Expiring Soon');
-      expect(badge).toHaveClass('bg-red-500', 'text-white');
-    });
-
-    it('should position expiring soon badge at top right', () => {
-      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
-
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const badge = screen.getByText('Expiring Soon');
-      expect(badge).toHaveClass('absolute', 'top-2', 'right-2');
-    });
-  });
-
-  describe('Styling - Border and Background', () => {
-    it('should have default border when not expiring', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('border-stone-200');
-      expect(card).not.toHaveClass('border-red-300', 'bg-red-50');
-    });
-
-    it('should have red border and background when expiring', () => {
-      // Clear previous mocks
-      vi.clearAllMocks();
-
-      // Set mock return value
-      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
-
-      // Verify mock setup BEFORE render
-      expect(couponService.isExpiringSoon(mockCoupon)).toBe(true);
-
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('border-red-300', 'bg-red-50');
-
-      // Verify mock was actually called by component
-      expect(couponService.isExpiringSoon).toHaveBeenCalledWith(mockCoupon);
-    });
-
-    it('should apply custom className', () => {
-      const { container } = render(
-        <CouponCard coupon={mockCoupon} className="custom-class" />
-      );
-
-      const card = container.firstChild as HTMLElement;
-      expect(card).toHaveClass('custom-class');
+      expect(screen.getByTestId('coupon-card')).toHaveClass('promo-card-marker');
     });
   });
 
   describe('Coupon Information Display', () => {
-    it('should display coupon name', () => {
+    it('displays the coupon name as a heading', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
+      const heading = screen.getByRole('heading', { name: '20% Off Your Purchase' });
+      expect(heading.tagName).toBe('H3');
     });
 
-    it('should display coupon code', () => {
+    it('displays the coupon code', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
       expect(screen.getByText('SAVE20')).toBeInTheDocument();
     });
 
-    it('should display coupon description', () => {
+    it('displays the coupon description when provided', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
       expect(screen.getByText('Get 20% discount on your next purchase')).toBeInTheDocument();
     });
 
-    it('should not display description when not provided', () => {
+    it('omits the description when not provided', () => {
       const couponWithoutDesc = { ...mockCoupon, description: undefined };
 
       render(<CouponCard coupon={couponWithoutDesc} />);
@@ -187,284 +121,151 @@ describe('CouponCard', () => {
       expect(screen.queryByText('Get 20% discount on your next purchase')).not.toBeInTheDocument();
     });
 
-    it('should truncate long coupon names', () => {
+    it('displays the formatted discount value prominently', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
-      const nameElement = screen.getByText('20% Off Your Purchase');
-      expect(nameElement).toHaveClass('truncate');
-    });
-
-    it('should limit description to 2 lines', () => {
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const descElement = screen.getByText('Get 20% discount on your next purchase');
-      expect(descElement).toHaveClass('line-clamp-2');
+      expect(screen.getByText('20%')).toBeInTheDocument();
+      expect(couponService.formatCouponValue).toHaveBeenCalledWith(mockCoupon);
     });
   });
 
   describe('Expiry Date Display', () => {
-    it('should display expiry date', () => {
+    it('displays the formatted expiry text', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
       expect(screen.getByText('Expires on 31 Dec 2024')).toBeInTheDocument();
-    });
-
-    it('should call dateFormatter with correct params', () => {
-      render(<CouponCard coupon={mockCoupon} />);
-
       expect(dateFormatter.formatExpiryDateWithRelative).toHaveBeenCalledWith(
         expect.any(Date),
         mockTranslate
       );
     });
 
-    it('should not display expiry date when null', () => {
+    it('omits the expiry text when the formatter returns null', () => {
       vi.mocked(dateFormatter.formatExpiryDateWithRelative).mockReturnValue(null);
 
       render(<CouponCard coupon={mockCoupon} />);
 
       expect(screen.queryByText('Expires on 31 Dec 2024')).not.toBeInTheDocument();
     });
-
-    it('should style expiry date as red when expiring', () => {
-      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
-
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const expiryElement = screen.getByText('Expires on 31 Dec 2024');
-      expect(expiryElement).toHaveClass('text-red-600', 'font-medium');
-    });
-
-    it('should style expiry date as gray when not expiring', () => {
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const expiryElement = screen.getByText('Expires on 31 Dec 2024');
-      expect(expiryElement).toHaveClass('text-stone-500');
-      expect(expiryElement).not.toHaveClass('text-red-600');
-    });
   });
 
   describe('Minimum Spend Display', () => {
-    it('should display minimum spend text', () => {
+    it('displays the minimum spend text when present', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
       expect(screen.getByText('Min. spend: ฿1,000')).toBeInTheDocument();
-    });
-
-    it('should call formatMinimumSpend service method', () => {
-      render(<CouponCard coupon={mockCoupon} />);
-
       expect(couponService.formatMinimumSpend).toHaveBeenCalledWith(mockCoupon);
     });
 
-    it('should not display minimum spend when null', () => {
+    it('omits the minimum spend text when null', () => {
       vi.mocked(couponService.formatMinimumSpend).mockReturnValue(null);
 
       render(<CouponCard coupon={mockCoupon} />);
 
-      expect(screen.queryByText('Min. spend: ฿1,000')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Min\. spend/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Expiring Soon State', () => {
+    it('does not show an expiring-soon badge by default', () => {
+      render(<CouponCard coupon={mockCoupon} />);
+
+      expect(screen.queryByText('Expiring Soon')).not.toBeInTheDocument();
+    });
+
+    it('shows a warning-toned badge when the coupon is expiring soon', () => {
+      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
+
+      render(<CouponCard coupon={mockCoupon} />);
+
+      const badge = screen.getByText('Expiring Soon');
+      expect(badge).toHaveAttribute('data-tone', 'warning');
+    });
+  });
+
+  describe('Inactive Status State', () => {
+    it.each(['used', 'expired', 'revoked'] as const)(
+      'shows a neutral status badge for a %s coupon',
+      (status) => {
+        render(<CouponCard coupon={{ ...mockCoupon, status }} />);
+
+        const badge = screen.getByTestId('coupon-card').querySelector('[data-tone="neutral"]');
+        expect(badge).toBeInTheDocument();
+      }
+    );
+
+    it('prioritizes the status badge over the expiring-soon badge once inactive', () => {
+      vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
+
+      render(<CouponCard coupon={{ ...mockCoupon, status: 'used' }} />);
+
+      expect(screen.queryByText('Expiring Soon')).not.toBeInTheDocument();
     });
   });
 
   describe('Action Buttons', () => {
-    it('should not display any buttons by default', () => {
+    it('renders no action buttons by default', () => {
       render(<CouponCard coupon={mockCoupon} />);
 
-      expect(screen.queryByText('Use Coupon')).not.toBeInTheDocument();
-      expect(screen.queryByText('View Details')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('should display use button when onUse provided', () => {
-      const onUse = vi.fn();
+    it('renders a "Use Coupon" button when onUse is provided', () => {
+      render(<CouponCard coupon={mockCoupon} onUse={vi.fn()} />);
 
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} />);
-
-      expect(screen.getByText('Use Coupon')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Use Coupon' })).toBeInTheDocument();
     });
 
-    it('should display view details button when onViewDetails provided', () => {
-      const onViewDetails = vi.fn();
+    it('renders a "View Details" button when onViewDetails is provided', () => {
+      render(<CouponCard coupon={mockCoupon} onViewDetails={vi.fn()} />);
 
-      render(<CouponCard coupon={mockCoupon} onViewDetails={onViewDetails} />);
-
-      expect(screen.getByText('View Details')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View Details' })).toBeInTheDocument();
     });
 
-    it('should display both buttons when both callbacks provided', () => {
-      const onUse = vi.fn();
-      const onViewDetails = vi.fn();
-
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} onViewDetails={onViewDetails} />);
-
-      expect(screen.getByText('Use Coupon')).toBeInTheDocument();
-      expect(screen.getByText('View Details')).toBeInTheDocument();
-    });
-
-    it('should style use button with blue background', () => {
-      const onUse = vi.fn();
-
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} />);
-
-      const button = screen.getByText('Use Coupon');
-      expect(button).toHaveClass('bg-brand-600', 'text-white');
-    });
-
-    it('should style view details button with gray background', () => {
-      const onViewDetails = vi.fn();
-
-      render(<CouponCard coupon={mockCoupon} onViewDetails={onViewDetails} />);
-
-      const button = screen.getByText('View Details');
-      expect(button).toHaveClass('bg-stone-100', 'text-stone-700');
-    });
-  });
-
-  describe('Button Interactions', () => {
-    it('should call onUse when use button clicked', async () => {
+    it('calls onUse with the coupon when the use button is clicked', async () => {
       const user = userEvent.setup();
       const onUse = vi.fn();
 
       render(<CouponCard coupon={mockCoupon} onUse={onUse} />);
 
-      const button = screen.getByText('Use Coupon');
-      await user.click(button);
+      await user.click(screen.getByRole('button', { name: 'Use Coupon' }));
 
       expect(onUse).toHaveBeenCalledTimes(1);
       expect(onUse).toHaveBeenCalledWith(mockCoupon);
     });
 
-    it('should call onViewDetails when view details button clicked', async () => {
+    it('calls onViewDetails with the coupon when the details button is clicked', async () => {
       const user = userEvent.setup();
       const onViewDetails = vi.fn();
 
       render(<CouponCard coupon={mockCoupon} onViewDetails={onViewDetails} />);
 
-      const button = screen.getByText('View Details');
-      await user.click(button);
+      await user.click(screen.getByRole('button', { name: 'View Details' }));
 
       expect(onViewDetails).toHaveBeenCalledTimes(1);
       expect(onViewDetails).toHaveBeenCalledWith(mockCoupon);
     });
 
-    it('should handle multiple button clicks', async () => {
-      const user = userEvent.setup();
-      const onUse = vi.fn();
+    it('uses the primary button variant for "Use Coupon"', () => {
+      render(<CouponCard coupon={mockCoupon} onUse={vi.fn()} />);
 
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} />);
-
-      const button = screen.getByText('Use Coupon');
-      await user.click(button);
-      await user.click(button);
-      await user.click(button);
-
-      expect(onUse).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  describe('Decorative Elements', () => {
-    it('should display left perforation', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const perforations = container.querySelectorAll('.rounded-full');
-      expect(perforations.length).toBeGreaterThanOrEqual(2);
+      expect(screen.getByRole('button', { name: 'Use Coupon' })).toHaveAttribute('data-variant', 'primary');
     });
 
-    it('should display right perforation', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
+    it('uses the secondary button variant for "View Details"', () => {
+      render(<CouponCard coupon={mockCoupon} onViewDetails={vi.fn()} />);
 
-      const perforations = container.querySelectorAll('.rounded-full');
-      expect(perforations.length).toBeGreaterThanOrEqual(2);
-    });
-
-    it('should position perforations at center height', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const perforations = container.querySelectorAll('.top-1\\/2');
-      expect(perforations.length).toBe(2);
+      expect(screen.getByRole('button', { name: 'View Details' })).toHaveAttribute('data-variant', 'secondary');
     });
   });
 
   describe('Null Field Handling', () => {
-    it('should handle null description gracefully', () => {
-      const couponWithNullDesc = { ...mockCoupon, description: undefined };
-
-      const { container } = render(<CouponCard coupon={couponWithNullDesc} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      // Required fields should still render
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
-      expect(screen.getByText('SAVE20')).toBeInTheDocument();
-      // Description should not appear
-      expect(screen.queryByText('Get 20% discount on your next purchase')).not.toBeInTheDocument();
-    });
-
-    it('should handle null value gracefully', () => {
-      const couponWithNullValue = { ...mockCoupon, value: undefined };
-
-      const { container } = render(<CouponCard coupon={couponWithNullValue} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
-    });
-
-    it('should handle null minimumSpend gracefully', () => {
-      vi.mocked(couponService.formatMinimumSpend).mockReturnValue(null);
-      const couponWithNullMinSpend = { ...mockCoupon, minimumSpend: undefined };
-
-      const { container } = render(<CouponCard coupon={couponWithNullMinSpend} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      // Min spend text should not appear
-      expect(screen.queryByText(/Min. spend/)).not.toBeInTheDocument();
-    });
-
-    it('should handle null maximumDiscount gracefully', () => {
-      const couponWithNullMaxDiscount = { ...mockCoupon, maximumDiscount: undefined };
-
-      const { container } = render(<CouponCard coupon={couponWithNullMaxDiscount} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
-    });
-
-    it('should handle null termsAndConditions gracefully', () => {
-      const couponWithNullTerms = { ...mockCoupon, termsAndConditions: undefined };
-
-      const { container } = render(<CouponCard coupon={couponWithNullTerms} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      expect(screen.getByText('20% Off Your Purchase')).toBeInTheDocument();
-    });
-
-    it('should handle null expiresAt gracefully', () => {
-      vi.mocked(couponService.getExpiryDate).mockReturnValue(null);
-      vi.mocked(dateFormatter.formatExpiryDateWithRelative).mockReturnValue(null);
-
-      const couponWithNullExpiry = {
-        ...mockCoupon,
-        expiresAt: undefined,
-        couponExpiresAt: undefined,
-        effectiveExpiry: undefined,
-      };
-
-      const { container } = render(<CouponCard coupon={couponWithNullExpiry} />);
-
-      // Should not crash
-      expect(container).toBeTruthy();
-      expect(screen.getByText('SAVE20')).toBeInTheDocument();
-    });
-
-    it('should handle coupon with all optional fields null', () => {
+    it('does not crash when optional fields are all missing', () => {
       vi.mocked(couponService.getExpiryDate).mockReturnValue(null);
       vi.mocked(dateFormatter.formatExpiryDateWithRelative).mockReturnValue(null);
       vi.mocked(couponService.formatMinimumSpend).mockReturnValue(null);
 
-      const couponWithAllNulls: UserActiveCoupon = {
+      const minimalCoupon: UserActiveCoupon = {
         userCouponId: 'uc-1',
         userId: 'user-123',
         status: 'available',
@@ -476,7 +277,6 @@ describe('CouponCard', () => {
         type: 'percentage',
         currency: 'THB',
         expiringSoon: false,
-        // All optional fields explicitly undefined
         description: undefined,
         termsAndConditions: undefined,
         value: undefined,
@@ -487,45 +287,13 @@ describe('CouponCard', () => {
         effectiveExpiry: undefined,
       };
 
-      const { container } = render(<CouponCard coupon={couponWithAllNulls} />);
+      render(<CouponCard coupon={minimalCoupon} />);
 
-      // Should not crash
-      expect(container).toBeTruthy();
-      // Required fields should still render
       expect(screen.getByText('Basic Coupon')).toBeInTheDocument();
       expect(screen.getByText('BASIC')).toBeInTheDocument();
     });
-  });
 
-  describe('Edge Cases', () => {
-    it('should handle coupon without description', () => {
-      const couponNoDesc = { ...mockCoupon, description: undefined };
-
-      const { container } = render(<CouponCard coupon={couponNoDesc} />);
-
-      expect(container).toBeTruthy();
-      expect(screen.getByText('SAVE20')).toBeInTheDocument();
-    });
-
-    it('should handle coupon without expiry date', () => {
-      vi.mocked(dateFormatter.formatExpiryDateWithRelative).mockReturnValue(null);
-
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      expect(container).toBeTruthy();
-      expect(screen.getByText('SAVE20')).toBeInTheDocument();
-    });
-
-    it('should handle coupon without minimum spend', () => {
-      vi.mocked(couponService.formatMinimumSpend).mockReturnValue(null);
-
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      expect(container).toBeTruthy();
-      expect(screen.getByText('SAVE20')).toBeInTheDocument();
-    });
-
-    it('should handle coupon with very long name', () => {
+    it('handles a very long coupon name without crashing', () => {
       const longNameCoupon = {
         ...mockCoupon,
         name: 'This is a very long coupon name that should be truncated properly to maintain layout integrity',
@@ -533,64 +301,19 @@ describe('CouponCard', () => {
 
       render(<CouponCard coupon={longNameCoupon} />);
 
-      const nameElement = screen.getByText(/This is a very long coupon name/);
-      expect(nameElement).toHaveClass('truncate');
-    });
-
-    it('should handle coupon with very long description', () => {
-      const longDescCoupon = {
-        ...mockCoupon,
-        description: 'This is a very long description that goes on and on explaining all the wonderful benefits and conditions of this amazing coupon offer that customers will love',
-      };
-
-      render(<CouponCard coupon={longDescCoupon} />);
-
-      const descElement = screen.getByText(/This is a very long description/);
-      expect(descElement).toHaveClass('line-clamp-2');
+      expect(screen.getByText(/This is a very long coupon name/)).toBeInTheDocument();
     });
   });
 
   describe('Translation Keys', () => {
-    it('should use correct translation keys', () => {
+    it('uses the expected translation keys', () => {
       vi.mocked(couponService.isExpiringSoon).mockReturnValue(true);
-      const onUse = vi.fn();
-      const onViewDetails = vi.fn();
 
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} onViewDetails={onViewDetails} />);
+      render(<CouponCard coupon={mockCoupon} onUse={vi.fn()} onViewDetails={vi.fn()} />);
 
       expect(mockTranslate).toHaveBeenCalledWith('coupons.expiringSoon');
       expect(mockTranslate).toHaveBeenCalledWith('coupons.useCoupon');
       expect(mockTranslate).toHaveBeenCalledWith('coupons.viewDetails');
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('should have accessible button elements', () => {
-      const onUse = vi.fn();
-      const onViewDetails = vi.fn();
-
-      render(<CouponCard coupon={mockCoupon} onUse={onUse} onViewDetails={onViewDetails} />);
-
-      const useButton = screen.getByText('Use Coupon');
-      const detailsButton = screen.getByText('View Details');
-
-      expect(useButton.tagName).toBe('BUTTON');
-      expect(detailsButton.tagName).toBe('BUTTON');
-    });
-
-    it('should have proper text hierarchy', () => {
-      render(<CouponCard coupon={mockCoupon} />);
-
-      const heading = screen.getByText('20% Off Your Purchase');
-      expect(heading.tagName).toBe('H3');
-    });
-
-    it('should maintain semantic structure', () => {
-      const { container } = render(<CouponCard coupon={mockCoupon} />);
-
-      const heading = container.querySelector('h3');
-      expect(heading).toBeInTheDocument();
-      expect(heading).toHaveClass('text-lg', 'font-semibold');
     });
   });
 });

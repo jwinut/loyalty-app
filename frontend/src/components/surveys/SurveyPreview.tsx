@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { FiX, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
+import { FiX, FiArrowLeft, FiArrowRight, FiCheckCircle, FiCheck } from 'react-icons/fi';
 import { Survey } from '../../types/survey';
 import QuestionRenderer from './QuestionRenderer';
 import SurveyProgress from './SurveyProgress';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 
 // Survey answer can be string, number, boolean, array of strings, or null
 type SurveyAnswer = string | number | boolean | string[] | null;
@@ -13,6 +16,7 @@ interface SurveyPreviewProps {
 }
 
 const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
+  const { t } = useTranslation();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, SurveyAnswer>>({});
 
@@ -48,20 +52,17 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
   const isCompletionPage = currentQuestion >= survey.questions.length;
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <Card padding="none" className="overflow-hidden" data-testid="survey-preview-container">
       {/* Preview Header */}
-      <div className="bg-brand-50 px-6 py-4 border-b rounded-t-lg">
-        <div className="flex justify-between items-center">
+      <div className="border-b border-hairline bg-brand-50 px-6 py-4" data-testid="survey-preview-header">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-stone-900">Survey Preview</h2>
-            <p className="text-sm text-stone-600">This is how your survey will appear to customers</p>
+            <h2 className="text-title text-ink">Survey Preview</h2>
+            <p className="text-caption text-ink-muted">This is how your survey will appear to customers</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600"
-          >
-            <FiX className="h-6 w-6" />
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('common.close')}>
+            <FiX className="h-5 w-5" aria-hidden="true" />
+          </Button>
         </div>
       </div>
 
@@ -70,10 +71,10 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
         {!isCompletionPage ? (
           <>
             {/* Survey Header */}
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-stone-900 mb-2">{survey.title}</h1>
+            <div className="mb-6 text-center">
+              <h1 className="mb-2 text-display text-ink">{survey.title}</h1>
               {survey.description && (
-                <p className="text-stone-600">{survey.description}</p>
+                <p className="text-caption text-ink-muted">{survey.description}</p>
               )}
             </div>
 
@@ -85,7 +86,7 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
             />
 
             {/* Current Question */}
-            <div className="bg-stone-50 rounded-lg p-6 mb-6 min-h-[300px]">
+            <div className="mb-6 min-h-[300px] rounded-lg bg-surface-sunken p-6">
               {survey.questions[currentQuestion] && (
                 <QuestionRenderer
                   question={survey.questions[currentQuestion]}
@@ -97,85 +98,82 @@ const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose }) => {
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={goToPrevious}
-                disabled={currentQuestion === 0}
-                className="inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiArrowLeft className="mr-2 h-4 w-4" />
+            <div className="mb-4 flex items-center justify-between">
+              <Button variant="secondary" onClick={goToPrevious} disabled={currentQuestion === 0}>
+                <FiArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Previous
-              </button>
+              </Button>
 
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-stone-500">
-                  Question {currentQuestion + 1} of {survey.questions.length}
-                </span>
-              </div>
+              <span className="text-caption text-ink-muted">
+                Question {currentQuestion + 1} of {survey.questions.length}
+              </span>
 
-              <button
-                onClick={goToNext}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
-              >
+              <Button variant="primary" onClick={goToNext}>
                 {isLastQuestion ? 'Complete Survey' : 'Next'}
-                <FiArrowRight className="ml-2 h-4 w-4" />
-              </button>
+                <FiArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
 
             {/* Question Navigation Dots */}
-            <div className="flex justify-center space-x-2">
-              {survey.questions.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToQuestion(index)}
-                  className={`w-3 h-3 rounded-full transition-colors ${
-                    index === currentQuestion
-                      ? 'bg-brand-600'
-                      : answers[survey.questions[index]?.id ?? '']
-                      ? 'bg-green-400'
-                      : 'bg-stone-300'
-                  }`}
-                />
-              ))}
+            <div className="flex justify-center gap-2">
+              {survey.questions.map((_, index) => {
+                const isCurrent = index === currentQuestion;
+                const isAnswered = Boolean(answers[survey.questions[index]?.id ?? '']);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    aria-label={`Question ${index + 1}`}
+                    aria-current={isCurrent || undefined}
+                    data-answered={isAnswered || undefined}
+                    onClick={() => goToQuestion(index)}
+                    className={`h-3 w-3 rounded-full transition-colors ${
+                      isCurrent
+                        ? 'bg-brand-600'
+                        : isAnswered
+                        ? 'bg-success-600'
+                        : 'bg-hairline-strong'
+                    }`}
+                  />
+                );
+              })}
             </div>
           </>
         ) : (
           /* Completion Page */
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-stone-900 mb-4">
+          <div className="py-12 text-center">
+            <FiCheckCircle className="mx-auto mb-4 h-16 w-16 text-success-600" aria-hidden="true" />
+            <h2 className="mb-4 text-display text-ink">
               Survey Completed!
             </h2>
-            <p className="text-stone-600 mb-6">
+            <p className="mb-6 text-caption text-ink-muted">
               Thank you for taking the time to complete this survey. Your feedback is valuable to us.
             </p>
-            
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <p className="text-green-800 text-sm">
-                ✓ Your responses have been saved successfully
+
+            <div className="mb-6 rounded-lg border border-success-600/20 bg-success-50 p-4">
+              <p className="flex items-center justify-center gap-2 text-caption text-success-700">
+                <FiCheck className="h-4 w-4" aria-hidden="true" />
+                Your responses have been saved successfully
               </p>
             </div>
 
-            <button className="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-md">
+            <Button variant="primary">
               Back to Surveys
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {/* Preview Footer */}
-      <div className="bg-stone-50 px-6 py-3 border-t rounded-b-lg">
-        <div className="flex justify-between items-center text-sm text-stone-600">
+      <div className="border-t border-hairline bg-surface-sunken px-6 py-3" data-testid="survey-preview-footer">
+        <div className="flex items-center justify-between text-caption text-ink-muted">
           <span>Preview Mode - No responses will be saved</span>
-          <button
-            onClick={onClose}
-            className="text-brand-600 hover:text-brand-800 font-medium"
-          >
+          <Button variant="ghost" onClick={onClose}>
             Close Preview
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 
