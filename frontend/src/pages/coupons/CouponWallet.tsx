@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
+import { FiGift } from 'react-icons/fi';
 import { UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
 import CouponCard from '../../components/coupons/CouponCard';
 import QRCodeModal from '../../components/coupons/QRCodeModal';
 import CouponDetailsModal from '../../components/coupons/CouponDetailsModal';
 import AppShell from '../../components/layout/AppShell';
+import { Badge, Button, EmptyState, TabNav } from '../../components/ui';
 
 type CouponFilter = 'active' | 'used' | 'expired';
 
@@ -118,47 +120,17 @@ const CouponWallet: React.FC = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-stone-200">
-          <nav className="-mb-px flex space-x-8">
-            {/* Active Tab */}
-            <button
-              onClick={() => handleFilterChange('active')}
-              className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                activeFilter === 'active'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              )}
-            >
-              {t('coupons.activeCoupons')}
-            </button>
-
-            {/* Used Tab */}
-            <button
-              onClick={() => handleFilterChange('used')}
-              className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                activeFilter === 'used'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              )}
-            >
-              {t('coupons.usedCoupons', 'Used')}
-            </button>
-
-            {/* Expired Tab */}
-            <button
-              onClick={() => handleFilterChange('expired')}
-              className={clsx('py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                activeFilter === 'expired'
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-              )}
-            >
-              {t('coupons.expiredCoupons', 'Expired')}
-            </button>
-          </nav>
-        </div>
-      </div>
+      <TabNav
+        aria-label={t('coupons.myCoupons')}
+        className="mb-6"
+        value={activeFilter}
+        onChange={(value) => handleFilterChange(value as CouponFilter)}
+        items={[
+          { value: 'active', label: t('coupons.activeCoupons') },
+          { value: 'used', label: t('coupons.usedCoupons', 'Used') },
+          { value: 'expired', label: t('coupons.expiredCoupons', 'Expired') },
+        ]}
+      />
 
       {errorMessage && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -181,33 +153,24 @@ const CouponWallet: React.FC = () => {
       )}
 
       {coupons.length === 0 && !isLoading && !errorMessage && (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <div className="text-6xl mb-4">
-            {activeFilter === 'used' ? '✓' : activeFilter === 'expired' ? '⏰' : '🎫'}
-          </div>
-          <h3 className="text-xl font-semibold text-stone-900 mb-2">
-            {activeFilter === 'used'
+        <EmptyState
+          icon={FiGift}
+          title={
+            activeFilter === 'used'
               ? t('coupons.noUsedCoupons', 'No Used Coupons')
               : activeFilter === 'expired'
                 ? t('coupons.noExpiredCoupons', 'No Expired Coupons')
                 : t('coupons.noCoupons')
-            }
-          </h3>
-          <p className="text-stone-600 mb-4">
-            {activeFilter === 'used'
+          }
+          description={
+            activeFilter === 'used'
               ? t('coupons.noUsedCouponsDescription', "You haven't used any coupons yet.")
               : activeFilter === 'expired'
                 ? t('coupons.noExpiredCouponsDescription', "You don't have any expired coupons.")
                 : t('coupons.noCouponsDescription')
-            }
-          </p>
-          <button
-            onClick={handleRefresh}
-            className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors"
-          >
-            {t('common.refresh')}
-          </button>
-        </div>
+          }
+          action={<Button onClick={handleRefresh}>{t('common.refresh')}</Button>}
+        />
       )}
 
       {/* Coupon Display Based on Active Filter */}
@@ -220,8 +183,9 @@ const CouponWallet: React.FC = () => {
                 <div className="bg-red-100 p-2 rounded-full mr-3">
                   <span className="text-red-600 text-xl">⏰</span>
                 </div>
-                <h2 className="text-xl font-semibold text-red-700">
-                  {t('coupons.expiringSoon')} ({expiringSoonCoupons.length})
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-red-700">
+                  {t('coupons.expiringSoon')}
+                  <Badge tone="warning">{expiringSoonCoupons.length}</Badge>
                 </h2>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -244,8 +208,9 @@ const CouponWallet: React.FC = () => {
                 <div className="bg-green-100 p-2 rounded-full mr-3">
                   <span className="text-green-600 text-xl">✅</span>
                 </div>
-                <h2 className="text-xl font-semibold text-stone-900">
-                  {t('coupons.activeCoupons')} ({activeCoupons.length})
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-stone-900">
+                  {t('coupons.activeCoupons')}
+                  <Badge tone="success">{activeCoupons.length}</Badge>
                 </h2>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -282,7 +247,7 @@ const CouponWallet: React.FC = () => {
                 {activeFilter === 'used' ? '✓' : '⏰'}
               </span>
             </div>
-            <h2 className={clsx('text-xl font-semibold',
+            <h2 className={clsx('flex items-center gap-2 text-xl font-semibold',
               activeFilter === 'used'
                 ? 'text-stone-900'
                 : 'text-red-700'
@@ -291,7 +256,8 @@ const CouponWallet: React.FC = () => {
               {activeFilter === 'used'
                 ? t('coupons.usedCoupons', 'Used Coupons')
                 : t('coupons.expiredCoupons', 'Expired Coupons')
-              } ({coupons.length})
+              }
+              <Badge tone="neutral">{coupons.length}</Badge>
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -309,45 +275,40 @@ const CouponWallet: React.FC = () => {
 
       {/* Load More Button */}
       {hasMore && (
-        <div className="text-center mt-8">
-          <button
+        <div className="mt-8 text-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-11 sm:h-9"
             onClick={handleLoadMore}
             disabled={isLoading}
-            className="bg-stone-100 text-stone-700 px-6 py-3 rounded-md hover:bg-stone-200 disabled:opacity-50 transition-colors"
           >
             {isLoading ? t('common.loading') : t('common.loadMore')}
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* QR Code Modal */}
+      {/* QR Code Modal — renders its own overlay via the Modal primitive, so
+          it must not be wrapped in another backdrop here (fixes #295). */}
       {showQRCode && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-md w-full max-h-full overflow-y-auto">
-            <QRCodeModal
-              coupon={selectedCoupon}
-              onClose={() => {
-                setShowQRCode(false);
-                setSelectedCoupon(null);
-              }}
-            />
-          </div>
-        </div>
+        <QRCodeModal
+          coupon={selectedCoupon}
+          onClose={() => {
+            setShowQRCode(false);
+            setSelectedCoupon(null);
+          }}
+        />
       )}
 
-      {/* Coupon Details Modal */}
+      {/* Coupon Details Modal — same as above: manages its own overlay. */}
       {showDetails && selectedCoupon && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-lg w-full max-h-full overflow-y-auto">
-            <CouponDetailsModal
-              coupon={selectedCoupon}
-              onClose={() => {
-                setShowDetails(false);
-                setSelectedCoupon(null);
-              }}
-            />
-          </div>
-        </div>
+        <CouponDetailsModal
+          coupon={selectedCoupon}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedCoupon(null);
+          }}
+        />
       )}
     </AppShell>
   );

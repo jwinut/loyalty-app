@@ -641,6 +641,13 @@
       "public": "公开",
       "invited": "受邀"
     },
+    "stats": {
+      "questions": "问题数",
+      "status": "状态",
+      "accessType": "访问类型",
+      "created": "创建时间",
+      "details": "详情"
+    },
     "completed": {
       "title": "调研完成成功！",
       "message": "感谢您与我们分享宝贵的反馈。您的回答有助于我们改进服务，为所有客人创造更好的体验。",

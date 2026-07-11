@@ -1,8 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { FiClock } from 'react-icons/fi';
 import { UserActiveCoupon } from '../../types/coupon';
 import { couponService } from '../../services/couponService';
-import { useTranslation } from 'react-i18next';
 import { formatExpiryDateWithRelative } from '../../utils/dateFormatter';
+import { Badge, Button } from '../ui';
+import { cn } from '../ui/cn';
 
 interface CouponCardProps {
   coupon: UserActiveCoupon;
@@ -10,6 +13,24 @@ interface CouponCardProps {
   onViewDetails?: (coupon: UserActiveCoupon) => void;
   className?: string;
 }
+
+// Ticket-stub perforation notches, cut straight through the card edge with a
+// CSS mask instead of two circles painted in the page's background color —
+// that way the notches read as true cutouts on any surface (warm page bg,
+// a modal sheet, dark tile section, etc.) rather than assuming one fixed
+// backdrop color. Each gradient masks a half-width strip of the card with a
+// semicircular notch at its outer edge; the two strips tile together (no
+// overlap needed) to cover the full card.
+const TICKET_NOTCH_MASK =
+  'radial-gradient(circle 10px at 0 50%, transparent 98%, black 100%) left / 51% 100% no-repeat, ' +
+  'radial-gradient(circle 10px at 100% 50%, transparent 98%, black 100%) right / 51% 100% no-repeat';
+
+const TICKET_NOTCH_STYLE: React.CSSProperties = {
+  WebkitMask: TICKET_NOTCH_MASK,
+  mask: TICKET_NOTCH_MASK,
+};
+
+const INACTIVE_STATUSES: ReadonlyArray<UserActiveCoupon['status']> = ['used', 'expired', 'revoked'];
 
 const CouponCard: React.FC<CouponCardProps> = ({
   coupon,
@@ -19,91 +40,87 @@ const CouponCard: React.FC<CouponCardProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const formatExpiryDate = (coupon: UserActiveCoupon): string | null => {
-    const expiryDate = couponService.getExpiryDate(coupon);
-    return formatExpiryDateWithRelative(expiryDate, t);
-  };
-
   const isExpiring = couponService.isExpiringSoon(coupon);
-  const expiryText = formatExpiryDate(coupon);
+  const isInactive = INACTIVE_STATUSES.includes(coupon.status);
+  const expiryDate = couponService.getExpiryDate(coupon);
+  const expiryText = formatExpiryDateWithRelative(expiryDate, t);
   const minimumSpendText = couponService.formatMinimumSpend(coupon);
+  const valueText = couponService.formatCouponValue(coupon);
 
   return (
-    <div className={`
-      relative bg-white rounded-lg shadow-md overflow-hidden border 
-      ${isExpiring ? 'border-red-300 bg-red-50' : 'border-stone-200'}
-      ${className}
-    `}
-    >
-      {/* Expiring Soon Badge */}
-      {isExpiring && (
-        <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-          {t('coupons.expiringSoon')}
-        </div>
+    <div
+      data-testid="coupon-card"
+      data-status={coupon.status}
+      style={TICKET_NOTCH_STYLE}
+      className={cn(
+        'relative rounded-card border border-hairline bg-surface-card',
+        isInactive && 'opacity-60',
+        className
       )}
-
+    >
       <div className="p-4">
-        <div className="flex items-start">
-          {/* Coupon Details */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-stone-900 truncate">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-body font-semibold text-ink">
               {coupon.name}
             </h3>
-            
-            <p className="text-sm text-stone-600 mt-1">
+            <span className="mt-1 inline-block rounded-lg bg-surface-sunken px-2 py-0.5 font-mono text-fine text-ink-muted">
               {coupon.code}
-            </p>
-
-            {coupon.description && (
-              <p className="text-sm text-stone-700 mt-2 line-clamp-2">
-                {coupon.description}
-              </p>
-            )}
-
-            {/* Value and Conditions */}
-            <div className="mt-3 space-y-1">
-              <div className="flex items-center justify-end">
-                {expiryText && (
-                  <span className={`text-sm ${isExpiring ? 'text-red-600 font-medium' : 'text-stone-500'}`}>
-                    {expiryText}
-                  </span>
-                )}
-              </div>
-
-              {minimumSpendText && (
-                <p className="text-xs text-stone-500">
-                  {minimumSpendText}
-                </p>
-              )}
-            </div>
+            </span>
           </div>
+
+          {isInactive ? (
+            <Badge tone="neutral">{t(`coupons.statuses.${coupon.status}`)}</Badge>
+          ) : isExpiring ? (
+            <Badge tone="warning">{t('coupons.expiringSoon')}</Badge>
+          ) : null}
+        </div>
+
+        <p className="mt-3 text-display text-brand-600">{valueText}</p>
+
+        {coupon.description && (
+          <p className="mt-2 line-clamp-2 text-caption text-ink-muted">
+            {coupon.description}
+          </p>
+        )}
+
+        <div className="mt-3 space-y-1">
+          {expiryText && (
+            <p
+              className={cn(
+                'flex items-center gap-1 text-caption',
+                isExpiring ? 'text-warning-700' : 'text-ink-muted'
+              )}
+            >
+              <FiClock className="h-3 w-3" aria-hidden="true" />
+              {expiryText}
+            </p>
+          )}
+
+          {minimumSpendText && (
+            <p className="text-fine text-ink-muted">
+              {minimumSpendText}
+            </p>
+          )}
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-4 flex space-x-2">
-          {onUse && (
-            <button
-              onClick={() => onUse(coupon)}
-              className="flex-1 bg-brand-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors"
-            >
-              {t('coupons.useCoupon')}
-            </button>
-          )}
-          
-          {onViewDetails && (
-            <button
-              onClick={() => onViewDetails(coupon)}
-              className="flex-1 bg-stone-100 text-stone-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-stone-200 transition-colors"
-            >
-              {t('coupons.viewDetails')}
-            </button>
-          )}
-        </div>
-      </div>
+        {(onUse ?? onViewDetails) && (
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            {onUse && (
+              <Button className="flex-1" onClick={() => onUse(coupon)}>
+                {t('coupons.useCoupon')}
+              </Button>
+            )}
 
-      {/* Decorative Perforations */}
-      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-stone-100 rounded-full -ml-2" />
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-stone-100 rounded-full -mr-2" />
+            {onViewDetails && (
+              <Button variant="secondary" className="flex-1" onClick={() => onViewDetails(coupon)}>
+                {t('coupons.viewDetails')}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
