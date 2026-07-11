@@ -2,7 +2,8 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import DashboardButton from '../../components/navigation/DashboardButton';
+import AppShell from '../../components/layout/AppShell';
+import { Button, Card, FormField, Input, Modal, Select } from '../../components/ui';
 
 // Types
 interface RoomType {
@@ -345,10 +346,10 @@ const RoomAvailability: React.FC = () => {
     today.setHours(0, 0, 0, 0);
     const isPast = date < today;
 
-    let baseClasses = 'w-8 h-8 text-xs flex items-center justify-center cursor-pointer transition-all border';
+    let baseClasses = 'h-11 w-11 min-h-11 min-w-11 text-fine flex items-center justify-center cursor-pointer transition-all border';
 
     if (isSelected) {
-      baseClasses += ' ring-2 ring-brand-500 ring-offset-1';
+      baseClasses += ' ring-2 ring-brand-600 ring-offset-1';
     }
 
     if (isPast) {
@@ -359,51 +360,36 @@ const RoomAvailability: React.FC = () => {
       case 'booked':
         return `${baseClasses} bg-brand-500 text-white border-brand-600 cursor-not-allowed`;
       case 'blocked':
-        return `${baseClasses} bg-red-500 text-white border-red-600`;
+        return `${baseClasses} bg-error-600 text-white border-error-700`;
       default:
-        return `${baseClasses} bg-green-100 text-green-800 border-green-300 hover:bg-green-200`;
+        return `${baseClasses} bg-success-50 text-success-700 border-hairline hover:border-success-600`;
     }
   }, [getCellStatus, getCellKey, selectedCells]);
 
   const isLoading = blockedLoading || bookingsLoading;
 
   return (
-    <div className="min-h-screen bg-stone-50" onMouseUp={handleMouseUp}>
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-stone-900">
-                {t('admin.booking.availability.title')}
-              </h1>
-              <p className="text-stone-600 mt-1">
-                {t('admin.booking.availability.subtitle')}
-              </p>
-            </div>
-            <DashboardButton variant="outline" size="md" />
-          </div>
-        </div>
-      </div>
+    <div onMouseUp={handleMouseUp}>
+      <AppShell variant="admin" title={t('admin.booking.availability.title')}>
+        <p className="mb-6 text-caption text-ink-muted">{t('admin.booking.availability.subtitle')}</p>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto p-4">
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <Card className="mb-6">
           <div className="flex flex-wrap items-center gap-4">
             {/* Room Type Selector */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-stone-700">
-                {t('admin.booking.availability.selectRoomType')}:
+            <div className="flex items-center gap-2">
+              <label htmlFor="availability-room-type" className="text-caption font-semibold text-ink">
+                {t('admin.booking.availability.selectRoomType')}
               </label>
-              <select
+              <Select
+                id="availability-room-type"
                 value={selectedRoomTypeId}
                 onChange={(e) => {
                   setSelectedRoomTypeId(e.target.value);
                   setSelectedCells(new Set());
                   setSelectedRoomId(null);
                 }}
-                className="border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-auto min-w-[180px]"
               >
                 <option value="all">{t('admin.booking.availability.allRoomTypes')}</option>
                 {roomTypes?.map((rt: RoomType) => (
@@ -411,132 +397,120 @@ const RoomAvailability: React.FC = () => {
                     {rt.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {/* Month Navigation */}
             {selectedRoomTypeId && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handlePrevMonth}
-                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
-                >
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={handlePrevMonth}>
                   {t('common.previous')}
-                </button>
-                <span className="text-lg font-medium min-w-[160px] text-center">
+                </Button>
+                <span className="min-w-[160px] text-center text-body font-semibold text-ink">
                   {formatMonthYear(currentMonth)}
                 </span>
-                <button
-                  onClick={handleNextMonth}
-                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
-                >
+                <Button type="button" variant="secondary" size="sm" onClick={handleNextMonth}>
                   {t('common.next')}
-                </button>
+                </Button>
               </div>
             )}
 
             {/* Selection Actions */}
             {selectedCells.size > 0 && selectedRoomId && (
-              <div className="flex items-center space-x-2 ml-auto">
-                <span className="text-sm text-stone-600">
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-caption text-ink-muted">
                   {t('admin.booking.availability.selectedDates', { count: selectedCells.size })}
                 </span>
-                <button
-                  onClick={handleBlockSelected}
-                  className="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
-                >
+                <Button type="button" variant="destructive" size="sm" onClick={handleBlockSelected}>
                   {t('admin.booking.availability.blockSelected')}
-                </button>
-                <button
-                  onClick={handleClearSelection}
-                  className="px-3 py-2 bg-stone-100 text-stone-700 text-sm rounded-md hover:bg-stone-200"
-                >
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleClearSelection}>
                   {t('admin.booking.availability.clearSelection')}
-                </button>
+                </Button>
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Legend */}
         {selectedRoomTypeId && (
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <Card className="mb-6">
             <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-green-100 border border-green-300 rounded" />
-                <span className="text-sm text-stone-700">{t('admin.booking.availability.available')}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded border border-hairline bg-success-50" />
+                <span className="text-caption text-ink">{t('admin.booking.availability.available')}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-red-500 border border-red-600 rounded" />
-                <span className="text-sm text-stone-700">{t('admin.booking.availability.blocked')}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded border border-error-700 bg-error-600" />
+                <span className="text-caption text-ink">{t('admin.booking.availability.blocked')}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-brand-500 border border-brand-600 rounded" />
-                <span className="text-sm text-stone-700">{t('admin.booking.availability.booked')}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded border border-brand-600 bg-brand-500" />
+                <span className="text-caption text-ink">{t('admin.booking.availability.booked')}</span>
               </div>
-              <div className="text-sm text-stone-500 ml-auto">
+              <div className="ml-auto text-caption text-ink-muted">
                 {t('admin.booking.availability.dragHint')}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Loading */}
         {isLoading && (
-          <div className="bg-white rounded-lg shadow p-6">
+          <Card>
             <div className="animate-pulse space-y-4">
-              <div className="h-6 bg-stone-200 rounded w-1/4" />
+              <div className="h-6 w-1/4 rounded-lg bg-surface-sunken" />
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-12 bg-stone-200 rounded" />
+                  <div key={i} className="h-12 rounded-lg bg-surface-sunken" />
                 ))}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Calendar Grid */}
         {!isLoading && rooms && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <Card padding="none" className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-stone-50">
+                <thead className="bg-surface-sunken">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[120px]">
+                    <th className="sticky left-0 z-10 min-w-[120px] bg-surface-sunken px-4 py-3 text-left text-fine font-semibold uppercase tracking-wider text-ink-muted">
                       {t('admin.booking.availability.room')}
                     </th>
                     {daysInMonth.map((date) => (
                       <th
                         key={date.toISOString()}
-                        className="px-1 py-3 text-center text-xs font-medium text-stone-500"
+                        className="px-1 py-3 text-center text-fine font-semibold text-ink-muted"
                       >
                         <div>{date.getDate()}</div>
-                        <div className="text-[10px] text-stone-400">
+                        <div className="text-fine text-ink-faint">
                           {date.toLocaleDateString('en-US', { weekday: 'short' })}
                         </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-stone-200">
+                <tbody className="divide-y divide-hairline bg-surface-card">
                   {rooms.length === 0 ? (
                     <tr>
                       <td colSpan={daysInMonth.length + 1} className="px-6 py-12 text-center">
-                        <div className="text-stone-500">
-                          <p className="text-lg font-medium">{t('admin.booking.availability.noRooms')}</p>
-                          <p className="text-sm mt-1">{t('admin.booking.availability.noRoomsDescription')}</p>
+                        <div className="text-ink-muted">
+                          <p className="text-body font-semibold">{t('admin.booking.availability.noRooms')}</p>
+                          <p className="mt-1 text-caption">{t('admin.booking.availability.noRoomsDescription')}</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     rooms.map((room: Room) => (
-                      <tr key={room.id} className="hover:bg-stone-50">
-                        <td className="px-4 py-2 whitespace-nowrap sticky left-0 bg-white z-10">
-                          <div className="text-sm font-medium text-stone-900">
+                      <tr key={room.id} className="hover:bg-surface-sunken">
+                        <td className="sticky left-0 z-10 whitespace-nowrap bg-surface-card px-4 py-2">
+                          <div className="text-caption font-semibold text-ink">
                             {room.roomNumber}
                           </div>
                           {room.floor && (
-                            <div className="text-xs text-stone-500">
+                            <div className="text-fine text-ink-muted">
                               {t('admin.booking.availability.floor')} {room.floor}
                             </div>
                           )}
@@ -563,122 +537,103 @@ const RoomAvailability: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
-      </div>
 
-      {/* Block Modal */}
-      {showBlockModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{t('admin.booking.availability.blockDates')}</h2>
-                <button
-                  onClick={() => {
-                    setShowBlockModal(false);
-                    setBlockReason('');
-                  }}
-                  className="text-stone-400 hover:text-stone-600"
-                >
-                  X
-                </button>
-              </div>
-
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  {t('admin.booking.availability.blockingInfo', { count: selectedCells.size })}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  {t('admin.booking.availability.blockReason')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder={t('admin.booking.availability.blockReasonPlaceholder')}
-                  className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowBlockModal(false);
-                    setBlockReason('');
-                  }}
-                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={confirmBlock}
-                  disabled={blockMutation.isPending || !blockReason.trim()}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-                >
-                  {blockMutation.isPending ? t('common.processing') : t('admin.booking.availability.confirmBlock')}
-                </button>
-              </div>
+        {/* Block Modal */}
+        <Modal
+          open={showBlockModal}
+          onClose={() => {
+            setShowBlockModal(false);
+            setBlockReason('');
+          }}
+          title={t('admin.booking.availability.blockDates')}
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowBlockModal(false);
+                  setBlockReason('');
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmBlock}
+                disabled={!blockReason.trim()}
+                loading={blockMutation.isPending}
+              >
+                {blockMutation.isPending ? t('common.processing') : t('admin.booking.availability.confirmBlock')}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          }
+        >
+          <Card className="mb-4 border-warning-200 bg-warning-50">
+            <p className="text-caption text-warning-700">
+              {t('admin.booking.availability.blockingInfo', { count: selectedCells.size })}
+            </p>
+          </Card>
 
-      {/* View Blocked Reason Modal */}
-      {showReasonModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{t('admin.booking.availability.blockedDate')}</h2>
-                <button
-                  onClick={() => {
-                    setShowReasonModal(false);
-                    setViewedBlockReason('');
-                    setSelectedCells(new Set());
-                    setSelectedRoomId(null);
-                  }}
-                  className="text-stone-400 hover:text-stone-600"
-                >
-                  X
-                </button>
-              </div>
+          <FormField label={t('admin.booking.availability.blockReason')} htmlFor="block-reason" required>
+            <Input
+              id="block-reason"
+              type="text"
+              required
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder={t('admin.booking.availability.blockReasonPlaceholder')}
+            />
+          </FormField>
+        </Modal>
 
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm font-medium text-red-800 mb-1">
-                  {t('admin.booking.availability.blockReason')}:
-                </p>
-                <p className="text-sm text-red-700">{viewedBlockReason || '-'}</p>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowReasonModal(false);
-                    setViewedBlockReason('');
-                    setSelectedCells(new Set());
-                    setSelectedRoomId(null);
-                  }}
-                  className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
-                >
-                  {t('common.close')}
-                </button>
-                <button
-                  onClick={handleUnblockSelected}
-                  disabled={unblockMutation.isPending}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                >
-                  {unblockMutation.isPending ? t('common.processing') : t('admin.booking.availability.unblock')}
-                </button>
-              </div>
+        {/* View Blocked Reason Modal */}
+        <Modal
+          open={showReasonModal}
+          onClose={() => {
+            setShowReasonModal(false);
+            setViewedBlockReason('');
+            setSelectedCells(new Set());
+            setSelectedRoomId(null);
+          }}
+          title={t('admin.booking.availability.blockedDate')}
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowReasonModal(false);
+                  setViewedBlockReason('');
+                  setSelectedCells(new Set());
+                  setSelectedRoomId(null);
+                }}
+              >
+                {t('common.close')}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUnblockSelected}
+                loading={unblockMutation.isPending}
+              >
+                {unblockMutation.isPending ? t('common.processing') : t('admin.booking.availability.unblock')}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          }
+        >
+          <Card className="border-error-200 bg-error-50">
+            <p className="mb-1 text-caption font-semibold text-error-700">
+              {t('admin.booking.availability.blockReason')}:
+            </p>
+            <p className="text-caption text-error-600">{viewedBlockReason || '-'}</p>
+          </Card>
+        </Modal>
+      </AppShell>
     </div>
   );
 };

@@ -57,9 +57,14 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock DashboardButton
-vi.mock('../../../components/navigation/DashboardButton', () => ({
-  default: () => <div data-testid="dashboard-button">Dashboard</div>,
+// Mock AppShell (admin chrome renders DashboardButton/nav internally and needs a Router)
+vi.mock('../../../components/layout/AppShell', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div>
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
 }));
 
 // Mock SlipViewerSidebar
@@ -127,9 +132,11 @@ describe('BookingManagement', () => {
     it('renders no bookings message when list is empty', async () => {
       render(<BookingManagement />, { wrapper });
 
-      // The stub queryFn returns empty bookings, so we should see the empty state
+      // The stub queryFn returns empty bookings, so we should see the empty
+      // state. The Table primitive renders the empty node in both the
+      // desktop and mobile layouts, so it appears twice in the DOM.
       await waitFor(() => {
-        expect(screen.getByText('No bookings found')).toBeInTheDocument();
+        expect(screen.getAllByText('No bookings found').length).toBeGreaterThan(0);
       });
     });
   });
