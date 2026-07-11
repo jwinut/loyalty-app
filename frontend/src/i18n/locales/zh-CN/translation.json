@@ -1089,6 +1089,7 @@
     "guestDetailsRequired": "请填写入住人姓名和电话号码"
   },
   "payment": {
+    "browseFiles": "浏览文件",
     "balanceDueAtCheckin": "入住时应付余额",
     "holdExpiresIn": "请在 {{time}} 内付款——房间将为您保留至该时间",
     "holdExpired": "付款时间已过，房间保留已释放。请重新预订。",

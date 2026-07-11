@@ -1693,6 +1693,7 @@
     "uploadSlip": "อัปโหลดสลิปโอนเงิน",
     "uploadSlipDescription": "หลังจากชำระเงินแล้ว อัปโหลดสลิปโอนเงินเพื่อยืนยัน",
     "dragDropSlip": "ลากและวางสลิปที่นี่ หรือคลิกเพื่อเลือกไฟล์",
+    "browseFiles": "เลือกไฟล์",
     "slipUploaded": "อัปโหลดสลิปแล้ว",
     "slipPreview": "สลิปโอนเงิน",
     "awaitingVerification": "รอการตรวจสอบ",
