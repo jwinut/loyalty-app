@@ -152,7 +152,29 @@ pub fn create_router(state: AppState) -> Router {
     // proxies `/api` and `/storage` to the backend, so `/metrics` is reachable
     // only inside the Docker network (e.g. a Prometheus sidecar scraping
     // `backend:4001/metrics`), never from the public internet.
-    let (prometheus_layer, metric_handle) = axum_prometheus::PrometheusMetricLayer::pair();
+    // Install the recorder WITHOUT the exporter's HTTP listener. The convenience
+    // `PrometheusMetricLayer::pair()` internally calls `PrometheusBuilder::build()`,
+    // whose default config binds an HTTP listener on 0.0.0.0:9000 and then hands
+    // back an exporter future that axum-prometheus discards — so the port is
+    // bound, never served (we expose metrics via the `/metrics` route below), and
+    // dropped. Harmless-looking in prod, but under parallel test processes the
+    // bind races → `FailedToCreateHTTPListener("Address already in use")` and a
+    // flaky integration-suite failure. `install_recorder()` installs the same
+    // global recorder with no listener; the layer + handle below are the exact
+    // pieces `pair()` returns (see axum-prometheus docs).
+    let metric_handle = {
+        use axum_prometheus::metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
+        PrometheusBuilder::new()
+            .upkeep_timeout(std::time::Duration::from_secs(5))
+            .set_buckets_for_metric(
+                Matcher::Full(axum_prometheus::AXUM_HTTP_REQUESTS_DURATION_SECONDS.to_string()),
+                axum_prometheus::utils::SECONDS_DURATION_BUCKETS,
+            )
+            .expect("valid metrics bucket configuration")
+            .install_recorder()
+            .expect("failed to install Prometheus recorder")
+    };
+    let prometheus_layer = axum_prometheus::PrometheusMetricLayer::new();
 
     app.layer(Extension(jwt_secret))
         .layer(prometheus_layer)
