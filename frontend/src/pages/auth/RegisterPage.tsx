@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import AppShell from '../../components/layout/AppShell';
 import { useAuthStore } from '../../store/authStore';
 import { FiMail, FiLock, FiUser, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi';
 import { Button, FormField, Input } from '../../components/ui';
@@ -49,8 +50,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-page py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <AppShell variant="minimal">
+      <div className="w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-display text-ink">
             Create your account
@@ -169,6 +170,6 @@ export default function RegisterPage() {
           </Button>
         </form>
       </div>
-    </div>
+    </AppShell>
   );
 }

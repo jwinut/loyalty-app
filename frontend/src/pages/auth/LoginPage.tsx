@@ -9,8 +9,8 @@ import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import LineLoginButton from '../../components/auth/LineLoginButton';
 import { notify } from '../../utils/notificationManager';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
 import { Button, FormField, Input } from '../../components/ui';
+import AppShell from '../../components/layout/AppShell';
 
 type LoginFormData = {
   email: string;
@@ -73,13 +73,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-page py-12 px-4 sm:px-6 lg:px-8">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
-      <div className="max-w-md w-full space-y-8">
+    <AppShell variant="minimal">
+      <div className="w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-display text-ink">
+          <h2 className="text-center text-display text-ink">
             {t('auth.signIn')}
           </h2>
           <p className="mt-2 text-center text-body text-ink-muted">
@@ -173,6 +170,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

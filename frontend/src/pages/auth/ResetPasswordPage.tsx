@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import AppShell from '../../components/layout/AppShell';
 import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
 import { FiMail, FiLock } from 'react-icons/fi';
@@ -75,8 +76,8 @@ export default function ResetPasswordPage() {
 
   if (token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-page py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+      <AppShell variant="minimal">
+      <div className="w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-display text-ink">
               Reset your password
@@ -121,13 +122,13 @@ export default function ResetPasswordPage() {
             </Button>
           </form>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-page py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <AppShell variant="minimal">
+      <div className="w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-display text-ink">
             Forgot your password?
@@ -176,6 +177,6 @@ export default function ResetPasswordPage() {
           </form>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

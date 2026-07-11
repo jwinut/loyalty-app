@@ -160,10 +160,10 @@ export default function OAuthSuccessPage() {
   }, [searchParams, navigate, setTokens]);
 
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+    <div className="min-h-screen bg-surface-page flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600 mx-auto" />
-        <p className="mt-4 text-stone-600">Completing your login...</p>
+        <p className="mt-4 text-ink-muted">Completing your login...</p>
       </div>
     </div>
   );
