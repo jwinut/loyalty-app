@@ -963,39 +963,30 @@ jobs:
           echo "::error::Staging /api/health not responding after 90s"
           exit 1
 
-      - name: Assert staging is running this commit's image
-        env:
-          # deploy-staging hands the shim commit_sha, which it exports as
-          # IMAGE_TAG for docker-compose.ghcr.yml
-          # (`image: .../backend:${IMAGE_TAG:-latest}`), so the running
-          # container's Config.Image is this exact string on a real deploy.
-          EXPECTED_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/backend:${{ github.sha }}
-        run: |
-          # No `-e`: an unreachable host or a missing container must produce the
-          # explanatory error below, not a bare non-zero exit.
-          set -uo pipefail
+      # NOTE: a revision assertion used to live here (audit finding #16 — prove
+      # the deploy was not a no-op, not merely that *something* answers 200).
+      # It CANNOT be done over this SSH key: the deploy key carries a FORCED
+      # COMMAND server-side, which is why the deploy job pipes its payload to
+      # stdin and passes no remote command at all. Any client-supplied command
+      # (docker inspect / docker ps) is ignored by the forced command, so the
+      # assertion could only ever report "<could not determine>" and fail every
+      # deploy — it blocked two production releases before this was understood.
+      #
+      # The right fix is to make the running app report its own commit: inject
+      # the deploy's COMMIT_SHA into the container and surface it from
+      # /api/health, then assert on that over plain HTTP with no SSH at all.
+      # Tracked as a follow-up issue.
 
-          ACTUAL_IMAGE=$(ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=~/.ssh/known_hosts \
-            -o ProxyCommand="cloudflared --edge-ip-version 4 access ssh --hostname %h" \
-            -o ConnectTimeout=15 \
-            deploy@evergreen.thehfhotel.org \
-            'docker inspect -f "{{.Config.Image}}" loyalty_backend_dev' | tr -d '[:space:]') || ACTUAL_IMAGE=""
-
-          echo "expected: $EXPECTED_IMAGE"
-          echo "actual:   ${ACTUAL_IMAGE:-<could not determine>}"
-
-          if [ "$ACTUAL_IMAGE" != "$EXPECTED_IMAGE" ]; then
-            echo "::error::loyalty_backend_dev is running '${ACTUAL_IMAGE:-<could not determine>}', not this commit. Staging answered /api/health but the deploy was a no-op, partial, or overtaken — this run is NOT a verified staging release."
-            exit 1
-          fi
-          echo "Staging is running this commit's backend image"
-
-      # The rest of this job runs only when a check above fails, to grab
-      # backend logs + container state from the staging host before the
-      # next push overwrites them. Without this, every red verify-staging
-      # is a black box.
+      # The rest of this job runs only when the health poll above fails, to
+      # grab backend logs + container state from the staging host before the
+      # next push overwrites them.
+      #
+      # CAVEAT: these steps pass explicit remote commands, which the deploy
+      # key's forced command may ignore (see the note above) — in which case
+      # they capture nothing. They are tolerant of failure and only run on the
+      # failure path, so they cannot make a run red, but do NOT treat an empty
+      # artifact as "staging looked fine". Confirming/fixingthis is part of
+      # the same follow-up as the revision assertion.
 
       - name: Capture staging logs + container state (on failure)
         if: failure()
