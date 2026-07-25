@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 const HF_BAR_HOST_ID = 'hf-bar-host';
 const HF_BAR_SCRIPT_SRC = 'https://erp.thehfhotel.org/shell/hf-bar.js';

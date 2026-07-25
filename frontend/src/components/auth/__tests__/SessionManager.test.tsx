@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import SessionManager from '../SessionManager';
 import { useAuthStore } from '../../../store/authStore';
 import * as notificationManager from '../../../utils/notificationManager';
@@ -10,8 +10,8 @@ vi.mock('../../../store/authStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: () => vi.fn(),

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../store/authStore';
 import { notify } from '../../utils/notificationManager';
 import { API_BASE_URL } from '../../utils/apiConfig';

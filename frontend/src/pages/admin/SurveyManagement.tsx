@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart, FiDownload, FiFileText, FiMail, FiGlobe, FiLock, FiGift } from 'react-icons/fi';
 import { Survey } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';

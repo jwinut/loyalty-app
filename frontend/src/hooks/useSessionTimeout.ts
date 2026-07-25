@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { notify } from '../utils/notificationManager';
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes

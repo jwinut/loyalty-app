@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router';
 import ProtectedRoute from '../ProtectedRoute';
 import { useAuthStore } from '../../../store/authStore';
 
@@ -9,9 +9,9 @@ vi.mock('../../../store/authStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
-// Mock react-router-dom Navigate component
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+// Mock react-router Navigate component
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     Navigate: ({ to }: { to: string }) => <div data-testid="navigate-mock">{to}</div>,

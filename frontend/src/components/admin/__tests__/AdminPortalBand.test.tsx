@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router';
 import AdminPortalBand from '../AdminPortalBand';
 
 const HF_BAR_SCRIPT_SELECTOR = 'script[data-hf-bar-script]';

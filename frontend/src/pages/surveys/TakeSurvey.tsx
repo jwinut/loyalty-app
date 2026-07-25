@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { SurveyQuestion } from '../../types/survey';
 import { surveyService } from '../../services/surveyService';

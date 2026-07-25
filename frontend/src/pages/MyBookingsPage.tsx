@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { FiCalendar, FiUsers, FiStar, FiAlertCircle, FiPlus, FiChevronRight, FiX, FiUpload, FiCheckCircle, FiClock, FiDollarSign, FiDownload } from 'react-icons/fi';
 import AppShell from '../components/layout/AppShell';
 import {

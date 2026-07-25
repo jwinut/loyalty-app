@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { FiArrowLeft, FiCalendar, FiUsers, FiEye, FiHelpCircle, FiActivity } from 'react-icons/fi';
 import { Survey } from '../../types/survey';
