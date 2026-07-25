@@ -43,7 +43,7 @@ export function createSafeAccessor<T extends readonly string[]>(
     }
 
     // Log security warning for attempted access to non-allowed key
-    console.warn(`[Security] Invalid key access attempt: "${key}". Allowed keys:`, allowedKeys);
+    console.warn('[Security] Invalid key access attempt:', key, 'Allowed keys:', allowedKeys);
     return undefined;
   };
 }

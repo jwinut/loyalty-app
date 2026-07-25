@@ -6,6 +6,8 @@ version: 2
 updates:
   # Backend (Rust) Dependencies
   - package-ecosystem: "cargo"
+    cooldown:
+      default-days: 7
     directory: "/backend-rust"
     schedule:
       interval: "weekly"
@@ -31,6 +33,8 @@ updates:
 
   # Frontend (Node.js) Dependencies
   - package-ecosystem: "npm"
+    cooldown:
+      default-days: 7
     directory: "/frontend"
     schedule:
       interval: "weekly"
@@ -61,6 +65,8 @@ updates:
 
   # Root (Playwright E2E) Dependencies
   - package-ecosystem: "npm"
+    cooldown:
+      default-days: 7
     directory: "/"
     schedule:
       interval: "weekly"
@@ -89,6 +95,8 @@ updates:
 
   # GitHub Actions Workflows
   - package-ecosystem: "github-actions"
+    cooldown:
+      default-days: 7
     directory: "/"
     schedule:
       interval: "weekly"
@@ -116,6 +124,8 @@ updates:
 
   # Docker Base Images
   - package-ecosystem: "docker"
+    cooldown:
+      default-days: 7
     directory: "/backend-rust"
     schedule:
       interval: "weekly"
@@ -136,6 +146,8 @@ updates:
       - "backend"
 
   - package-ecosystem: "docker"
+    cooldown:
+      default-days: 7
     directory: "/frontend"
     schedule:
       interval: "weekly"

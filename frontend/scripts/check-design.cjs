@@ -117,6 +117,8 @@ const HEX_EXEMPT_FILES = new Map([
 
 function walk(dir, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // Build-time walk over the repo's own src tree - no untrusted input.
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, files);
     else if (/\.(tsx?|css)$/.test(entry.name)) files.push(full);

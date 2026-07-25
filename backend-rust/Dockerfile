@@ -69,6 +69,9 @@ ENV RUST_BACKTRACE=1
 EXPOSE 4001
 
 # Use cargo-watch for hot reload during development
+# Local-dev hot-reload stage only — never built for deploy (prod uses the
+# distroless runner stage below, whose binaries are nonroot-owned).
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["cargo", "watch", "-x", "run"]
 
 # ==============================================================================

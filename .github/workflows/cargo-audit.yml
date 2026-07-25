@@ -30,15 +30,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch (toolchain set via with:)
         with:
           toolchain: '1.93'
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@cargo-audit
+        uses: taiki-e/install-action@b3d3b86298745e7ee31467554af349ac2c5cec48 # cargo-audit tag
+        with:
+          tool: cargo-audit
 
       - name: Run cargo audit
         id: audit

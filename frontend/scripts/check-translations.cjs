@@ -34,6 +34,8 @@ function getTsxFiles(dir, files = []) {
   const items = fs.readdirSync(dir);
 
   for (const item of items) {
+    // Build-time walk over the repo's own src tree - no untrusted input.
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const fullPath = path.join(dir, item);
     const stat = fs.statSync(fullPath);
 
@@ -82,7 +84,13 @@ function getNestedValue(obj, key) {
   let current = obj;
 
   for (const part of parts) {
-    if (current && typeof current === 'object' && part in current) {
+    if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+      return undefined;
+    }
+    if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, part)) {
+      // Guarded above (__proto__/constructor/prototype) and limited to own
+      // properties; input is the repo's own translation JSON, not user data.
+      // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop
       current = current[part];
     } else {
       return undefined;
@@ -100,7 +108,7 @@ function loadTranslations(filePath) {
     const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content);
   } catch (error) {
-    console.error(`Error loading ${filePath}:`, error.message);
+    console.error('Error loading', filePath, ':', error.message);
     process.exit(1);
   }
 }

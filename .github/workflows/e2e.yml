@@ -79,8 +79,11 @@ jobs:
           --health-retries 5
 
     steps:
+      # The workflow_run trigger is filtered to branches: [main], so head_sha
+      # is always an already-merged main commit — never untrusted PR code.
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -136,7 +139,7 @@ jobs:
           fi
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -239,7 +242,7 @@ jobs:
             bash -lc "npm ci && if [ \"\$PW_EXACT_IMAGE\" != true ]; then npx playwright install --with-deps; fi && npx playwright test"
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: browser-e2e-report

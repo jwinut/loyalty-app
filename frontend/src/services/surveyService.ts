@@ -45,7 +45,7 @@ class SurveyService {
       // Validate status parameter against known valid statuses
       const validStatuses = ['draft', 'active', 'paused', 'completed', 'archived'];
       if (status && !validStatuses.includes(status)) {
-        console.warn(`Invalid survey status '${status}'. Valid statuses:`, validStatuses);
+        console.warn('Invalid survey status', status, '- valid statuses:', validStatuses);
         throw new Error(`Invalid survey status: ${status}`);
       }
 

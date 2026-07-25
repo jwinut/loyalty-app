@@ -68,6 +68,10 @@ RUN test -f /usr/share/nginx/html/index.html && \
     echo "✅ Production ready"
 
 EXPOSE 80
+# Official nginx model: master starts as root (binds :80, reads config),
+# then drops privileges — workers run as the unprivileged `nginx` user.
+# Switching to nginx-unprivileged needs a coordinated port/compose change.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["nginx", "-g", "daemon off;"]
 
 # =============================================================================
@@ -97,4 +101,6 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:${PORT:-3000} || exit 1
 
 EXPOSE 3000
+# Local-dev Vite stage only — never built for deploy.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

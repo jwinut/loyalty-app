@@ -72,14 +72,14 @@ const ThaiSurveyDebug: React.FC = () => {
       });
 
       surveyData.questions.forEach((q, i) => {
-        console.log(`Question ${i + 1}:`, {
+        console.log('Question', i + 1, ':', {
           text: q.text,
           length: q.text.length,
           bytes: new TextEncoder().encode(q.text).length
         });
         
         q.options?.forEach((opt, j) => {
-          console.log(`  Option ${j + 1}:`, {
+          console.log('  Option', j + 1, ':', {
             text: opt.text,
             length: opt.text.length,
             bytes: new TextEncoder().encode(opt.text).length
