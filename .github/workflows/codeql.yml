@@ -36,8 +36,17 @@ on:
     - cron: '23 4 * * 1'  # weekly, Monday 04:23 UTC
 
 concurrency:
-  group: codeql-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PR runs are keyed by ref so a rebase/force-push supersedes its own stale
+  # analysis. push and schedule runs are keyed by COMMIT (and by event, so the
+  # Monday cron never shares a slot with a merge): `github.ref` is
+  # `refs/heads/main` for both, and a static group evicts the *pending* run when
+  # a third trigger arrives even with cancel-in-progress: false — which is how
+  # commit 6fc61ddd ended up with no code-scanning analysis at all. Per-commit
+  # groups mean main and cron analyses always complete.
+  group: codeql-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  # Only a superseded PR run is safe to cancel; a cancelled main/cron run leaves
+  # that commit unanalysed with no red signal to say so.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Least-privilege default for the workflow; the analyze job below elevates only
 # to what CodeQL needs (security-events: write). Keeping an explicit top-level
@@ -49,7 +58,11 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # build-mode: none means no compilation, so the slowest observed leg is ~2m
+    # (rust). 20 min is ~9x that — ample for a cold CodeQL bundle download —
+    # while capping a hung extractor at a fifth of an hour instead of the 2
+    # runner-hours the previous 120 allowed, on a workflow that fires ~25x/day.
+    timeout-minutes: 20
 
     permissions:
       security-events: write   # upload SARIF code-scanning results
@@ -71,14 +84,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@1b168cd39490f61582a9beae412bb7057a6b2c4e # v4
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@1b168cd39490f61582a9beae412bb7057a6b2c4e # v4
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           category: "/language:${{ matrix.language }}"

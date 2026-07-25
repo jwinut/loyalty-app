@@ -18,13 +18,14 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+# Keep the default token read-only, like ci-build-e2e.yml. `issues: write`
+# lives on notify-on-failure and `packages: read` on deploy-production, at job
+# level: deploy-production pipes GITHUB_TOKEN over SSH to evergreen so the
+# remote shim can pull from GHCR, and a token that leaves the CI boundary must
+# carry no repo-write capability.
 permissions:
   contents: read
   actions: read
-  packages: read
-  # Needed by `notify-on-failure` so a red prod deploy surfaces as a
-  # GitHub issue. The Actions tab is not a paging channel.
-  issues: write
 
 env:
   REGISTRY: ghcr.io
@@ -51,7 +52,9 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push'
-    timeout-minutes: 5
+    # Generous enough to cover the ci-test.yml poll below (72 x 10s) without
+    # the job being killed mid-wait, which would read as a failed deploy.
+    timeout-minutes: 15
     outputs:
       should-deploy: ${{ steps.check.outputs.ready }}
       commit-sha: ${{ steps.check.outputs.sha }}
@@ -67,18 +70,60 @@ jobs:
           echo "Checking deploy preconditions for commit: $SHA"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
+          # Assert that THIS build actually put the commit on staging and found
+          # it healthy. The `event == 'push'` job guard above stops a
+          # workflow_dispatch (whose staging jobs are push-only, hence skipped)
+          # from reaching production, but a partial "re-run failed jobs" can
+          # still conclude `success` with the staging jobs missing. A skipped
+          # job does not change a workflow's conclusion, so the trigger's
+          # conclusion alone proves nothing about staging.
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          STAGING=$(gh run view "$RUN_ID" -R "${{ github.repository }}" \
+            --json jobs --jq '.jobs[] | select(.name == "Verify Staging") | .conclusion')
+          echo "CI Build & Deploy run $RUN_ID -> Verify Staging: ${STAGING:-absent}"
+
+          if [ "$STAGING" != "success" ]; then
+            echo "::error::Run $RUN_ID did not deploy and verify staging for $SHA (Verify Staging=${STAGING:-absent})."
+            echo "Refusing to promote an unverified commit to production."
+            exit 1
+          fi
+
           # Defence-in-depth: CI Build & Deploy's wait-for-frontend-checks job
           # already fails closed on ci-test.yml, but verify independently so
           # removing that job can never silently un-gate production.
-          TEST_STATUS=$(gh run list -R "${{ github.repository }}" \
-            --workflow=ci-test.yml --branch=main --commit="$SHA" \
-            --json conclusion --jq '.[0].conclusion // "pending"')
-          echo "CI Tests status: $TEST_STATUS"
+          #
+          # Poll rather than sample once (same loop as ci-build-e2e.yml's
+          # wait-for-frontend-checks): a one-shot read of an in-progress run
+          # yields conclusion "" and would fail a deploy that is merely early.
+          # Selecting `status` too is what makes "not finished yet" (retry)
+          # distinguishable from "finished badly" (abort) — `.conclusion //
+          # "pending"` alone never fires, because in-flight runs return an
+          # empty string, not null.
+          TEST_STATUS=""
+          for attempt in $(seq 1 72); do
+            TEST_STATUS=$(gh run list -R "${{ github.repository }}" \
+              --workflow=ci-test.yml --branch=main --commit="$SHA" \
+              --json conclusion,status --jq '.[0] | "\(.status):\(.conclusion // "pending")"')
+            echo "Attempt $attempt: CI Tests = ${TEST_STATUS:-no-run-yet}"
 
-          if [ "$TEST_STATUS" != "success" ]; then
-            echo "::error::CI Tests did not succeed for $SHA (status=$TEST_STATUS)."
-            echo "Refusing to deploy. Failing loudly rather than skipping, so a"
-            echo "non-deploy can never be reported as a green run."
+            case "$TEST_STATUS" in
+              completed:success)
+                break
+                ;;
+              completed:*)
+                echo "::error::CI Tests did not succeed for $SHA (status=$TEST_STATUS)."
+                echo "Refusing to deploy. Failing loudly rather than skipping, so a"
+                echo "non-deploy can never be reported as a green run."
+                exit 1
+                ;;
+              *)
+                sleep 10
+                ;;
+            esac
+          done
+
+          if [ "$TEST_STATUS" != "completed:success" ]; then
+            echo "::error::Timed out waiting for CI Tests to complete for $SHA (last status=${TEST_STATUS:-no-run-yet})."
             exit 1
           fi
 
@@ -103,7 +148,8 @@ jobs:
           echo "ready=true" >> "$GITHUB_OUTPUT"
 
   # =============================================================================
-  # DEPLOY TO PRODUCTION (requires approval)
+  # DEPLOY TO PRODUCTION (unattended — the `production` environment no longer
+  # has a required reviewer, so check-prerequisites above is the only gate)
   # =============================================================================
 
   deploy-production:
@@ -112,6 +158,21 @@ jobs:
     needs: [check-prerequisites]
     if: needs.check-prerequisites.outputs.should-deploy == 'true'
     timeout-minutes: 10
+    # Shares the `production-mutation` group with backup-production.yml so the
+    # nightly pg_dump and a production deploy can never overlap. Concurrency
+    # groups are repo-wide strings, so BOTH sides must name it — the backup
+    # workflow alone bought nothing. Without this, a deploy that applies a
+    # migration mid-dump yields a backup spanning two schema versions, which is
+    # exactly the backup you would reach for after a bad migration.
+    concurrency:
+      group: production-mutation
+      cancel-in-progress: false
+    # Least privilege: GITHUB_TOKEN is handed to the remote shim on evergreen
+    # (see GHCR_TOKEN below), so it gets exactly what a `docker pull` from GHCR
+    # needs — plus contents:read for the sparse checkout. Nothing writable.
+    permissions:
+      contents: read
+      packages: read
     environment:
       name: production
       url: https://loyalty.saichon.com
@@ -120,31 +181,21 @@ jobs:
       - name: Checkout config files
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
+          persist-credentials: false
           ref: ${{ needs.check-prerequisites.outputs.commit-sha }}
           sparse-checkout: |
+            .github/actions/evergreen-ssh
             docker-compose.yml
             docker-compose.ghcr.yml
             docker-compose.prod.yml
             nginx/nginx.conf
           sparse-checkout-cone-mode: false
 
-      - name: Install cloudflared
-        # Reaches evergreen via the same `asgard` tunnel the operators use
-        # for daily SSH. No CF Access app gates evergreen, so no service token.
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /tmp/cloudflared
-          sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
-          cloudflared --version
-
-      - name: Install SSH key + known_hosts
-        env:
-          SSH_KEY:  ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
-          HOST_KEY: ${{ secrets.EVERGREEN_HOST_KEY }}
-        run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY"  > ~/.ssh/deploy_key  && chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$HOST_KEY" > ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
+      - name: Set up SSH access to evergreen
+        uses: ./.github/actions/evergreen-ssh
+        with:
+          ssh-key: ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
+          host-key: ${{ secrets.EVERGREEN_HOST_KEY }}
 
       - name: Deploy via SSH to evergreen
         env:
@@ -176,6 +227,23 @@ jobs:
           IMAP_PASS:            ${{ secrets.IMAP_PASS }}
         run: |
           set -euo pipefail
+
+          # A `${{ secrets.X }}` that does not exist renders as an empty string
+          # and the env var is still SET, so `set -u` never trips on it. Without
+          # this guard a deleted/renamed/rotated secret ships a well-formed
+          # payload carrying JWT_SECRET="" and the shim writes an empty signing
+          # key into production — green run, broken auth. Fail before touching
+          # the host. SMTP/IMAP are deliberately absent: they are optional and
+          # use `${VAR:-}` defaults below.
+          for v in JWT_SECRET JWT_REFRESH_SECRET SESSION_SECRET DATABASE_URL \
+                   POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB \
+                   GHCR_TOKEN; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error::Required secret $v is empty or unset — aborting production deploy."
+              exit 1
+            fi
+          done
+
           tar -czf /tmp/deploy.tar.gz \
             docker-compose.yml docker-compose.ghcr.yml docker-compose.prod.yml \
             nginx/nginx.conf

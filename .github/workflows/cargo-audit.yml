@@ -34,9 +34,12 @@ on:
       - 'backend-rust/Cargo.toml'
   workflow_dispatch: {}
 
+# Least privilege at workflow scope: the `audit` job only checks out code and
+# runs a third-party-installed binary over the dependency tree, so it must not
+# inherit a token that can write issues. `notify-on-failure` declares its own
+# `issues: write` at job level (see below), which is the only place it is needed.
 permissions:
   contents: read
-  issues: write
 
 jobs:
   audit:
@@ -46,14 +49,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Rust
+        # NOTE: upstream publishes only branch refs (`stable`, `1.93.0`, …) and a
+        # single stale `v1` tag — there is no semver release to name here, so the
+        # trailing comment cannot be a version and Dependabot cannot bump this pin.
+        # Do NOT "fix" it to `# v1`: that tag is ~1y behind this `stable` head and
+        # re-pinning would be a downgrade. Keep in lockstep with ci-build-e2e.yml.
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch (toolchain set via with:)
         with:
           toolchain: '1.93'
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@b3d3b86298745e7ee31467554af349ac2c5cec48 # cargo-audit tag
+        # Pinned to the released `v2` SHA rather than the moving `cargo-audit`
+        # alias tag: Dependabot resolves a SHA pin's version from the trailing
+        # comment, so a non-version comment ("cargo-audit tag") meant this pin
+        # silently never got security updates. The alias commit differs from the
+        # release only by defaulting `tool: cargo-audit`, which is set explicitly
+        # below — so this is behaviour-identical and shares the SHA already used
+        # in ci-build-e2e.yml.
+        uses: taiki-e/install-action@3d7d7cd5ac7f994c1892ae0c06165095b9139094 # v2
         with:
           tool: cargo-audit
 

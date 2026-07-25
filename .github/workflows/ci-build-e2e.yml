@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch (toolchain set via with:)
@@ -104,6 +106,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch (toolchain set via with:)
@@ -137,7 +141,11 @@ jobs:
 
       - name: Install cargo-nextest
         if: steps.cache-nextest.outputs.cache-hit != 'true'
-        uses: taiki-e/install-action@c295c25a8d3df7288fa86db860a4f8062bf76ad8 # nextest tag
+        # Pinned to the released `v2` SHA, not the moving `nextest` alias tag:
+        # Dependabot resolves a SHA pin's version from the trailing comment, so
+        # "# nextest tag" meant this pin could never receive security updates.
+        # The alias only presets `tool: nextest`, which is set explicitly below.
+        uses: taiki-e/install-action@3d7d7cd5ac7f994c1892ae0c06165095b9139094 # v2
         with:
           tool: nextest
 
@@ -199,6 +207,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -224,7 +234,11 @@ jobs:
 
       - name: Install cargo-nextest
         if: steps.cache-nextest.outputs.cache-hit != 'true'
-        uses: taiki-e/install-action@c295c25a8d3df7288fa86db860a4f8062bf76ad8 # nextest tag
+        # Pinned to the released `v2` SHA, not the moving `nextest` alias tag:
+        # Dependabot resolves a SHA pin's version from the trailing comment, so
+        # "# nextest tag" meant this pin could never receive security updates.
+        # The alias only presets `tool: nextest`, which is set explicitly below.
+        uses: taiki-e/install-action@3d7d7cd5ac7f994c1892ae0c06165095b9139094 # v2
         with:
           tool: nextest
 
@@ -323,7 +337,17 @@ jobs:
   build-backend-release:
     name: "Build Backend Release"
     runs-on: ubuntu-latest
-    needs: [lint-backend]
+    # Deliberately NO `needs: [lint-backend]`. Nothing in this job consumes
+    # clippy/rustfmt output, so the edge was pure fail-fast — and it charged the
+    # deploy critical path lint's entire wall-clock on every GREEN run (measured
+    # 4m29s on run 30143612958, 66s on 30166253220). Starting the release build
+    # at t=0 removes that from every good push.
+    #
+    # It does NOT weaken the gate: lint-backend is still its own required
+    # signal, and everything downstream that can ship — `promote-latest` and
+    # `deploy-staging` — gates on the two test jobs, which keep the lint edge.
+    # So a clippy failure still turns the run red and still blocks the deploy;
+    # the only cost is building an image nobody references on an already-red push.
     timeout-minutes: 25
     container:
       image: rust:1.93-bookworm
@@ -340,6 +364,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -390,6 +416,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -417,7 +445,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/backend
           tags: |
             type=sha,format=long,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
 
       - name: Build and push backend
@@ -442,7 +469,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/frontend
           tags: |
             type=sha,format=long,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
 
       - name: Build and push frontend
@@ -472,6 +498,96 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta-frontend.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # PROMOTE `latest` (ONLY after the gate has passed)
+  #
+  # `latest` used to be published by build-and-push, which needs only
+  # build-backend-release — so on every push to main it was re-pointed at a
+  # build whose unit tests, integration tests and API regression suite were
+  # still running (measured: ~1 minute before the gate finished).
+  #
+  # That matters because docker-compose.ghcr.yml defaults to
+  # `image: .../backend:${IMAGE_TAG:-latest}`. An operator running
+  # `docker compose up -d` without IMAGE_TAG — exactly the shape of a hurried
+  # rollback — would pull the newest UNTESTED image instead of the last
+  # known-good one. Both automated deploy paths use the immutable SHA tag and
+  # were never exposed; this closes the human/emergency path.
+  #
+  # Retag-only: imagetools re-points the manifest at the already-built SHA
+  # image, so nothing is rebuilt and `latest` is always byte-identical to a
+  # gated SHA image.
+  # =============================================================================
+
+  promote-latest:
+    name: "Promote latest tag"
+    runs-on: ubuntu-latest
+    # wait-for-frontend-checks included so `latest` means the same thing the
+    # staging deploy means: backend gate AND frontend lint/unit tests green.
+    # Without it, `latest` could advance past a commit whose frontend tests
+    # failed — precisely the "safe to roll back to" claim it is supposed to carry.
+    needs: [build-and-push, test-backend-unit, test-backend-integration, regression-api, wait-for-frontend-checks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 5
+    # CRITICAL: never let a cosmetic retag fail the workflow run. deploy.yml,
+    # trivy.yml and e2e.yml all gate on this workflow's CONCLUSION, so a
+    # transient GHCR 5xx here would block the production deploy, skip the image
+    # CVE scan and skip Browser E2E — and deploy.yml's tip-of-main staleness
+    # guard means a re-run after main moves cannot recover that deploy. A moving
+    # convenience tag must never sit on the production critical path.
+    continue-on-error: true
+    # Two quick merges both reach this job (main runs are never cancelled), and
+    # without a group they can interleave so the slower one lands `latest` on
+    # the OLDER commit.
+    concurrency:
+      group: promote-latest-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point latest at the gated SHA images
+        env:
+          IMAGE_BASE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Check BOTH source tags resolve before moving either. Retagging in a
+          # bare loop meant a frontend failure left backend:latest on the new
+          # commit and frontend:latest on the old one — a split `latest` that an
+          # operator pulling both would run as a mismatched pair.
+          for img in backend frontend; do
+            docker buildx imagetools inspect "${IMAGE_BASE}/${img}:${SHA}" >/dev/null
+          done
+
+          failed=0
+          for img in backend frontend; do
+            echo "Promoting ${img}:${SHA} -> ${img}:latest"
+            docker buildx imagetools create \
+              --tag "${IMAGE_BASE}/${img}:latest" \
+              "${IMAGE_BASE}/${img}:${SHA}" || failed=1
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::latest promotion failed; backend/frontend may now disagree."
+            echo "Re-run this job, or promote manually, before relying on :latest."
+            exit 1
+          fi
+
+          {
+            echo "## Promoted \`latest\`"
+            echo ""
+            echo "Both images resolve to gated commit \`${SHA}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # =============================================================================
   # E2E TESTS (using GHCR images)
@@ -525,6 +641,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -654,6 +772,16 @@ jobs:
     needs: [test-backend-unit, test-backend-integration, build-and-push, wait-for-frontend-checks, regression-api]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 10
+    # `GHCR_TOKEN` below is this job's GITHUB_TOKEN; the remote shim on evergreen
+    # uses it to `docker login` + pull ghcr.io/thehfhotel/loyalty-app/*. Without
+    # an explicit grant the job inherits the workflow default (no `packages`
+    # scope) and only works because the packages are public today. deploy.yml
+    # already declares `packages: read` for the identical purpose — keep the two
+    # deploy paths on the same scope so making the packages private breaks
+    # neither.
+    permissions:
+      contents: read
+      packages: read
     environment:
       name: development
       url: http://loyalty-dev.saichon.com
@@ -662,28 +790,20 @@ jobs:
       - name: Checkout config files
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
+          persist-credentials: false
           sparse-checkout: |
+            .github/actions/evergreen-ssh
             docker-compose.yml
             docker-compose.ghcr.yml
             docker-compose.staging.yml
             nginx/nginx.conf
           sparse-checkout-cone-mode: false
 
-      - name: Install cloudflared
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /tmp/cloudflared
-          sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
-          cloudflared --version
-
-      - name: Install SSH key + known_hosts
-        env:
-          SSH_KEY:  ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
-          HOST_KEY: ${{ secrets.EVERGREEN_HOST_KEY }}
-        run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY"  > ~/.ssh/deploy_key  && chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$HOST_KEY" > ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
+      - name: Set up SSH access to evergreen
+        uses: ./.github/actions/evergreen-ssh
+        with:
+          ssh-key: ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
+          host-key: ${{ secrets.EVERGREEN_HOST_KEY }}
 
       - name: Deploy via SSH to evergreen
         env:
@@ -763,11 +883,23 @@ jobs:
               deploy@evergreen.thehfhotel.org
 
   # =============================================================================
-  # VERIFY STAGING HEALTH
+  # VERIFY STAGING HEALTH + REVISION
   #
   # Catches deploy-itself-broken cases (image won't start, migration crashes
-  # at runtime, env var missing) that pre-merge tests can't see. Polls the
-  # staging /api/health endpoint until it returns HTTP 200 or 90s elapses.
+  # at runtime, env var missing) that pre-merge tests can't see, AND the
+  # deploy-was-a-no-op case. Two assertions:
+  #
+  #   1. staging /api/health answers 200 — twice in a row, because a container
+  #      that binds the port and then crashes satisfies a single-shot check;
+  #   2. `loyalty_backend_dev` is actually running THIS commit's image.
+  #
+  # (2) matters because /api/health's `version` field is CARGO_PKG_VERSION — a
+  # hard-coded 0.1.0 identical on every commit — so a 200 proves only that
+  # *something* answers. This job's green is what deploy.yml's
+  # check-prerequisites reads to authorise the now-UNATTENDED production
+  # deploy, so "staging silently stayed on the old build" must not read as
+  # verified.
+  #
   # The matching environment URL is set on `deploy-staging` above.
   # =============================================================================
 
@@ -779,43 +911,81 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # SSH is needed on BOTH paths now — the revision assertion below on the
+      # happy path, log capture on the failure path — so set it up up-front
+      # rather than under an `if: failure()` guard. This job has no checkout
+      # otherwise (it only curls a URL), so fetch just the composite action.
+      - name: Checkout SSH action
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions/evergreen-ssh
+          sparse-checkout-cone-mode: false
+
+      - name: Set up SSH access to evergreen
+        uses: ./.github/actions/evergreen-ssh
+        with:
+          ssh-key: ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
+          host-key: ${{ secrets.EVERGREEN_HOST_KEY }}
+
       - name: Poll staging /api/health
         id: poll
         env:
           STAGING_HEALTH_URL: http://loyalty-dev.saichon.com/api/health
         run: |
           set -euo pipefail
+          # Require two CONSECUTIVE successes: the old single-shot exit passed
+          # for a backend that answered once and then crash-looped. Same 90s
+          # total budget, so this costs at most one extra 3s tick.
+          ok=0
           for attempt in $(seq 1 30); do
             if curl -fsS --max-time 5 "$STAGING_HEALTH_URL" >/dev/null; then
-              echo "Staging healthy after ${attempt} attempts"
-              exit 0
+              ok=$((ok + 1))
+              if [ "$ok" -ge 2 ]; then
+                echo "Staging healthy (2 consecutive checks) after ${attempt} attempts"
+                exit 0
+              fi
+            else
+              ok=0
             fi
             sleep 3
           done
           echo "::error::Staging /api/health not responding after 90s"
           exit 1
 
-      # The rest of this job runs only when the poll above fails, to grab
+      - name: Assert staging is running this commit's image
+        env:
+          # deploy-staging hands the shim commit_sha, which it exports as
+          # IMAGE_TAG for docker-compose.ghcr.yml
+          # (`image: .../backend:${IMAGE_TAG:-latest}`), so the running
+          # container's Config.Image is this exact string on a real deploy.
+          EXPECTED_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/backend:${{ github.sha }}
+        run: |
+          # No `-e`: an unreachable host or a missing container must produce the
+          # explanatory error below, not a bare non-zero exit.
+          set -uo pipefail
+
+          ACTUAL_IMAGE=$(ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ProxyCommand="cloudflared --edge-ip-version 4 access ssh --hostname %h" \
+            -o ConnectTimeout=15 \
+            deploy@evergreen.thehfhotel.org \
+            'docker inspect -f "{{.Config.Image}}" loyalty_backend_dev' | tr -d '[:space:]') || ACTUAL_IMAGE=""
+
+          echo "expected: $EXPECTED_IMAGE"
+          echo "actual:   ${ACTUAL_IMAGE:-<could not determine>}"
+
+          if [ "$ACTUAL_IMAGE" != "$EXPECTED_IMAGE" ]; then
+            echo "::error::loyalty_backend_dev is running '${ACTUAL_IMAGE:-<could not determine>}', not this commit. Staging answered /api/health but the deploy was a no-op, partial, or overtaken — this run is NOT a verified staging release."
+            exit 1
+          fi
+          echo "Staging is running this commit's backend image"
+
+      # The rest of this job runs only when a check above fails, to grab
       # backend logs + container state from the staging host before the
       # next push overwrites them. Without this, every red verify-staging
       # is a black box.
-
-      - name: Install cloudflared (on failure)
-        if: failure()
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /tmp/cloudflared
-          sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
-
-      - name: Install SSH key + known_hosts (on failure)
-        if: failure()
-        env:
-          SSH_KEY:  ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
-          HOST_KEY: ${{ secrets.EVERGREEN_HOST_KEY }}
-        run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY"  > ~/.ssh/deploy_key  && chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$HOST_KEY" > ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
 
       - name: Capture staging logs + container state (on failure)
         if: failure()
@@ -872,7 +1042,16 @@ jobs:
     name: "Notify on Verify Staging failure"
     runs-on: ubuntu-latest
     needs: [verify-staging]
-    if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # A bare `failure()` in a job-level `if` is true when ANY job in the needs
+    # ANCESTRY failed — here that is the whole pipeline (lint-backend, both test
+    # jobs, build-and-push, wait-for-frontend-checks, deploy-staging). So a
+    # clippy failure on main, which skips deploy-staging and verify-staging
+    # entirely, still filed an issue asserting staging had been deployed and was
+    # unhealthy. Nothing had been deployed; and since this job comments on the
+    # same open issue every time, a persistently red lint turned it into noise
+    # that gets muted — hiding the real failures it exists to catch. Check the
+    # one job this notifier is about, explicitly.
+    if: always() && needs.verify-staging.result == 'failure' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 5
     permissions:
       contents: read
@@ -897,10 +1076,18 @@ jobs:
           - Commit: \`${{ github.sha }}\`
           - Author: @${{ github.actor }}
 
-          Staging is now in an undefined state (the new image is up but
-          \`/api/health\` is not responding). Investigate:
-          1. Open the run log linked above for the failing curl attempts.
-          2. SSH to evergreen and check container status / backend logs.
+          The deploy ran, but staging did not verify. \`Verify Staging\` has two
+          checks and the run log says which one failed:
+          - \`/api/health\` never answered 200 twice in a row → the new image is
+            up but not serving (crash loop, bad migration, missing env var).
+          - \`loyalty_backend_dev\` is not running this commit's image → the
+            deploy was a no-op, partial, or overtaken; staging is still on an
+            older build and must NOT be treated as verified.
+
+          Investigate:
+          1. Open the run log linked above to see which check failed.
+          2. Download the \`staging-failure-logs-*\` artifact (container state +
+             backend/postgres/nginx logs captured from evergreen).
           3. Roll back via \`docs/rollback-runbook.md\` if root cause is not
              a quick fix.
           EOF

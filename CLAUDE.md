@@ -141,8 +141,12 @@ Before wiring a new frontend call:
 ## CI/CD
 
 Workflows fire on push to `main`:
-- `ci-test.yml` — frontend lint + frontend unit tests (Prepare Workspace
-  + Lint Frontend + Frontend Unit Tests).
+- `ci-test.yml` — Lint Frontend (typecheck + ESLint at a
+  `--max-warnings` ratchet + the test-integrity guard) and Frontend Unit
+  Tests, running in parallel. There is deliberately no "Prepare
+  Workspace" job: both jobs derive the same cache key inline and fall
+  back to `npm ci` on a miss, so the serial hop it added to the deploy
+  critical path bought nothing.
 - `ci-build-e2e.yml` (named **CI Build & Deploy**) — Lint Backend (Rust) →
   parallel (Test Backend Unit, Test Backend Integration, Build Backend
   Release) → Build & Push to GHCR → **Regression & Smoke (API)** +
@@ -159,9 +163,21 @@ Workflows fire on push to `main`:
   (and nightly / on demand) and **does NOT gate deployment** — a flaky
   browser/CDN issue must never block shipping. Treat a red Browser E2E
   as a signal to investigate, not a deploy blocker.
-- `trivy.yml` — Filesystem scan on push; backend/frontend image scans
-  triggered by `workflow_run` from `ci-build-e2e.yml` (`CI Build &
-  Deploy`; pulls images from GHCR instead of rebuilding).
+- `trivy.yml` — filesystem dependency scan (blocking on PRs, so a
+  fixable CRITICAL/HIGH shows red before merge); backend/frontend image
+  scans triggered by `workflow_run` from `ci-build-e2e.yml` (`CI Build &
+  Deploy`; pulls images from GHCR instead of rebuilding) and are
+  informational, since the image has already shipped by then.
+- `scorecard.yml` / `semgrep.yml` / `codeql.yml` / `cargo-audit.yml` —
+  non-gating security scanners. `cargo-audit` also runs on
+  `backend-rust/Cargo.{lock,toml}` changes so a vulnerable crate cannot
+  merge and auto-deploy inside the daily cron window.
+- `backup-production.yml` — nightly production `pg_dump`. It shares the
+  `production-mutation` concurrency group with `deploy.yml`, so a deploy
+  can never apply a migration mid-dump. Set the repo variable
+  `BACKUP_ENABLED=true` once the `BACKUP_*` secrets are wired: until
+  then missing secrets only *skip* the job, and after it they *fail* it
+  (a nightly backup that silently no-ops is worse than none).
 
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green

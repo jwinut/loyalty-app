@@ -143,16 +143,25 @@ runs:
         # Registration is idempotent from this script's point of view: a 4xx
         # because the user already exists is fine, so failures are tolerated
         # per-user rather than failing the job.
+        # Distinguish "already exists" from "the backend is broken". Swallowing
+        # every non-2xx meant a 500 or a refused connection produced an unseeded
+        # stack and a pile of confusing auth-spec failures later, with the
+        # seeding step itself reporting success.
         seed() {
-          local email="$1" password="$2" first="$3" last="$4"
-          if curl -sf -X POST "http://localhost:${BACKEND_PORT}/api/auth/register" \
-              -H "Content-Type: application/json" \
-              -d "{\"email\":\"${email}\",\"password\":\"${password}\",\"firstName\":\"${first}\",\"lastName\":\"${last}\"}" \
-              >/dev/null; then
-            echo "Created ${email}"
-          else
-            echo "${email} may already exist"
-          fi
+          local email="$1" password="$2" first="$3" last="$4" code
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST "http://localhost:${BACKEND_PORT}/api/auth/register" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${email}\",\"password\":\"${password}\",\"firstName\":\"${first}\",\"lastName\":\"${last}\"}" \
+            || echo "000")
+
+          case "$code" in
+            2??)     echo "Created ${email}" ;;
+            409|422) echo "${email} already exists (HTTP ${code})" ;;
+            400)     echo "${email} rejected as duplicate/invalid (HTTP 400)" ;;
+            000)     echo "::error::Could not reach the backend while seeding ${email}"; return 1 ;;
+            *)       echo "::error::Seeding ${email} failed with HTTP ${code}"; return 1 ;;
+          esac
         }
 
         # Passwords are NOT uniform — the two guest users and the admin differ,

@@ -19,7 +19,23 @@ on:
     - cron: '0 10 * * 1'
   push:
     branches: [main]
+    # A docs-only merge can't change what p/default finds in code, so don't
+    # spend a full repo scan on it. Unlike ci-test.yml / ci-build-e2e.yml this
+    # list deliberately does NOT ignore '.github/workflows/**': p/default
+    # includes the yaml.github-actions.security rules, so a workflow-only
+    # change is exactly the kind of push this scanner must still see.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch: {}
+
+# Back-to-back merges otherwise stack full 15-minute scans that compete for the
+# same Actions queue. Keyed on the event as well as the ref so a Monday-morning
+# push can't cancel the weekly cron run — that run is the only one that
+# re-evaluates unchanged code against a refreshed ruleset.
+concurrency:
+  group: semgrep-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -30,7 +46,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      image: semgrep/semgrep:1.171.0
+      # Digest-pinned, not tag-pinned: this container IS the execution
+      # environment for a job holding security-events: write, so a re-pushed
+      # tag would run attacker code with a token that can forge or suppress
+      # code-scanning results. Same convention as the SHA-pinned actions below
+      # and the pinned Dockerfile.ci images (e833a8b7). Bump digest + comment
+      # together.
+      image: semgrep/semgrep@sha256:bdf7013b2c3634a487671158da77c554f531742326b543a9464d2adf6c433ac8 # 1.171.0
     permissions:
       contents: read
       security-events: write
@@ -45,7 +67,7 @@ jobs:
         run: semgrep scan --config p/default --sarif --output semgrep.sarif --metrics=off
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
