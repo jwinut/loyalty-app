@@ -97,6 +97,12 @@ jobs:
     name: "Check backup config"
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # REQUIRED: EVERGREEN_* and POSTGRES_* exist ONLY as environment-scoped
+    # secrets, never at repository scope. Without this a job reads them as
+    # empty strings — no error — so check-config would report "not configured"
+    # forever and the backup would SSH with an empty key. This is why the
+    # nightly run has been reporting green while backing nothing up.
+    environment: production
     outputs:
       configured: ${{ steps.check.outputs.configured }}
     steps:
@@ -158,6 +164,12 @@ jobs:
     name: "Backup Production DB"
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # REQUIRED: EVERGREEN_* and POSTGRES_* exist ONLY as environment-scoped
+    # secrets, never at repository scope. Without this a job reads them as
+    # empty strings — no error — so check-config would report "not configured"
+    # forever and the backup would SSH with an empty key. This is why the
+    # nightly run has been reporting green while backing nothing up.
+    environment: production
     needs: [check-config]
     if: needs.check-config.outputs.configured == 'true'
 
