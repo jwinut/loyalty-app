@@ -67,7 +67,7 @@ check_file_violations() {
             echo "  → $line"
         done
         violations_found=1
-        ((VIOLATIONS++))
+        VIOLATIONS=$((VIOLATIONS + 1))
     fi
     
     # Check for trivial test assertions
@@ -77,7 +77,7 @@ check_file_violations() {
             echo "  → $line"
         done
         violations_found=1
-        ((VIOLATIONS++))
+        VIOLATIONS=$((VIOLATIONS + 1))
     fi
     
     # Check for conditional test bypassing
@@ -88,7 +88,7 @@ check_file_violations() {
             echo "  → $line"
         done
         violations_found=1
-        ((VIOLATIONS++))
+        VIOLATIONS=$((VIOLATIONS + 1))
     fi
 
     # Check for Date.now() test bypasses (but exclude legitimate timeout checks that throw errors)
@@ -100,7 +100,7 @@ check_file_violations() {
                 echo "  → $line"
             done
             violations_found=1
-            ((VIOLATIONS++))
+            VIOLATIONS=$((VIOLATIONS + 1))
         fi
     fi
     
@@ -111,7 +111,7 @@ check_file_violations() {
             echo "  → $line"
         done
         violations_found=1
-        ((VIOLATIONS++))
+        VIOLATIONS=$((VIOLATIONS + 1))
     fi
     
     # Check for TODO comments in test files (incomplete tests)
@@ -120,7 +120,7 @@ check_file_violations() {
         grep -n "TODO.*test\|// TODO.*implement\|/* TODO.*test" "$file" | while read -r line; do
             echo "  → $line"
         done
-        ((WARNINGS++))
+        WARNINGS=$((WARNINGS + 1))
     fi
     
     # Check for empty test implementations
@@ -130,7 +130,7 @@ check_file_violations() {
             echo "  → $line"
         done
         violations_found=1
-        ((VIOLATIONS++))
+        VIOLATIONS=$((VIOLATIONS + 1))
     fi
     
     return $violations_found

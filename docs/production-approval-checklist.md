@@ -1,16 +1,18 @@
-# Production-Approval Pre-Flight Checklist
+# Production Deploy Verification Checklist
 
-What an approver should verify before clicking **Approve** on the
-`production` GitHub environment.
+What to verify **after** a production deploy lands.
 
-> The manual gate on `deploy.yml` (`environment: name: production`) is
-> the last safety check between green CI on `main` and live user
-> traffic. Treating it as a rubber stamp defeats the purpose. This
-> checklist is the minimum due-diligence pass; expand it for risky
-> commits (migrations, infra changes, secret touches).
+> **This used to be a pre-approval checklist.** The `production`
+> environment no longer has a required reviewer — deploys are
+> unattended, so there is no Approve button to gate. The automated
+> stand-ins now live in `deploy.yml` (single trigger, fail-never-skip,
+> staleness guard, push-only, post-deploy `/api/health` poll); see the
+> CI/CD section of `CLAUDE.md`.
 >
-> Paste a link to this file in the **GitHub Environment description**
-> for `production` so it appears beside the Approve button.
+> The checks below are still the right ones, they just run after the
+> fact — as a spot check on a risky commit (migrations, infra changes,
+> secret touches), or as the first thing to walk when something looks
+> wrong. If any fail, go straight to the rollback section at the bottom.
 
 ## TL;DR — five checks, ~2 minutes
 
@@ -21,8 +23,8 @@ What an approver should verify before clicking **Approve** on the
    (migrations, infra changes, secret-touch).
 5. Confirm you can reach the **rollback runbook** before you click.
 
-If all five pass: approve. If any fail: abort (instructions at the
-bottom) and post in the on-call channel.
+If all five pass: the deploy is good. If any fail: roll back
+(instructions at the bottom) and post in the on-call channel.
 
 ---
 
@@ -78,8 +80,11 @@ staging deploy on `main`, not as a gate. So:
 
 - `ci-build-e2e.yml` can be green even if **E2E itself is red**, as
   long as the deploy + verify path succeeded.
-- The manual production approver is the last point at which a red E2E
-  on `main` would block a release. Don't skip this check.
+- Nothing blocks a release on a red E2E any more — the suite is
+  deliberately non-gating and deploys are unattended. Since 2026-07 a
+  red run on `main` at least files a `Browser E2E failing on main`
+  issue, so check for that issue rather than relying on someone
+  watching the Actions tab.
 
 ```bash
 gh run list -R thehfhotel/loyalty-app \
@@ -107,8 +112,9 @@ gh api repos/thehfhotel/loyalty-app/compare/$LIVE_SHA...$PROPOSED_SHA \
   --jq '.commits[] | "- " + .commit.message'
 ```
 
-Look for any of these — they all warrant extra scrutiny before
-clicking approve:
+Look for any of these — they all warrant extra scrutiny, and are the
+cases where walking this checklist after the deploy is worth the two
+minutes:
 
 - **Migrations**: any new file under `backend-rust/migrations/`. A
   forward-only `sqlx::migrate!` change means rollback requires a DB
@@ -134,7 +140,7 @@ For routine "fix typo" / "bump version" commits, this step is a
 
 ## 5. Know how to roll back
 
-Before clicking approve, confirm you can reach
+Confirm you can reach
 [`docs/rollback-runbook.md`](rollback-runbook.md). The single most
 common failure mode after a bad deploy is the on-call not knowing
 which SHA to roll *to* — the runbook documents that lookup. If the
@@ -146,9 +152,9 @@ For DB-touching deploys, also have
 
 ---
 
-## Abort criteria — when NOT to approve
+## Roll-back criteria — when to pull the deploy
 
-Abort and post in the on-call channel if any of the following are
+Roll back and post in the on-call channel if any of the following are
 true:
 
 - Staging `/api/health` is **not 200** right now (step 1).
@@ -163,18 +169,17 @@ true:
 - You don't have time to handle a rollback in the next 30 minutes if
   this deploy turns out bad. Approval is not "deploy and walk away".
 
-**To abort**: in the GitHub UI's "Review pending deployments" dialog,
-choose **Reject**. The workflow ends, no production state changes,
-and a future push to `main` (or re-run of `deploy.yml`) will queue a
-fresh approval request. Document the reason in the rejection comment
-so the next approver doesn't repeat the same approve-then-roll-back
-cycle.
+**To roll back**: follow [`docs/rollback-runbook.md`](rollback-runbook.md)
+— redeploy the last-known-good SHA. There is no Reject button to press
+any more, so the response to a bad deploy is always forward-fix or
+roll-back, never "cancel the pending approval". Record what happened in
+the incident notes so the same failure isn't shipped twice.
 
 ---
 
 ## Rollback link
 
-If you approve and the deploy is bad, follow
+If the deploy is bad, follow
 [`docs/rollback-runbook.md`](rollback-runbook.md). For schema-touching
 deploys also follow [`docs/restore-runbook.md`](restore-runbook.md).
 The cloudflared tunnel-side recovery path is in

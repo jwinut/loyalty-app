@@ -163,13 +163,33 @@ Workflows fire on push to `main`:
   triggered by `workflow_run` from `ci-build-e2e.yml` (`CI Build &
   Deploy`; pulls images from GHCR instead of rebuilding).
 
-Production deploys live in `deploy.yml`, `workflow_run`-triggered after
-CI Build & Deploy + CI Tests succeed for the commit, and gated by the
-`production` GitHub environment, which has a **required reviewer** — the
-deploy pauses for manual approval before it runs (walk
+Production deploys live in `deploy.yml` and are **unattended** — the
+`production` environment no longer has a required reviewer, so a green
+build ships to production with no human in the loop. What stands in for
+that reviewer:
+
+- **One trigger.** `workflow_run` on **CI Build & Deploy only** (which
+  already fails closed on CI Tests via `wait-for-frontend-checks`).
+  Listing both workflows fired this 2–3× per commit, and whichever fired
+  first skipped the deploy while still reporting green.
+- **Fails, never skips.** An unmet prerequisite exits non-zero. A run
+  that deploys nothing must never look like a successful deploy.
+- **Staleness guard.** Refuses to deploy a commit that is no longer the
+  tip of `main`, so a slow build can't roll production backwards onto
+  older code with newer migrations already applied.
+- **Push-only.** A `workflow_dispatch`/re-run of CI Build & Deploy won't
+  reach production, because it skips the staging deploy.
+- **Post-deploy health check.** Polls production `/api/health` for 90s;
+  a crash-looping release fails the job instead of reporting green.
+- Failure *or cancellation* files a `Production deploy failed` issue.
+
+Verify a deploy with
 [`docs/production-approval-checklist.md`](docs/production-approval-checklist.md)
-before approving). Manage the approver list in Settings → Environments →
-`production`.
+(now a post-deploy checklist) and roll back per
+[`docs/rollback-runbook.md`](docs/rollback-runbook.md). To restore a
+manual gate, re-add a required reviewer in Settings → Environments →
+`production`. Full audit of every workflow:
+[`docs/workflow-review-2026-07.md`](docs/workflow-review-2026-07.md).
 
 Public-launch readiness — the state of every audit follow-up tied to
 flipping the public switch — is tracked in
