@@ -18,10 +18,20 @@ name: CodeQL
 # scanning to the (heavier) compile pipeline in ci-build-e2e.yml.
 
 on:
+  # paths-ignore: CodeQL runs a 3-language matrix on every PR, rebase and
+  # squash-merge — measured as the 4th most expensive workflow in the repo
+  # (~47 min over 22 runs) despite analysing nothing new on a docs-only change.
+  # The weekly cron below still gives full unconditional coverage.
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   schedule:
     - cron: '23 4 * * 1'  # weekly, Monday 04:23 UTC
 
