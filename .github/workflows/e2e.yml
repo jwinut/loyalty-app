@@ -110,6 +110,10 @@ jobs:
             if docker manifest inspect "mcr.microsoft.com/playwright:${TAG}" >/dev/null 2>&1; then
               echo "Using image tag: ${TAG}"
               echo "image=mcr.microsoft.com/playwright:${TAG}" >> "$GITHUB_OUTPUT"
+              case "$TAG" in
+                *"${VER}"*) echo "exact=true" >> "$GITHUB_OUTPUT" ;;
+                *) echo "exact=false" >> "$GITHUB_OUTPUT" ;;
+              esac
               exit 0
             fi
             echo "::warning::mcr.microsoft.com/playwright:${TAG} not found, trying next candidate"
@@ -219,15 +223,20 @@ jobs:
         # browser-launching oauth-validation specs) inside the official
         # Playwright image (browsers already installed) on the host network so
         # the tests reach the app on localhost. No cdn.playwright.dev download
-        # happens at any point. This is the comprehensive, non-blocking check.
+        # happens on the exact-match path. When pwimage fell back to an older
+        # image (MCR publish lag), the pre-baked browser revisions don't match
+        # the @playwright/test runner, so install matching browsers first —
+        # a CDN download, but only in the degraded window, and better than 25
+        # guaranteed "Executable doesn't exist" failures.
         run: |
           docker run --rm --network host \
             -v "${{ github.workspace }}:/work" -w /work \
             -e CI=true \
+            -e PW_EXACT_IMAGE='${{ steps.pwimage.outputs.exact }}' \
             -e BACKEND_URL=http://localhost:4202 \
             -e FRONTEND_URL=http://localhost:3201 \
             ${{ steps.pwimage.outputs.image }} \
-            bash -lc "npm ci && npx playwright test"
+            bash -lc "npm ci && if [ \"\$PW_EXACT_IMAGE\" != true ]; then npx playwright install --with-deps; fi && npx playwright test"
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v6
