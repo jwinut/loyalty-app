@@ -1,0 +1,51 @@
+# Semgrep — static analysis (OSS engine, public rulesets, no SaaS token).
+#
+# Scans the repo with the community p/default ruleset and uploads SARIF so
+# findings appear under Security → Code scanning (category: semgrep) next
+# to CodeQL/Trivy/Scorecard. Informational: `semgrep scan` exits 0 even
+# with findings — triage happens in the code-scanning UI, and this
+# workflow never gates merges or deploys.
+#
+# Deliberately NOT triggered on pull_request: Dependabot-actored runs get
+# a read-only GITHUB_TOKEN, which would fail the SARIF upload and paint
+# every Dependabot PR red for reasons unrelated to the change.
+
+name: Semgrep
+
+on:
+  schedule:
+    # Weekly, Monday 10:00 UTC (17:00 ICT) — quiet window, after the
+    # other Monday scans.
+    - cron: '0 10 * * 1'
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Semgrep scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: semgrep/semgrep:1.171.0
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          persist-credentials: false
+
+      - name: Run Semgrep (p/default, SARIF)
+        run: semgrep scan --config p/default --sarif --output semgrep.sarif --metrics=off
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@1b168cd39490f61582a9beae412bb7057a6b2c4e # v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
