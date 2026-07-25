@@ -91,6 +91,13 @@ jobs:
         # Playwright version bump can never silently desync the image again —
         # which is exactly what broke this suite (image v1.59.1 vs runner 1.60.0,
         # "chrome-headless-shell executable doesn't exist").
+        #
+        # MCR's Docker publish can lag the npm release (1.62.0 shipped on npm
+        # with no stable image), and -jammy variants ended at 1.61 — so probe
+        # candidates and take the first tag that actually exists. The pinned
+        # last resort keeps this NON-GATING suite producing real test signal
+        # (possibly against older browsers) instead of docker exit-125; the
+        # next run after MCR catches up resolves back to the exact version.
         id: pwimage
         run: |
           VER="$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)"
@@ -99,7 +106,16 @@ jobs:
             exit 1
           fi
           echo "Resolved @playwright/test version: $VER"
-          echo "image=mcr.microsoft.com/playwright:v${VER}-jammy" >> "$GITHUB_OUTPUT"
+          for TAG in "v${VER}-noble" "v${VER}-jammy" "v${VER}" "v1.61.0-noble"; do
+            if docker manifest inspect "mcr.microsoft.com/playwright:${TAG}" >/dev/null 2>&1; then
+              echo "Using image tag: ${TAG}"
+              echo "image=mcr.microsoft.com/playwright:${TAG}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::warning::mcr.microsoft.com/playwright:${TAG} not found, trying next candidate"
+          done
+          echo "::error::No usable Playwright container image found"
+          exit 1
 
       - name: Resolve image tag
         id: tag
