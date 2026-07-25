@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 // Removed unused useTranslation import
 import { Suspense, lazy } from 'react';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 // Fixed JSX warning - cache refresh trigger
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSave, FiEye } from 'react-icons/fi';
 import { Survey, SurveyQuestion, CreateSurveyRequest, QuestionType, SurveyAccessType, SurveyStatus } from '../../types/survey';

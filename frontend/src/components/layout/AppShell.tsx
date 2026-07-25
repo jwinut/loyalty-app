@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import ProfileCompletionBanner from '../profile/ProfileCompletionBanner';
 import { BrandLogo } from '../brand/BrandLogo';

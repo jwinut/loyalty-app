@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import AppShell from '../AppShell';
 
 vi.mock('react-i18next', () => ({
