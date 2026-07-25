@@ -88,15 +88,43 @@ for workflow in $WORKFLOW_FILES; do
         echo "$OUTPUT" | while IFS= read -r line; do
             if [[ $line == *"error"* ]]; then
                 echo -e "  ${RED}ERROR: $line${NC}"
-                ((ERRORS++))
+                ERRORS=$((ERRORS + 1))
             else
                 echo -e "  ${YELLOW}WARNING: $line${NC}"
-                ((WARNINGS++))
+                WARNINGS=$((WARNINGS + 1))
             fi
         done
     fi
     echo ""
 done
+
+# ----------------------------------------------------------------------------
+# Local composite actions must exist AND be tracked by git.
+#
+# `uses: ./.github/actions/x` is resolved from the checked-out tree at RUNTIME.
+# actionlint validates the path on disk, so an action that exists locally but
+# was never `git add`ed passes every local check and then fails on the runner
+# with "Can't find 'action.yml'" — simultaneously, in every job that uses it
+# (production deploy, staging deploy, nightly DB backup). Catch it here.
+# ----------------------------------------------------------------------------
+echo "🔗 Checking local composite action references..."
+for ref in $(grep -rhoE "uses:\s*\./[A-Za-z0-9_./-]+" .github/workflows/*.yml | sed -E 's|uses:[[:space:]]*\./||' | sort -u); do
+    found=""
+    for candidate in "$ref/action.yml" "$ref/action.yaml" "$ref"; do
+        [ -f "$candidate" ] && { found="$candidate"; break; }
+    done
+
+    if [ -z "$found" ]; then
+        echo -e "  ${RED}ERROR: local action './$ref' referenced but no action.yml on disk${NC}"
+        ERRORS=$((ERRORS + 1))
+    elif ! git ls-files --error-unmatch "$found" >/dev/null 2>&1; then
+        echo -e "  ${RED}ERROR: '$found' exists but is UNTRACKED — commit it or the runner cannot resolve it${NC}"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo -e "  ${GREEN}ok${NC} ./$ref"
+    fi
+done
+echo ""
 
 # Summary
 echo "===================================="

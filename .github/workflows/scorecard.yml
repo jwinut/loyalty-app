@@ -17,8 +17,16 @@ on:
     # Weekly, Monday 09:30 UTC (16:30 ICT) — same quiet window as the
     # other scheduled scans.
     - cron: '30 9 * * 1'
-  push:
-    branches: [main]
+  # Deliberately NOT on `push: main`: Scorecard grades repository
+  # *configuration* (branch protection, token permissions, dependency
+  # pinning, maintenance signals), which an ordinary code merge cannot
+  # change — so a run per merge only re-published the same score the weekly
+  # cron already publishes. The one thing a merge *can* change that
+  # Scorecard grades is a workflow file (unpinned action, over-broad token),
+  # and that is caught on the same commit by CodeQL's `actions` pack, which
+  # does run on every push and PR. Both remaining automatic triggers
+  # (branch_protection_rule, schedule) are publish_results-supported
+  # default-branch events, so the public OpenSSF badge keeps updating.
   workflow_dispatch: {}
 
 permissions: read-all
@@ -28,11 +36,23 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # A job-level block REPLACES the workflow-level `read-all` above (it is
+    # not additive), so every scope scorecard-action documents has to be
+    # re-stated here — same reason codeql.yml re-declares contents/actions.
+    # Without them the job token is contents=none/actions=none: checkout
+    # cannot fetch, and the checks that read workflow-run metadata
+    # (Dangerous-Workflow, Token-Permissions, Pinned-Dependencies, CI-Tests)
+    # degrade to inconclusive — which publish_results would then push to the
+    # public API as an apparently clean score.
     permissions:
       # Upload SARIF to code scanning.
       security-events: write
       # OIDC token so scorecard can publish verified results.
       id-token: write
+      # Clone the repo (actions/checkout) and read repo metadata.
+      contents: read
+      # Read workflow run/definition metadata for the CI-oriented checks.
+      actions: read
 
     steps:
       - name: Checkout code
@@ -48,6 +68,6 @@ jobs:
           publish_results: true
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: results.sarif

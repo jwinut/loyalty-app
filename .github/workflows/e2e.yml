@@ -1,6 +1,9 @@
 name: Browser E2E
 
-# Full browser end-to-end suite (Playwright `browser` project — *.browser.spec.ts).
+# Browser end-to-end suite: everything that needs a real browser and is
+# therefore excluded from the deploy gate — the `browser` (*.browser.spec.ts)
+# and `browser-mobile` (*.mobile.spec.ts) projects, plus the OAuth *validation*
+# api specs that launch a browser despite living in the `api` project.
 #
 # This pipeline intentionally does NOT gate deployment. The deploy path
 # (ci-build-e2e.yml -> deploy.yml) is gated by the no-browser API
@@ -14,8 +17,8 @@ name: Browser E2E
 # Triggers:
 #   - workflow_run: after "CI Build & Deploy" finishes on main, against the
 #     images that run just pushed to GHCR (tagged with the commit SHA).
-#   - workflow_dispatch / schedule: run against the :latest images on demand
-#     or nightly.
+#   - workflow_dispatch / schedule: run on demand or nightly against the last
+#     commit whose build succeeded (specs and image always the same commit).
 
 on:
   workflow_run:
@@ -29,10 +32,21 @@ on:
         required: false
         default: 'latest'
   schedule:
-    - cron: '17 3 * * *'  # nightly at 03:17 UTC
+    # Nightly at 03:17 UTC. `Resolve target commit` below pins the specs AND
+    # the image to the last successfully-built main commit, so the nightly can
+    # never run new specs against an older image.
+    - cron: '17 3 * * *'
 
+# Keyed per commit. A constant group here was repo-global, and GitHub keeps at
+# most ONE pending run per group: a third trigger (post-merge workflow_run, the
+# nightly cron, a manual dispatch) silently CANCELLED the queued one. A
+# cancelled run is neither pass nor fail, so the browser net quietly developed
+# holes on the busiest days. Nothing is actually shared between runs — each gets
+# its own runner, its own postgres/redis service containers and its own host
+# ports — so different commits can run in parallel. `cancel-in-progress: false`
+# stays so a re-run of the SAME commit queues instead of clobbering.
 concurrency:
-  group: browser-e2e
+  group: browser-e2e-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -50,7 +64,19 @@ jobs:
     runs-on: ubuntu-latest
     # Skip when the upstream build did not succeed (cron / manual runs have no
     # workflow_run context and always proceed).
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    #
+    # The `event == 'push'` + same-repository checks are the real trust boundary
+    # for the checkout below, NOT the `branches: [main]` filter: that filter
+    # matches `workflow_run.head_branch`, which for a fork pull request is the
+    # branch name *inside the fork* — a fork whose default branch is `main`
+    # passes it. ci-build-e2e.yml does run on `pull_request`, so such a
+    # workflow_run exists. These two conditions are what guarantee `head_sha` is
+    # a commit already merged into this repo's `main`.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     timeout-minutes: 30
 
     services:
@@ -79,13 +105,62 @@ jobs:
           --health-retries 5
 
     steps:
-      # The workflow_run trigger is filtered to branches: [main], so head_sha
-      # is always an already-merged main commit — never untrusted PR code.
+      # Safe because the job `if:` above requires the upstream run to be a
+      # `push` event from THIS repository (see the comment there) — head_sha is
+      # therefore an already-merged main commit, never untrusted fork PR code.
+      # The `branches: [main]` trigger filter alone does NOT establish that.
+      #
+      # Resolve ONE commit used for BOTH the specs and the image. Previously a
+      # scheduled run checked out main's tip but pulled `:latest`. That was
+      # harmless while `latest` moved at build time, but `latest` is now
+      # promoted only after the gate passes, so it lags main whenever the gate
+      # fails — and the nightly would then run NEW specs against an OLD image,
+      # failing for reasons that are not regressions and filing an issue every
+      # night. Pinning both to the last successfully-built commit removes the
+      # skew entirely.
+      - name: Resolve target commit
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WR_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          if [ -n "${WR_SHA:-}" ]; then
+            # Triggered by a build: test exactly what it produced.
+            echo "sha=$WR_SHA" >> "$GITHUB_OUTPUT"
+            echo "tag=$WR_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "${INPUT_TAG:-}" ] && [ "${INPUT_TAG}" != "latest" ]; then
+            # Explicit manual override wins; check out main tip for the specs.
+            echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tag=${INPUT_TAG}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Nightly / manual-with-latest: use the newest main commit whose
+          # build actually succeeded, so specs and image are the same commit.
+          SHA=$(gh run list -R "${{ github.repository }}" \
+                  --workflow=ci-build-e2e.yml --branch=main --event=push \
+                  --status=success --limit 1 --json headSha --jq '.[0].headSha // empty')
+          if [ -z "$SHA" ]; then
+            echo "::warning::No successful CI Build & Deploy run found; falling back to :latest"
+            echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "Using last successfully-built commit: $SHA"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+            echo "tag=$SHA" >> "$GITHUB_OUTPUT"
+          fi
+
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+          ref: ${{ steps.target.outputs.sha }}
 
       - name: Resolve Playwright image from lockfile
         # Pin the Playwright container to the EXACT @playwright/test version in
@@ -124,20 +199,6 @@ jobs:
           echo "::error::No usable Playwright container image found"
           exit 1
 
-      - name: Resolve image tag
-        id: tag
-        env:
-          WR_SHA: ${{ github.event.workflow_run.head_sha }}
-          INPUT_TAG: ${{ github.event.inputs.image_tag }}
-        run: |
-          if [ -n "${WR_SHA:-}" ]; then
-            echo "tag=$WR_SHA" >> "$GITHUB_OUTPUT"
-          elif [ -n "${INPUT_TAG:-}" ]; then
-            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -145,33 +206,61 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Shared with ci-build-e2e.yml's regression-api job. Unlike that job,
-      # this one can run against `latest` (nightly/manual), so the tag is
-      # whatever `Resolve image tag` produced.
+      # Shared with ci-build-e2e.yml's regression-api job. The tag always
+      # matches the checked-out commit (see `Resolve target commit`).
       - name: Start app stack
         uses: ./.github/actions/start-app-stack
         with:
-          image-tag: ${{ steps.tag.outputs.tag }}
+          image-tag: ${{ steps.target.outputs.tag }}
 
-      - name: Run full E2E suite (Playwright container, pre-baked browsers)
-        # Run the COMPLETE suite (api + browser projects, including the
-        # browser-launching oauth-validation specs) inside the official
-        # Playwright image (browsers already installed) on the host network so
-        # the tests reach the app on localhost. No cdn.playwright.dev download
-        # happens on the exact-match path. When pwimage fell back to an older
-        # image (MCR publish lag), the pre-baked browser revisions don't match
-        # the @playwright/test runner, so install matching browsers first —
-        # a CDN download, but only in the degraded window, and better than 25
-        # guaranteed "Executable doesn't exist" failures.
+      - name: Run browser E2E suite (Playwright container, pre-baked browsers)
+        # Runs inside the official Playwright image (browsers already installed)
+        # on the host network so the tests reach the app on localhost. No
+        # cdn.playwright.dev download happens on the exact-match path. When
+        # pwimage fell back to an older image (MCR publish lag), the pre-baked
+        # browser revisions don't match the @playwright/test runner, so install
+        # matching browsers first — a CDN download, but only in the degraded
+        # window, and better than 25 guaranteed "Executable doesn't exist"
+        # failures.
+        #
+        # --ipc=host is a Playwright-documented requirement for Chromium in
+        # Docker: renderer shared memory lives in /dev/shm, which defaults to
+        # 64 MB in a container, and with 2 workers it runs out mid-test. That
+        # surfaces as "Target crashed" / "Target page ... has been closed" and
+        # reads like a product bug — the most likely mechanical cause of the
+        # flakiness that got this suite demoted to non-gating. --init reaps
+        # orphaned browser processes.
+        #
+        # Project selection is the exact COMPLEMENT of the deploy gate:
+        # ci-build-e2e.yml's regression-api already ran
+        # `--project=api --grep-invert "OAuth (Flow|Security) Validation"`
+        # against the same-SHA images minutes earlier. Re-running the whole api
+        # project here would execute ~12 spec files twice per commit (inside a
+        # container that also pays an uncached `npm ci`) and would let a
+        # non-browser flake paint "Browser E2E" red — training people to ignore
+        # the reds. What's left for this workflow is the browser projects plus
+        # the OAuth *validation* api specs, which the gate greps out precisely
+        # because they launch a real browser.
         run: |
-          docker run --rm --network host \
+          docker run --rm --init --ipc=host --network host \
             -v "${{ github.workspace }}:/work" -w /work \
             -e CI=true \
             -e PW_EXACT_IMAGE='${{ steps.pwimage.outputs.exact }}' \
             -e BACKEND_URL=http://localhost:4202 \
             -e FRONTEND_URL=http://localhost:3201 \
             ${{ steps.pwimage.outputs.image }} \
-            bash -lc "npm ci && if [ \"\$PW_EXACT_IMAGE\" != true ]; then npx playwright install --with-deps; fi && npx playwright test"
+            bash -lc '
+              set -euo pipefail
+              npm ci
+              if [ "$PW_EXACT_IMAGE" != true ]; then npx playwright install --with-deps; fi
+              # Run BOTH selections unconditionally (no && short-circuit) so a
+              # red browser project never hides the OAuth results; the step
+              # still fails if either did, since the worst exit code wins.
+              rc=0
+              npx playwright test --project=browser --project=browser-mobile || rc=$?
+              npx playwright test --project=api --grep "OAuth (Flow|Security) Validation" || rc=$?
+              exit $rc
+            '
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -235,3 +324,57 @@ jobs:
           else
             gh issue create -R "${{ github.repository }}" --title "$TITLE" --body "$BODY"
           fi
+
+  # =============================================================================
+  # RUN SUMMARY
+  #
+  # browser-e2e is this workflow's only test job, and its `if:` guard skips it
+  # whenever the upstream CI Build & Deploy did not conclude `success` — which
+  # includes `cancelled`, a routine outcome since ci-build-e2e cancels
+  # superseded non-main runs. A run whose only job SKIPPED still concludes
+  # SUCCESS, so "Browser E2E" shows a green check for a commit where zero
+  # browser tests executed, and the missing-run gap is invisible.
+  #
+  # Failing closed is wrong here (this suite must never block shipping), so
+  # instead make the green auditable: every run states in its summary which of
+  # the two it was.
+  # =============================================================================
+
+  run-summary:
+    name: "Run summary"
+    runs-on: ubuntu-latest
+    needs: [browser-e2e]
+    if: always()
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Record whether the browser suite actually ran
+        env:
+          RESULT: ${{ needs.browser-e2e.result }}
+          TRIGGER: ${{ github.event_name }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+          UPSTREAM_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Browser E2E"
+            echo ""
+            echo "- Trigger: \`${TRIGGER}\`"
+            echo "- Commit: \`${COMMIT_SHA}\`"
+            if [ "$RESULT" = "skipped" ]; then
+              echo ""
+              echo "**SKIPPED — no browser test executed in this run.**"
+              echo ""
+              echo "- Upstream CI Build & Deploy conclusion: \`${UPSTREAM_CONCLUSION:-n/a}\` (must be \`success\`)"
+              echo "- Upstream event: \`${UPSTREAM_EVENT:-n/a}\` (must be \`push\`)"
+              echo "- Upstream head repository: \`${UPSTREAM_REPO:-n/a}\` (must be \`${GITHUB_REPOSITORY}\`)"
+              echo ""
+              echo "This run is green because nothing ran, not because browsers passed."
+            else
+              echo ""
+              echo "Browser suite executed — result: \`${RESULT}\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

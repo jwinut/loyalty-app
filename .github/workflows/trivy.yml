@@ -1,9 +1,15 @@
 # Trivy Container Security Scanner
 # Scans Docker images for vulnerabilities in OS packages and dependencies.
 #
-# Image scans run AFTER "CI Build & E2E" succeeds, reusing the GHCR images it
+# Image scans run AFTER "CI Build & Deploy" succeeds, reusing the GHCR images it
 # pushed (~30s pull) instead of rebuilding from Dockerfiles (~6 minutes).
-# Filesystem scan still runs on PRs/pushes/cron for source-level CVE coverage.
+#
+# The filesystem scan runs in two modes:
+#   * on pull_request  — BLOCKING table scan (exit-code 1) so a dependency with
+#     a fixable CRITICAL/HIGH CVE cannot merge. `main` has no branch protection
+#     and production deploys unattended, so post-merge is too late for the
+#     first signal.
+#   * after CI Build & Deploy / weekly cron — SARIF upload to code scanning.
 
 name: Trivy Container Scan
 
@@ -12,8 +18,18 @@ on:
     workflows: ["CI Build & Deploy"]
     types: [completed]
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: '28 5 * * 6'  # Weekly on Saturday
+
+concurrency:
+  # Key on the commit under scan so runs for different commits never evict each
+  # other: a static group keeps only ONE pending run and cancels the older one,
+  # which is where this repo's unexplained "cancelled" runs come from. PR runs
+  # key on the ref instead, so a new push supersedes its own in-flight scan.
+  group: trivy-${{ github.event_name == 'pull_request' && github.ref || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -25,9 +41,11 @@ env:
 
 jobs:
   scan-backend:
-    # Skip if the upstream "CI Build & E2E" run did not succeed; cron runs
-    # always proceed (workflow_run context is absent there).
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Run only where a published GHCR image exists: after a SUCCESSFUL
+    # "CI Build & Deploy", or on the weekly cron (which scans :latest).
+    # Never on pull_request — no image is pushed for a PR SHA, so the job
+    # would only fail on `docker pull`.
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'schedule'
     permissions:
       contents: read
       security-events: write
@@ -35,10 +53,14 @@ jobs:
       packages: read
     name: Scan Backend Image
     runs-on: ubuntu-latest
+    # A hung `docker pull` or a stalled Trivy DB fetch would otherwise run to
+    # GitHub's 6h default before failing.
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
+          persist-credentials: false
           # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
           # triggered it, so scans and their SARIF were attributed to the wrong
           # commit whenever main moved on during the build.
@@ -75,13 +97,14 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: 'trivy-backend-results.sarif'
           category: 'trivy-backend'
 
   scan-frontend:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Same gate as scan-backend: image-bearing events only.
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'schedule'
     permissions:
       contents: read
       security-events: write
@@ -89,10 +112,12 @@ jobs:
       packages: read
     name: Scan Frontend Image
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
+          persist-credentials: false
           # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
           # triggered it, so scans and their SARIF were attributed to the wrong
           # commit whenever main moved on during the build.
@@ -129,28 +154,60 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: 'trivy-frontend-results.sarif'
           category: 'trivy-frontend'
 
   scan-filesystem:
+    # Same upstream-success guard as the image jobs. Without it a failed or
+    # concurrency-cancelled "CI Build & Deploy" still uploaded a
+    # `trivy-filesystem` SARIF, overwriting the last good analysis for that
+    # category with results from a build that produced nothing. Pre-merge
+    # coverage no longer depends on this path — the pull_request run below does
+    # that job.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       security-events: write
       actions: read
     name: Scan Filesystem (Dependencies)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
+          persist-credentials: false
           # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
           # triggered it, so scans and their SARIF were attributed to the wrong
           # commit whenever main moved on during the build.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      # PR path — a real blocking check, not a report. No SARIF upload here:
+      # Dependabot-actored runs get a read-only GITHUB_TOKEN, which would fail
+      # the upload and paint every Dependabot PR red for an unrelated reason
+      # (the same trap semgrep.yml documents).
+      - name: Run Trivy filesystem scanner (blocking)
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          # Only block on CVEs that have a fix available; an unfixable upstream
+          # advisory must not wedge every PR in the repo.
+          ignore-unfixed: true
+          # Vulnerabilities only. The default `vuln,secret` set would match the
+          # RSA PEM test fixtures in backend-rust (cf_access.rs /
+          # cf_access_test.rs) as HIGH secrets and fail every PR on day one.
+          # Secret findings still reach code scanning via the SARIF path below.
+          scanners: 'vuln'
+          exit-code: '1'
+
       - name: Run Trivy filesystem scanner
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           scan-type: 'fs'
@@ -160,7 +217,8 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'trivy-filesystem'
