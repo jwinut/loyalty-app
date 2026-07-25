@@ -14,9 +14,18 @@
 name: Trivy Container Scan
 
 on:
+  # Image scans need a published GHCR image, so they hang off the build.
   workflow_run:
     workflows: ["CI Build & Deploy"]
     types: [completed]
+    branches: [main]
+  # The FILESYSTEM scan reads source, not images, so it runs directly on the
+  # commit. That keeps its checkout on the default ref for the event — no
+  # `ref: workflow_run.head_sha`, which is what made this an untrusted-code
+  # checkout in a job holding `security-events: write` (Scorecard flagged it
+  # Critical, and correctly: the guards made it safe in practice but the
+  # pattern remained).
+  push:
     branches: [main]
   pull_request:
     branches: [main]
@@ -70,19 +79,6 @@ jobs:
     # GitHub's 6h default before failing.
     timeout-minutes: 20
     steps:
-      # Safe because the job `if:` above requires the upstream run to be a
-      # `push` from THIS repository, so head_sha is an already-merged main
-      # commit — never untrusted fork PR code.
-      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
-        with:
-          persist-credentials: false
-          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
-          # triggered it, so scans and their SARIF were attributed to the wrong
-          # commit whenever main moved on during the build.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -144,19 +140,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # Safe because the job `if:` above requires the upstream run to be a
-      # `push` from THIS repository, so head_sha is an already-merged main
-      # commit — never untrusted fork PR code.
-      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
-        with:
-          persist-credentials: false
-          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
-          # triggered it, so scans and their SARIF were attributed to the wrong
-          # commit whenever main moved on during the build.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -194,45 +177,18 @@ jobs:
           category: 'trivy-frontend'
 
   scan-filesystem:
-    # Same upstream-success guard as the image jobs. Without it a failed or
-    # concurrency-cancelled "CI Build & Deploy" still uploaded a
-    # `trivy-filesystem` SARIF, overwriting the last good analysis for that
-    # category with results from a build that produced nothing. Pre-merge
-    # coverage no longer depends on this path — the pull_request run below does
-    # that job.
-    # The `event == 'push'` + same-repository checks are the real trust
-    # boundary for the `ref:` checkout below, NOT the `branches: [main]`
-    # trigger filter: that filter matches `workflow_run.head_branch`, which
-    # for a fork pull request is the branch name *inside the fork* — a fork
-    # whose default branch is `main` passes it. ci-build-e2e.yml does run on
-    # `pull_request`, so such a workflow_run exists. Without these two
-    # conditions this job would check out untrusted fork code while holding
-    # `security-events: write` (Scorecard: Dangerous-Workflow).
-    if: >-
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-    name: Scan Filesystem (Dependencies)
+    # Runs on push/pull_request/schedule — never on workflow_run. It scans the
+    # source tree, so it does not need to wait for an image build, and driving
+    # it directly off the commit means the SARIF is attributed to the commit
+    # actually scanned instead of whatever main happened to be at.
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # Safe because the job `if:` above requires the upstream run to be a
-      # `push` from THIS repository, so head_sha is an already-merged main
-      # commit — never untrusted fork PR code.
-      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
           persist-credentials: false
-          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
-          # triggered it, so scans and their SARIF were attributed to the wrong
-          # commit whenever main moved on during the build.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       # PR path — a real blocking check, not a report. No SARIF upload here:
       # Dependabot-actored runs get a read-only GITHUB_TOKEN, which would fail
