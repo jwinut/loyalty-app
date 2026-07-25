@@ -415,7 +415,7 @@ jobs:
             type=ref,event=branch
 
       - name: Build and push backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend-binary
           file: ./backend-rust/Dockerfile.ci
@@ -440,7 +440,7 @@ jobs:
             type=ref,event=branch
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           target: production
