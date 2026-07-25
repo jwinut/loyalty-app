@@ -17,6 +17,21 @@ on:
     # Daily at 09:00 UTC (16:00 ICT). Picks a quiet hour outside the
     # typical PR push window so cron contention is minimal.
     - cron: '0 9 * * *'
+  # ALSO run whenever the Rust dependency graph changes. Cron-only left a
+  # window of up to 24h in which a vulnerable crate could merge and
+  # auto-deploy to production before the next scheduled audit noticed —
+  # a real gap now that production deploys are unattended. Scoped to the
+  # manifest/lockfile so this stays off the critical path for normal PRs.
+  push:
+    branches: [main]
+    paths:
+      - 'backend-rust/Cargo.lock'
+      - 'backend-rust/Cargo.toml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend-rust/Cargo.lock'
+      - 'backend-rust/Cargo.toml'
   workflow_dispatch: {}
 
 permissions:
@@ -54,7 +69,10 @@ jobs:
     name: "Notify on audit failure"
     runs-on: ubuntu-latest
     needs: [audit]
-    if: failure()
+    # Never on pull_request: a red audit on a PR branch is already visible as a
+    # failed check on that PR, and filing "cargo audit failing on main" for a
+    # branch that has not merged would be actively misleading.
+    if: failure() && github.event_name != 'pull_request'
     permissions:
       contents: read
       issues: write

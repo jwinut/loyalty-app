@@ -121,10 +121,12 @@ jobs:
       - name: Test integrity guard
         run: npm run test:integrity
 
-      - name: npm audit
-        working-directory: ./frontend
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+      # `npm audit` removed: it ran with continue-on-error: true, so it could
+      # never fail anything — pure noise on the deploy-gating critical path.
+      # Dependency CVEs are the job of Dependabot alerts (which open PRs and
+      # page), with Trivy's filesystem scan as a second net. Four overlapping
+      # CVE mechanisms on three cadences, only one of which surfaced anywhere,
+      # was worse than three.
 
   test-frontend-unit:
     name: "Frontend Unit Tests"
