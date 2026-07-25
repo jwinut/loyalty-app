@@ -1,0 +1,60 @@
+name: Release Please
+
+# Automates versioning and releases from Conventional Commits.
+#
+# How it works: on every push to `main` this opens (or updates) a single
+# "chore(main): release X.Y.Z" PR that bumps the version in package.json +
+# frontend/package.json and regenerates CHANGELOG.md. Merging THAT PR is what
+# tags `vX.Y.Z` and publishes the GitHub release — so cutting a release stays a
+# deliberate human action, consistent with the repo's no-auto-merge rule.
+#
+# Why the repo needed this: `package.json` had been hand-bumped to 4.3.0 while
+# the newest tag/release was still v4.2.0 (Jan 2026), with 316 commits in
+# between. The manifest below therefore starts at 4.2.0 with bootstrap-sha
+# pinned to that tag's commit, so the first release PR reconciles the two and
+# ships an accurate 4.3.0 changelog covering the gap.
+#
+# All three version strings are kept aligned: package.json (root),
+# frontend/package.json and backend-rust/Cargo.toml all move together via
+# `extra-files` in release-please-config.json. Backend was 0.1.0 while the app
+# was 4.3.0; that gap is closed here so "what version is running" has one
+# answer.
+#
+# Cargo.lock is deliberately NOT in extra-files. release-please's `generic`
+# updater needs an `x-release-please-version` annotation comment, and cargo
+# rewrites Cargo.lock wholesale — the annotation would be dropped and the
+# updater would silently stop working. The lock's own `loyalty-backend`
+# version instead re-syncs from Cargo.toml on the next cargo invocation, and
+# nothing in CI builds with `--locked`, so a temporarily stale entry there is
+# cosmetic. Committed in sync here.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Release PRs only ever act on main; two concurrent runs would race on the same
+# PR branch.
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    name: "Release PR / tag"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # Create/update the release PR branch, and tag + publish on merge.
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Run release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
