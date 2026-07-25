@@ -52,13 +52,13 @@ RUN test -f dist/index.html && \
 # =============================================================================
 # STAGE 3: Production runtime (nginx - minimal)
 # =============================================================================
-FROM nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa AS production
+FROM nginx:alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752 AS production
 
 # Refreshed base digest + apk upgrade to pull patched Alpine packages. Bumping
 # the FROM digest is what makes the upgrade effective: it invalidates the cached
-# upgrade layer so the rebuild fetches the latest libssl3/libcrypto3/libexpat
-# (resolving the OpenSSL + expat CVE cluster Trivy was flagging at 3.5.6-r0 /
-# 2.7.5-r0).
+# upgrade layer so the rebuild fetches the latest patched packages (this round:
+# libexpat 2.8.2, curl/libcurl 8.20.0, c-ares 1.34.8 — the 29-CVE cluster Trivy
+# flagged against 2.8.1-r0 / 8.19.0-r0 / 1.34.6-r0).
 RUN apk upgrade --no-cache
 
 COPY --from=builder /app/dist /usr/share/nginx/html
