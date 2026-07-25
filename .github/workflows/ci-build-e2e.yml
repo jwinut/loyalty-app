@@ -17,7 +17,11 @@ on:
 
 concurrency:
   group: ci-build-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs, but NEVER a main run: deploy-staging SSHes a
+  # deploy payload to evergreen from inside this workflow, so cancelling mid-run
+  # can truncate the SSH channel while the remote shim is still recreating
+  # containers — leaving staging on an older commit with no failure signal.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Keep the default token read-only; the two jobs that write (GHCR push,
 # staging-failure issue) scope their own permissions at job level.
@@ -484,8 +488,13 @@ jobs:
     # which does NOT gate deployment.
     needs: [build-and-push, test-backend-unit, test-backend-integration]
     timeout-minutes: 15
+    # Keyed per ref. A constant group here was repo-global: GitHub allows only
+    # ONE pending entry per group, so a third queued run evicted (cancelled) the
+    # pending one — randomly killing the deploy gate on unrelated branches. This
+    # job needs no shared external resource (postgres/redis are per-runner
+    # service containers on runner-local ports), so per-ref is safe.
     concurrency:
-      group: regression-api
+      group: regression-api-${{ github.ref }}
       cancel-in-progress: false
 
     services:
@@ -723,7 +732,11 @@ jobs:
   deploy-staging:
     name: "Deploy to Staging"
     runs-on: ubuntu-latest
-    needs: [test-backend-unit, test-backend-integration, build-and-push, wait-for-frontend-checks]
+    # regression-api IS the deploy gate (see its header comment). It was missing
+    # from this list, so it ran in PARALLEL with the deploy instead of before it
+    # — staging shipped while the API regression suite was still running, and on
+    # run 30143612958 staging deployed even though the gate had been cancelled.
+    needs: [test-backend-unit, test-backend-integration, build-and-push, wait-for-frontend-checks, regression-api]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 10
     environment:

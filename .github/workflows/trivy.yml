@@ -38,6 +38,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
+          # triggered it, so scans and their SARIF were attributed to the wrong
+          # commit whenever main moved on during the build.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -87,6 +92,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
+          # triggered it, so scans and their SARIF were attributed to the wrong
+          # commit whenever main moved on during the build.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -134,6 +144,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+        with:
+          # workflow_run checks out the DEFAULT BRANCH TIP, not the commit that
+          # triggered it, so scans and their SARIF were attributed to the wrong
+          # commit whenever main moved on during the build.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Run Trivy filesystem scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0

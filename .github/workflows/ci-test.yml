@@ -107,7 +107,19 @@ jobs:
 
       - name: ESLint
         working-directory: ./frontend
-        run: npm run lint
+        # Ratchet, same idiom as the design baseline: `eslint .` alone exits 0
+        # on warnings, so every warn-level rule (including the security ones)
+        # was decorative in the deploy-gating workflow. Pinning the current
+        # count blocks NEW warnings without a big code churn.
+        # Lower this number as warnings are fixed; never raise it.
+        run: npm run lint -- --max-warnings 14
+
+      # CLAUDE.md hard rule 4 ("never bypass, skip, or fake tests") is enforced
+      # by scripts/validate-test-integrity.sh, which pre-push runs via
+      # `quality:check` — but CI never ran it, so the rule had zero enforcement
+      # on anything that reached main without a local push hook.
+      - name: Test integrity guard
+        run: npm run test:integrity
 
       - name: npm audit
         working-directory: ./frontend
