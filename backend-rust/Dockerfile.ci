@@ -46,7 +46,7 @@
 # Source is vendored inline (not COPY'd from context) because the workflow
 # build context is `./backend-binary`, which contains only the pre-built
 # loyalty-backend binary. Keep this in sync with src/bin/healthcheck.rs.
-FROM rust:1.97-slim AS hc-builder
+FROM rust:1.97-slim@sha256:5c6f46a6e4472ab1ca7ba7d494e6677f2f219ebc02f32025d3986f057635ec9c AS hc-builder
 
 WORKDIR /hc
 
@@ -109,7 +109,7 @@ RUN cargo build --release --target-dir /hc/target
 # -----------------------------------------------------------------------------
 # See the long comment in backend-rust/Dockerfile (Stage 5) for the full
 # rationale on what cc-debian12 ships and why it's safe for this binary.
-FROM gcr.io/distroless/cc-debian12 AS runner
+FROM gcr.io/distroless/cc-debian12@sha256:aa0b7af67fa8211751ea6e00baa8373ba56cc1417ffc986ec9619bd0e1556b56 AS runner
 
 WORKDIR /app
 

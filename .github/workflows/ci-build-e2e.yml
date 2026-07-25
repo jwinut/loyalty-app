@@ -19,13 +19,11 @@ concurrency:
   group: ci-build-${{ github.ref }}
   cancel-in-progress: true
 
+# Keep the default token read-only; the two jobs that write (GHCR push,
+# staging-failure issue) scope their own permissions at job level.
 permissions:
   contents: read
   actions: read
-  packages: write
-  # Needed by the verify-staging-on-failure job below so a red staging
-  # deploy surfaces as a GitHub issue, not just a tab nobody opens.
-  issues: write
 
 env:
   NODE_VERSION: '24'
