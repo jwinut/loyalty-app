@@ -909,6 +909,16 @@ jobs:
     needs: [deploy-staging]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 10
+    # REQUIRED for the SSH steps below: EVERGREEN_DEPLOY_SSH_KEY and
+    # EVERGREEN_HOST_KEY exist ONLY as environment-scoped secrets (development
+    # and production), never at repository scope. A job without `environment:`
+    # reads them as empty strings — GitHub does not error, so the composite
+    # writes an EMPTY known_hosts and ssh fails with the misleading
+    # "No ED25519 host key is known for evergreen.thehfhotel.org".
+    # deploy-staging worked only because it declares this environment.
+    environment:
+      name: development
+      url: http://loyalty-dev.saichon.com
 
     steps:
       # SSH is needed on BOTH paths now — the revision assertion below on the
