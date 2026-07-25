@@ -45,7 +45,20 @@ jobs:
     # "CI Build & Deploy", or on the weekly cron (which scans :latest).
     # Never on pull_request — no image is pushed for a PR SHA, so the job
     # would only fail on `docker pull`.
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'schedule'
+    # The `event == 'push'` + same-repository checks are the real trust
+    # boundary for the `ref:` checkout below, NOT the `branches: [main]`
+    # trigger filter: that filter matches `workflow_run.head_branch`, which
+    # for a fork pull request is the branch name *inside the fork* — a fork
+    # whose default branch is `main` passes it. ci-build-e2e.yml does run on
+    # `pull_request`, so such a workflow_run exists. Without these two
+    # conditions this job would check out untrusted fork code while holding
+    # `security-events: write` (Scorecard: Dangerous-Workflow).
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
+      github.event_name == 'schedule'
     permissions:
       contents: read
       security-events: write
@@ -57,6 +70,10 @@ jobs:
     # GitHub's 6h default before failing.
     timeout-minutes: 20
     steps:
+      # Safe because the job `if:` above requires the upstream run to be a
+      # `push` from THIS repository, so head_sha is an already-merged main
+      # commit — never untrusted fork PR code.
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
@@ -104,7 +121,20 @@ jobs:
 
   scan-frontend:
     # Same gate as scan-backend: image-bearing events only.
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'schedule'
+    # The `event == 'push'` + same-repository checks are the real trust
+    # boundary for the `ref:` checkout below, NOT the `branches: [main]`
+    # trigger filter: that filter matches `workflow_run.head_branch`, which
+    # for a fork pull request is the branch name *inside the fork* — a fork
+    # whose default branch is `main` passes it. ci-build-e2e.yml does run on
+    # `pull_request`, so such a workflow_run exists. Without these two
+    # conditions this job would check out untrusted fork code while holding
+    # `security-events: write` (Scorecard: Dangerous-Workflow).
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
+      github.event_name == 'schedule'
     permissions:
       contents: read
       security-events: write
@@ -114,6 +144,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Safe because the job `if:` above requires the upstream run to be a
+      # `push` from THIS repository, so head_sha is an already-merged main
+      # commit — never untrusted fork PR code.
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
@@ -166,7 +200,19 @@ jobs:
     # category with results from a build that produced nothing. Pre-merge
     # coverage no longer depends on this path — the pull_request run below does
     # that job.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # The `event == 'push'` + same-repository checks are the real trust
+    # boundary for the `ref:` checkout below, NOT the `branches: [main]`
+    # trigger filter: that filter matches `workflow_run.head_branch`, which
+    # for a fork pull request is the branch name *inside the fork* — a fork
+    # whose default branch is `main` passes it. ci-build-e2e.yml does run on
+    # `pull_request`, so such a workflow_run exists. Without these two
+    # conditions this job would check out untrusted fork code while holding
+    # `security-events: write` (Scorecard: Dangerous-Workflow).
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     permissions:
       contents: read
       security-events: write
@@ -175,6 +221,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Safe because the job `if:` above requires the upstream run to be a
+      # `push` from THIS repository, so head_sha is an already-merged main
+      # commit — never untrusted fork PR code.
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
