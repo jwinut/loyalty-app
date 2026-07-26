@@ -1,0 +1,17 @@
+[Unit]
+Description=Nightly loyalty database backup
+Documentation=https://github.com/thehfhotel/loyalty-app/blob/main/docs/restore-runbook.md
+
+[Timer]
+# 18:00 UTC = 01:00 ICT (Bangkok) — the same quiet window the old GitHub
+# Actions schedule used, outside the traffic window for a hospitality app.
+OnCalendar=*-*-* 18:00:00 UTC
+# Run on next boot if the host was down at 18:00. A skipped night is exactly
+# the failure mode that made the old backup look healthy while doing nothing.
+Persistent=true
+# Avoid landing on the same second as any other timer.
+RandomizedDelaySec=300
+Unit=loyalty-backup.service
+
+[Install]
+WantedBy=timers.target

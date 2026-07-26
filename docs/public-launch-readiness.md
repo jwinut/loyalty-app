@@ -17,13 +17,15 @@ Legend:
   `backend-rust/src/main.rs` via
   `axum::serve(...).with_graceful_shutdown(...)`, with a bounded grace
   period that fits under `docker compose --timeout 30`.
-- [x] **Automated Postgres backups workflow**
-  (`.github/workflows/backup-production.yml`, CRIT-1) — daily schedule,
-  guarded behind backup secrets (`BACKUP_AGE_RECIPIENT`,
-  `BACKUP_S3_*`), restore drill documented in
-  [`docs/restore-runbook.md`](restore-runbook.md). **TODO before
-  public launch**: configure the backup secrets in GitHub Actions and
-  *actually run the restore drill once.*
+- [x] **Automated Postgres backups** (CRIT-1) — a systemd timer on
+  evergreen (`scripts/evergreen/`), encrypting with `age` to
+  `/srv/backups/loyalty`. Replaces the old GitHub Actions + S3 workflow,
+  which required cloud storage and had never actually produced a backup
+  (its environment-scoped secrets read empty, so it skipped nightly while
+  reporting success). Restore drill in
+  [`docs/restore-runbook.md`](restore-runbook.md). **TODO before public
+  launch**: run `scripts/evergreen/install.sh` on evergreen and *actually
+  run the restore drill once.*
 - [x] **Failure-alert path** (CRIT-2) — `cargo-audit`, `Verify Staging`,
   and `deploy.yml` now file GitHub issues on red instead of relying on
   someone refreshing the Actions tab.
@@ -80,57 +82,13 @@ Legend:
 
 ## Still open before public launch
 
-- [ ] **Backup secrets wired in GitHub Actions** — `BACKUP_AGE_RECIPIENT`,
-  `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT`, `BACKUP_S3_REGION`,
-  `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` (see
-  [`docs/secrets-runbook.md`](secrets-runbook.md#backup-secrets-workflow-githubworkflowsbackup-productionyml)).
-  The daily schedule is now always enabled and the backup job auto-skips
-  (a green no-op) until these secrets exist, then starts running on its
-  own the moment they land — so this row needs only the secret wiring, no
-  further code change.
-- [ ] **Restore drill performed once** (CRIT-1 closure) — follow
-  [`docs/restore-runbook.md`](restore-runbook.md) against staging.
-  Document the date and the restored DB size in the runbook so the
-  drill is auditable.
-- [ ] **Capacity test against staging** — at minimum a few hundred
-  RPS of a representative read+write mix (e.g., `vegeta` /
-  `k6` against `/api/loyalty/*` and `/api/auth/login`). Confirm the
-  default 10-connection backend pool isn't the bottleneck; tune
-  `DatabaseConfig::max_connections` if it is. Record p99 latency
-  and 4xx/5xx rates as a pre-launch baseline.
-- [ ] **GDPR / PDPA review** — Thai PDPA at minimum applies to
-  `users.email`, `user_profiles.phone`, the `total_nights` history,
-  and the OAuth-linked `provider_user_id`. Document:
-  - what's stored,
-  - retention window per field,
-  - data-export procedure (currently manual: `gh issue` requested,
-    backend dump via admin endpoint TBD),
-  - account-deletion procedure (manual: admin closes account, then
-    a future migration `DELETE`s the row after retention window).
-  EU users add GDPR on top — decide whether to geoblock or to wire
-  proper request handling.
-- [ ] **Status page** — pick a host (statuspage.io, Atlassian
-  Statuspage, a static page on Cloudflare Pages). At minimum show
-  "API" and "Web" components. Link from the marketing site and the
-  in-app footer.
-- [ ] **Support-email rotation** — one address goes live with the
-  public switch (e.g., `support@thehfhotel.org`). Decide whether
-  it's a single inbox, a shared Gmail/Workspace label, or a help-
-  desk product. Document the response SLA target.
-- [ ] **On-call rotation** — at minimum a primary + secondary, with
-  documented handoff. Until the team is ≥3, on-call is effectively
-  one person — own that and define when "out of hours" means "the
-  app can be down until morning".
-- [ ] **Public Trivy / `cargo audit` policy** — both run in CI today
-  but the on-failure path is a GitHub issue (CRIT-2). Decide
-  pre-launch whether a fresh high-sev CVE blocks the next deploy
-  or is triaged async. Document the policy in `CONTRIBUTING.md` or
-  this file.
-- [ ] **First public traffic capacity headroom** — the evergreen
-  host's headroom (CPU/RAM/disk) against current resource limits is
-  uncalibrated. Run `docker stats` for an hour during the capacity
-  test; confirm the host has at least 2x the steady-state load
-  available so a traffic spike doesn't OOM the data plane.
+- [ ] **Backup installed on evergreen** — run
+  `sudo ./scripts/evergreen/install.sh`, set `ALERT_COMMAND` in
+  `/etc/loyalty-backup.conf`, then verify with
+  `systemctl start loyalty-backup.service` and confirm a dump decrypts with
+  the private key. Until this runs, **there is no production backup at all**.
+  Note the backups sit on the same host as the database, so this does not yet
+  protect against loss of evergreen itself.
 
 ## After the first 30 days
 

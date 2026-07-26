@@ -1,0 +1,8 @@
+[Unit]
+Description=Alert that %i failed
+Documentation=https://github.com/thehfhotel/loyalty-app/blob/main/docs/restore-runbook.md
+
+[Service]
+Type=oneshot
+# %i is the failed unit name, passed through by OnFailure=.
+ExecStart=/usr/local/bin/loyalty-backup-alert.sh %i
