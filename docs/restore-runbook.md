@@ -66,6 +66,28 @@ The age **private** key stays on the operator's machine at
 **If it is lost, every backup is unreadable** — store a copy in a password
 manager, not only on one laptop.
 
+### Host requirements
+
+Verified on evergreen (Ubuntu 24.04, snap-packaged Docker 29.x, systemd). Two
+things about that host shaped the unit and are worth knowing if it is ever
+rebuilt or the backup is moved elsewhere:
+
+- Docker is **snap**-packaged, so its unit is `snap.docker.dockerd.service`,
+  not `docker.service`, and its binary lives in `/snap/bin` which is absent
+  from systemd's default `PATH`. The unit therefore sets `PATH` explicitly and
+  uses soft `After=` ordering against both possible unit names — a `Requires=`
+  on a non-existent unit makes systemd refuse to start the backup at all.
+- `NoNewPrivileges=` must **not** be set: snap confinement needs privilege
+  transitions, and with it enabled every run fails with
+  `container 'loyalty_postgres_production' not found`. `PrivateTmp`,
+  `ProtectSystem=strict` and `ProtectHome` were each tested individually and
+  are fine.
+
+A harmless warning appears in the journal on every run:
+`cannot create user data directory: cannot create snap home dir: mkdir
+/root/snap: read-only file system`. That is snap wanting a home dir under the
+`ProtectSystem=strict` read-only tree; the dump succeeds regardless.
+
 ### Verify it works
 
 ```bash
