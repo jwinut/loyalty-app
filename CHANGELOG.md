@@ -11,6 +11,19 @@ merging that PR is what tags `vX.Y.Z` and publishes the GitHub release.
 Entries below the generated sections are the earlier hand-written, dated
 format, kept verbatim for history.
 
+## [4.4.0](https://github.com/thehfhotel/loyalty-app/compare/v4.3.0...v4.4.0) (2026-07-26)
+
+
+### Features
+
+* **ops:** move Postgres backups onto evergreen, off GitHub Actions ([#349](https://github.com/thehfhotel/loyalty-app/issues/349)) ([dbb5b12](https://github.com/thehfhotel/loyalty-app/commit/dbb5b1202f2cefc786e549c7725202f364555790))
+* tier perks — admin tier editor + public member benefits page ([#347](https://github.com/thehfhotel/loyalty-app/issues/347)) ([371236c](https://github.com/thehfhotel/loyalty-app/commit/371236c7d6e197bbd5f56f1fbb9d0a717b25c379))
+
+
+### Bug Fixes
+
+* **ci:** remove the untrusted-code checkout from trivy instead of guarding it ([#346](https://github.com/thehfhotel/loyalty-app/issues/346)) ([b52922c](https://github.com/thehfhotel/loyalty-app/commit/b52922ce2f49513058cd6feeb435f1ef08ee77c7))
+
 ## [4.3.0](https://github.com/thehfhotel/loyalty-app/compare/v4.2.0...v4.3.0) (2026-07-25)
 
 
