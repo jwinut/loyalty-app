@@ -1,0 +1,32 @@
+# /etc/loyalty-backup.conf — sourced by backup-loyalty-db.sh (root, mode 600)
+#
+# Copy to /etc/loyalty-backup.conf on evergreen and fill in AGE_RECIPIENT.
+# Everything else has a working default.
+
+# REQUIRED. The age PUBLIC key backups are encrypted to. Safe to store here in
+# plaintext — it can only encrypt. The matching PRIVATE key lives solely on the
+# operator's machine (~/.age/loyalty-backup.key) and is what restores need.
+#
+# Current key (generated 2026-07-26):
+AGE_RECIPIENT="age18sdlft5g3rnwlyhshykht3s9gmydylallnvmkmrr4ms3g08pfvmss5qm0k"
+
+# Where encrypted dumps are written. Mode 700, root-owned.
+#BACKUP_DIR="/srv/backups/loyalty"
+
+# Name of the running production Postgres container.
+#PG_CONTAINER="loyalty_postgres_production"
+
+# Retention. Dumps older than KEEP_DAYS are removed, but the KEEP_MIN most
+# recent are always kept regardless of age — so a wrong clock or a stalled
+# timer cannot empty the directory.
+#KEEP_DAYS=30
+#KEEP_MIN=7
+
+# OPTIONAL but strongly recommended: how a failure reaches a human. The alert
+# text arrives on stdin. Without this, failures are only visible in the journal
+# and in $BACKUP_DIR/LAST-FAILURE.
+#
+#   ALERT_COMMAND='mail -s "loyalty backup FAILED" ops@thehfhotel.org'
+#   ALERT_COMMAND='curl -sS -X POST --data-binary @- https://hooks.example/backup'
+#
+#ALERT_COMMAND=''

@@ -1,0 +1,28 @@
+[Unit]
+Description=Encrypted nightly backup of the loyalty production database
+Documentation=https://github.com/thehfhotel/loyalty-app/blob/main/docs/restore-runbook.md
+# Do not start if docker is not up — a failure here should mean "the backup
+# broke", not "the host was still booting".
+After=docker.service
+Requires=docker.service
+OnFailure=loyalty-backup-failure@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/backup-loyalty-db.sh
+# The dump is IO-heavy; keep it from starving the app it is backing up.
+Nice=10
+IOSchedulingClass=idle
+# A backup that has not finished in an hour is wedged, not slow.
+TimeoutStartSec=3600
+
+# Hardening: this unit needs docker's socket and its own backup directory,
+# nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/backups/loyalty
+
+[Install]
+WantedBy=multi-user.target

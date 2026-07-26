@@ -172,12 +172,13 @@ Workflows fire on push to `main`:
   non-gating security scanners. `cargo-audit` also runs on
   `backend-rust/Cargo.{lock,toml}` changes so a vulnerable crate cannot
   merge and auto-deploy inside the daily cron window.
-- `backup-production.yml` — nightly production `pg_dump`. It shares the
-  `production-mutation` concurrency group with `deploy.yml`, so a deploy
-  can never apply a migration mid-dump. Set the repo variable
-  `BACKUP_ENABLED=true` once the `BACKUP_*` secrets are wired: until
-  then missing secrets only *skip* the job, and after it they *fail* it
-  (a nightly backup that silently no-ops is worse than none).
+Postgres backups deliberately do **not** run in CI. A systemd timer on
+evergreen (`scripts/evergreen/`) dumps, gzips and `age`-encrypts to
+`/srv/backups/loyalty`, so production data never transits a runner. The
+previous GitHub Actions + S3 workflow was removed: it needed cloud storage
+and, because its secrets were environment-scoped while the job declared no
+`environment:`, it reported success nightly while backing up nothing. Setup
+and restore drill: [`docs/restore-runbook.md`](docs/restore-runbook.md).
 
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green

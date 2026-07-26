@@ -1,69 +1,98 @@
 # Database Restore Runbook
 
 This document covers how to restore a production Postgres backup created
-by `.github/workflows/backup-production.yml`. The on-call operator should
+by the `loyalty-backup.timer` systemd unit on evergreen. The on-call operator should
 be able to follow this end-to-end without prior context.
 
 > See also: `docs/secrets-runbook.md`, `docs/rollback-runbook.md`.
 
 ## What gets backed up
 
-Daily at 01:00 ICT (18:00 UTC) the `Backup Production Database` workflow:
+Nightly at 01:00 ICT (18:00 UTC) the `loyalty-backup.timer` systemd unit
+**on evergreen** runs `/usr/local/bin/backup-loyalty-db.sh`, which:
 
-1. Streams `pg_dump` of the production loyalty DB through the same
-   cloudflared tunnel `deploy.yml` uses.
-2. Pipes the dump through `gzip -9`.
-3. Encrypts with `age` against `BACKUP_AGE_RECIPIENT` (a public key).
-4. Uploads to `s3://${BACKUP_S3_BUCKET}/daily/loyalty_pg_<ts>.sql.gz.age`.
+1. Runs `pg_dump` inside the production Postgres container.
+2. Pipes it through `gzip -9`.
+3. Encrypts with `age` against the public key in `/etc/loyalty-backup.conf`.
+4. Writes `/srv/backups/loyalty/loyalty_pg_<ts>.sql.gz.age` (mode 600).
+5. Rotates: deletes dumps older than `KEEP_DAYS` (30) but always keeps the
+   `KEEP_MIN` (7) most recent, so a wrong clock cannot empty the directory.
+6. Updates `/srv/backups/loyalty/last-success` — written last, so it only
+   advances after a fully verified dump.
 
-The dump uses `--no-owner --no-acl` so it can be restored into a DB
-owned by any role (matches the way `deploy.yml` provisions Postgres).
+The dump uses `--no-owner --no-acl` so it can be restored into a DB owned by
+any role.
 
-## Required secrets and one-time setup
+**This does not run in GitHub Actions.** It used to, uploading to S3, but that
+design streamed the entire production database through a GitHub-hosted runner
+and required cloud object storage. It also never actually ran: the
+`EVERGREEN_*`/`POSTGRES_*` secrets it needed are environment-scoped, the job
+declared no `environment:`, so they resolved empty, the config check concluded
+"not configured", and the workflow reported **success while backing up
+nothing — every night, for months**. The workflow has been removed.
 
-Until these are configured, the workflow runs only via
-`workflow_dispatch` (the `if:` guard in `backup-production.yml` is the
-on/off switch) and the scheduled trigger is inert.
+### What this protects against, and what it does not
 
-| Secret                          | What it is                                       |
-| ------------------------------- | ------------------------------------------------ |
-| `BACKUP_AGE_RECIPIENT`          | Single-line `age1...` public key                 |
-| `BACKUP_S3_BUCKET`              | Bucket name                                      |
-| `BACKUP_S3_ENDPOINT`            | S3-compatible endpoint URL (empty for AWS S3)    |
-| `BACKUP_S3_REGION`              | Region (`auto` for R2, `us-east-005` for B2, …)  |
-| `BACKUP_S3_ACCESS_KEY_ID`       | Access key                                       |
-| `BACKUP_S3_SECRET_ACCESS_KEY`   | Secret key                                       |
+Backups live on the same host as the database. That covers the common cases —
+a bad migration, an accidental `DELETE`, a corrupted table — but **not loss of
+evergreen itself**. Copying `/srv/backups/loyalty` to a second machine you own
+is the obvious next step; nothing here does that yet.
 
-The age private key for decryption stays on the operator's machine and
-is **not** stored in GitHub. Keep it in a password manager.
+## Setup (one time, on evergreen)
 
-### 30-day retention
+```bash
+sudo ./scripts/evergreen/install.sh
+```
 
-Server-side lifecycle policy on the bucket — recommended over deleting
-inside the workflow because the workflow's IAM credentials don't need
-`DeleteObject`.
+It installs `age`, the backup + alert scripts, the systemd units, creates
+`/srv/backups/loyalty` (mode 700) and enables the timer. Re-running it upgrades
+the scripts and never overwrites `/etc/loyalty-backup.conf`.
 
-- **R2**: bucket settings → Lifecycle rules → expire after 30 days
-  under `daily/`.
-- **AWS S3**: bucket → Management → Lifecycle rule → `daily/` prefix →
-  Expire current versions after 30 days.
-- **Backblaze B2**: bucket → Lifecycle settings → `daily/` → hide after
-  30 days.
+Then set `ALERT_COMMAND` in `/etc/loyalty-backup.conf` so a failure reaches a
+human. Without it, failures land only in the journal and in
+`/srv/backups/loyalty/LAST-FAILURE`.
+
+| Setting          | What it is                                                 |
+| ---------------- | ---------------------------------------------------------- |
+| `AGE_RECIPIENT`  | Single-line `age1...` **public** key (safe to store here)  |
+| `BACKUP_DIR`     | Where dumps are written (default `/srv/backups/loyalty`)   |
+| `PG_CONTAINER`   | Production Postgres container name                          |
+| `KEEP_DAYS`      | Age-based retention (default 30)                            |
+| `KEEP_MIN`       | Floor on retained dumps regardless of age (default 7)       |
+| `ALERT_COMMAND`  | Command receiving the failure text on stdin                 |
+
+The age **private** key stays on the operator's machine at
+`~/.age/loyalty-backup.key` and is the only thing that can decrypt a dump.
+**If it is lost, every backup is unreadable** — store a copy in a password
+manager, not only on one laptop.
+
+### Verify it works
+
+```bash
+# On evergreen — run now rather than waiting for 18:00 UTC
+sudo systemctl start loyalty-backup.service
+journalctl -u loyalty-backup.service -n 40 --no-pager
+ls -lh /srv/backups/loyalty
+```
+
+An untested backup is not a backup — confirm one actually restores using the
+procedure below.
 
 ## Restoring from backup
 
 ### 1. Pick the dump
 
 ```bash
-aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 ls "s3://$BACKUP_S3_BUCKET/daily/"
-# loyalty_pg_20260513T180001Z.sql.gz.age
+# On evergreen — newest last
+ls -lh /srv/backups/loyalty/
+cat /srv/backups/loyalty/last-success   # timestamp, filename, size of the last good run
 ```
 
-Download a specific dump:
+Copy it to the machine holding the private key (dumps cannot be decrypted on
+evergreen — it only has the public key):
 
 ```bash
-aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 cp \
-  "s3://$BACKUP_S3_BUCKET/daily/loyalty_pg_20260513T180001Z.sql.gz.age" \
+scp evergreen:/srv/backups/loyalty/loyalty_pg_20260513T180001Z.sql.gz.age \
   /tmp/restore.sql.gz.age
 ```
 

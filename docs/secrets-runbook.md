@@ -28,21 +28,22 @@ The following GitHub Actions secrets are expected to be configured under
 
 > Translation services are currently disabled. Azure translator secrets are not required unless that feature is re-enabled.
 
-### Backup secrets (workflow: `.github/workflows/backup-production.yml`)
+### Backup secrets — none required any more
 
-These are required to enable the daily Postgres backup workflow. Until
-they are wired, the scheduled trigger is inert (guarded by an `if:`
-condition in the workflow). See [`restore-runbook.md`](./restore-runbook.md)
-for end-to-end setup, retention policy, and the restore drill.
+Postgres backups **no longer run in GitHub Actions**, so there are no backup
+secrets to wire here. They run from a systemd timer on evergreen and are
+configured in `/etc/loyalty-backup.conf` on that host; the only value that
+matters is `AGE_RECIPIENT`, an age *public* key (safe in plaintext).
 
-| Secret                          | Description                                          |
-| ------------------------------- | ---------------------------------------------------- |
-| `BACKUP_AGE_RECIPIENT`          | `age1...` public key for dump encryption             |
-| `BACKUP_S3_BUCKET`              | S3-compatible bucket name                            |
-| `BACKUP_S3_ENDPOINT`            | Endpoint URL (empty for AWS S3, set for R2 / B2)     |
-| `BACKUP_S3_REGION`              | Region string (`auto` for R2, `us-east-005` for B2)  |
-| `BACKUP_S3_ACCESS_KEY_ID`       | Access key with `PutObject` on the bucket            |
-| `BACKUP_S3_SECRET_ACCESS_KEY`   | Secret access key                                    |
+The old design uploaded to S3-compatible storage and needed
+`BACKUP_S3_*` + `BACKUP_AGE_RECIPIENT` as repository secrets. It was removed
+because it required cloud object storage, streamed the whole production
+database through a GitHub-hosted runner, and — because its secrets were
+environment-scoped while the job declared no `environment:` — silently backed
+up **nothing** while reporting success.
+
+See [`restore-runbook.md`](./restore-runbook.md) for setup, retention and the
+restore drill.
 
 ### Inspecting and updating secrets
 
