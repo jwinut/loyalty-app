@@ -15,7 +15,7 @@ use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
     middleware,
-    routing::{get, post},
+    routing::{get, post, put},
     Json, Router,
 };
 use chrono::{DateTime, Utc};
@@ -26,6 +26,10 @@ use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::middleware::auth::{auth_middleware, has_role, AuthUser};
+use crate::models::tier::{
+    empty_bilingual_benefits, is_valid_tier_color, validate_bilingual_benefits, CreateTierRequest,
+    TierAdminResponse, UpdateTierRequest,
+};
 use crate::state::AppState;
 
 // ============================================================================
@@ -472,6 +476,52 @@ pub struct AdminSpendingWithNightsResult {
     pub loyalty_status: Option<LoyaltyStatusResponse>,
 }
 
+/// Tier row with member count for the admin tier list
+#[derive(Debug, Clone)]
+struct TierAdminRow {
+    id: Uuid,
+    name: String,
+    min_nights: i32,
+    benefits: Option<JsonValue>,
+    color: String,
+    sort_order: i32,
+    is_active: Option<bool>,
+    user_count: i64,
+}
+
+impl From<TierAdminRow> for TierAdminResponse {
+    fn from(row: TierAdminRow) -> Self {
+        Self {
+            id: row.id,
+            name: row.name,
+            min_nights: row.min_nights,
+            benefits: row.benefits.unwrap_or_else(|| serde_json::json!({})),
+            color: row.color,
+            sort_order: row.sort_order,
+            is_active: row.is_active.unwrap_or(true),
+            user_count: row.user_count,
+        }
+    }
+}
+
+/// Summary of a full-membership tier recalculation
+/// (snake_case per the locked admin-tiers contract)
+#[derive(Debug, Clone, Serialize)]
+pub struct TierRecalculationSummary {
+    /// Number of user_loyalty rows the recalculation visited
+    pub users_checked: i64,
+    /// How many of them ended up on a different tier
+    pub tiers_changed: i64,
+}
+
+/// Result payload for tier create/update:
+/// `{tier, recalculation | null}`
+#[derive(Debug, Clone, Serialize)]
+pub struct TierMutationResult {
+    pub tier: TierAdminResponse,
+    pub recalculation: Option<TierRecalculationSummary>,
+}
+
 // ============================================================================
 // Handlers
 // ============================================================================
@@ -534,6 +584,9 @@ async fn get_next_tier_info(
 ///
 /// ### Admin Routes (require admin role)
 /// - `GET /admin/users` - List all users' loyalty status with pagination
+/// - `GET /admin/tiers` - List ALL tiers (incl. inactive) with member counts
+/// - `POST /admin/tiers` - Create a tier
+/// - `PUT /admin/tiers/:tier_id` - Update a tier
 /// - `POST /admin/award-points` - Award points to user
 /// - `POST /admin/deduct-points` - Deduct points from user
 /// - `GET /admin/transactions` - Get all admin transactions with pagination
@@ -558,6 +611,8 @@ pub fn routes() -> Router<AppState> {
     // Admin routes - nested under /admin, require auth + admin role
     let admin_routes = Router::new()
         .route("/admin/users", get(admin_get_users))
+        .route("/admin/tiers", get(admin_get_tiers).post(admin_create_tier))
+        .route("/admin/tiers/:tier_id", put(admin_update_tier))
         .route("/admin/award-points", post(admin_award_points))
         .route("/admin/deduct-points", post(admin_deduct_points))
         .route("/admin/transactions", get(admin_get_transactions))
@@ -1462,6 +1517,384 @@ async fn admin_get_users(
     Ok(Json(ApiResponse::success(response)))
 }
 
+// ============================================================================
+// Admin Tier Management (locked contract — consumed by the tier editor UI)
+// ============================================================================
+
+/// Fetch a single tier as a `TierAdminResponse` (with member count).
+async fn fetch_tier_admin(
+    pool: &PgPool,
+    tier_id: Uuid,
+) -> Result<Option<TierAdminResponse>, AppError> {
+    let row = sqlx::query_as!(
+        TierAdminRow,
+        r#"
+        SELECT t.id, t.name, t.min_nights, t.benefits, t.color, t.sort_order, t.is_active,
+               COUNT(ul.user_id) AS "user_count!: i64"
+        FROM tiers t
+        LEFT JOIN user_loyalty ul ON ul.tier_id = t.id
+        WHERE t.id = $1
+        GROUP BY t.id
+        "#,
+        tier_id,
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(TierAdminResponse::from))
+}
+
+/// Run `recalculate_user_tier_by_nights` for every member and count how
+/// many tiers changed. Uses the stored procedure (CLAUDE.md rule: stored
+/// procedures for tier-affecting operations) so the audit-log hook fires
+/// for each moved member.
+///
+/// Takes a connection (not a pool) so callers can run it inside the same
+/// transaction as the tier mutation that triggered it — a failed
+/// recalculation must roll the mutation back.
+async fn recalculate_all_member_tiers(
+    conn: &mut sqlx::PgConnection,
+) -> Result<TierRecalculationSummary, AppError> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT r.tier_changed AS "tier_changed!"
+        FROM user_loyalty ul
+        CROSS JOIN LATERAL recalculate_user_tier_by_nights(ul.user_id) r
+        "#,
+    )
+    .fetch_all(conn)
+    .await?;
+
+    let users_checked = rows.len() as i64;
+    let tiers_changed = rows.iter().filter(|r| r.tier_changed).count() as i64;
+
+    Ok(TierRecalculationSummary {
+        users_checked,
+        tiers_changed,
+    })
+}
+
+/// Validate the shared tier field constraints. Each argument is `Some`
+/// only when the caller wants it checked (POST: all; PUT: provided fields).
+fn validate_tier_fields(
+    name: Option<&str>,
+    min_nights: Option<i32>,
+    color: Option<&str>,
+    benefits: Option<&JsonValue>,
+) -> Result<(), AppError> {
+    if let Some(name) = name {
+        if name.trim().is_empty() {
+            return Err(AppError::Validation(
+                "Tier name must not be empty".to_string(),
+            ));
+        }
+        // Validate in CHARACTERS, not bytes: the column is VARCHAR(50)
+        // (a character limit) and legitimate Thai names easily exceed 50
+        // UTF-8 bytes while staying well under 50 characters.
+        if name.chars().count() > 50 {
+            return Err(AppError::Validation(
+                "Tier name must be at most 50 characters".to_string(),
+            ));
+        }
+    }
+    if let Some(min_nights) = min_nights {
+        if min_nights < 0 {
+            return Err(AppError::Validation(
+                "min_nights must be zero or greater".to_string(),
+            ));
+        }
+    }
+    if let Some(color) = color {
+        if !is_valid_tier_color(color) {
+            return Err(AppError::Validation(
+                "color must be a hex color like #CD7F32".to_string(),
+            ));
+        }
+    }
+    if let Some(benefits) = benefits {
+        validate_bilingual_benefits(benefits).map_err(AppError::Validation)?;
+    }
+    Ok(())
+}
+
+/// Return `Conflict` when another tier already uses this name.
+async fn ensure_tier_name_available(
+    conn: &mut sqlx::PgConnection,
+    name: &str,
+    exclude_tier_id: Option<Uuid>,
+) -> Result<(), AppError> {
+    let existing: Option<Uuid> = sqlx::query_scalar!(
+        r#"SELECT id FROM tiers WHERE name = $1 AND ($2::uuid IS NULL OR id <> $2)"#,
+        name,
+        exclude_tier_id,
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    if existing.is_some() {
+        return Err(AppError::Conflict(format!(
+            "A tier named '{name}' already exists"
+        )));
+    }
+    Ok(())
+}
+
+/// Map a `tiers_name_key` unique violation onto the same 409 the
+/// `ensure_tier_name_available` pre-check produces. Two concurrent
+/// creates/updates with the same name can both pass the pre-check; the
+/// loser then hits the unique index and must surface as a 409 conflict,
+/// not a 500.
+fn tier_name_conflict_on_unique_violation(err: sqlx::Error, name: &str) -> AppError {
+    if let sqlx::Error::Database(db_err) = &err {
+        if db_err.is_unique_violation() && db_err.constraint() == Some("tiers_name_key") {
+            return AppError::Conflict(format!("A tier named '{name}' already exists"));
+        }
+    }
+    AppError::Database(err)
+}
+
+/// GET /loyalty/admin/tiers - List ALL tiers incl. inactive (admin only)
+async fn admin_get_tiers(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> Result<Json<ApiResponse<Vec<TierAdminResponse>>>, AppError> {
+    if !has_role(&auth_user, "admin") {
+        return Err(AppError::Forbidden("Admin access required".to_string()));
+    }
+
+    let tiers: Vec<TierAdminRow> = sqlx::query_as!(
+        TierAdminRow,
+        r#"
+        SELECT t.id, t.name, t.min_nights, t.benefits, t.color, t.sort_order, t.is_active,
+               COUNT(ul.user_id) AS "user_count!: i64"
+        FROM tiers t
+        LEFT JOIN user_loyalty ul ON ul.tier_id = t.id
+        GROUP BY t.id
+        ORDER BY t.sort_order ASC
+        "#,
+    )
+    .fetch_all(state.db())
+    .await?;
+
+    let responses: Vec<TierAdminResponse> =
+        tiers.into_iter().map(TierAdminResponse::from).collect();
+
+    Ok(Json(ApiResponse::success(responses)))
+}
+
+/// POST /loyalty/admin/tiers - Create a tier (admin only)
+///
+/// Creating an ACTIVE tier recalculates every member's tier (a new active
+/// threshold can immediately capture members); creating an inactive tier
+/// returns `recalculation: null`.
+async fn admin_create_tier(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(payload): Json<CreateTierRequest>,
+) -> Result<(StatusCode, Json<ApiResponse<TierMutationResult>>), AppError> {
+    if !has_role(&auth_user, "admin") {
+        return Err(AppError::Forbidden("Admin access required".to_string()));
+    }
+
+    let name = payload.name.trim().to_string();
+    validate_tier_fields(
+        Some(&name),
+        Some(payload.min_nights),
+        Some(&payload.color),
+        payload.benefits.as_ref(),
+    )?;
+
+    let is_active = payload.is_active.unwrap_or(true);
+    let benefits = payload
+        .benefits
+        .clone()
+        .unwrap_or_else(empty_bilingual_benefits);
+
+    // Name check + INSERT + full-membership recalculation run in ONE
+    // transaction: a failed recalculation rolls the insert back, and
+    // concurrent mutations serialize instead of interleaving.
+    let mut tx = state.db().begin().await?;
+
+    ensure_tier_name_available(&mut tx, &name, None).await?;
+
+    let sort_order = match payload.sort_order {
+        Some(sort_order) => sort_order,
+        None => {
+            sqlx::query_scalar!(r#"SELECT COALESCE(MAX(sort_order), 0) + 1 AS "next!" FROM tiers"#)
+                .fetch_one(&mut *tx)
+                .await?
+        },
+    };
+
+    let tier_id: Uuid = sqlx::query_scalar!(
+        r#"
+        INSERT INTO tiers (name, min_points, min_nights, benefits, color, sort_order, is_active, created_at, updated_at)
+        VALUES ($1, 0, $2, $3, $4, $5, $6, NOW(), NOW())
+        RETURNING id
+        "#,
+        &name,
+        payload.min_nights,
+        &benefits,
+        &payload.color,
+        sort_order,
+        is_active,
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|e| tier_name_conflict_on_unique_violation(e, &name))?;
+
+    // A new active tier can capture existing members right away.
+    let recalculation = if is_active {
+        Some(recalculate_all_member_tiers(&mut tx).await?)
+    } else {
+        None
+    };
+
+    tx.commit().await?;
+
+    let tier = fetch_tier_admin(state.db(), tier_id)
+        .await?
+        .ok_or_else(|| AppError::Internal("Created tier not found".to_string()))?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ApiResponse::with_message(
+            TierMutationResult {
+                tier,
+                recalculation,
+            },
+            "Tier created successfully",
+        )),
+    ))
+}
+
+/// PUT /loyalty/admin/tiers/:tier_id - Update a tier (admin only)
+///
+/// All fields optional. Changing `min_nights`, `is_active`, or
+/// `sort_order` recalculates every member's tier (the recalculation SP
+/// tie-breaks assignment by `sort_order`); other edits return
+/// `recalculation: null`.
+async fn admin_update_tier(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(tier_id): Path<Uuid>,
+    Json(payload): Json<UpdateTierRequest>,
+) -> Result<Json<ApiResponse<TierMutationResult>>, AppError> {
+    if !has_role(&auth_user, "admin") {
+        return Err(AppError::Forbidden("Admin access required".to_string()));
+    }
+
+    // Fetch + validate + UPDATE + full-membership recalculation run in
+    // ONE transaction: a failed recalculation rolls the mutation back,
+    // and concurrent PUTs serialize on the FOR UPDATE row lock.
+    let mut tx = state.db().begin().await?;
+
+    let existing = sqlx::query!(
+        r#"
+        SELECT id, name, min_nights, benefits, color, sort_order, is_active
+        FROM tiers
+        WHERE id = $1
+        FOR UPDATE
+        "#,
+        tier_id,
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Tier".to_string()))?;
+
+    let name = payload
+        .name
+        .as_ref()
+        .map(|n| n.trim().to_string())
+        .unwrap_or_else(|| existing.name.clone());
+    validate_tier_fields(
+        Some(&name),
+        payload.min_nights,
+        payload.color.as_deref(),
+        payload.benefits.as_ref(),
+    )?;
+
+    if name != existing.name {
+        ensure_tier_name_available(&mut tx, &name, Some(tier_id)).await?;
+    }
+
+    let min_nights = payload.min_nights.unwrap_or(existing.min_nights);
+    let color = payload
+        .color
+        .clone()
+        .unwrap_or_else(|| existing.color.clone());
+    let sort_order = payload.sort_order.unwrap_or(existing.sort_order);
+    let existing_is_active = existing.is_active.unwrap_or(true);
+    let is_active = payload.is_active.unwrap_or(existing_is_active);
+    let benefits = payload
+        .benefits
+        .clone()
+        .or_else(|| existing.benefits.clone())
+        .unwrap_or_else(empty_bilingual_benefits);
+
+    // Deactivating the LAST active tier would leave
+    // `recalculate_user_tier_by_nights` with no tier to assign: every
+    // member's tier_id would be nulled and registration/OAuth signup
+    // would break. Lock the active rows (serializing against concurrent
+    // deactivations) and reject when this tier is the only one left.
+    if existing_is_active && !is_active {
+        let active_ids: Vec<Uuid> =
+            sqlx::query_scalar!(r#"SELECT id FROM tiers WHERE is_active = true FOR UPDATE"#)
+                .fetch_all(&mut *tx)
+                .await?;
+        if active_ids.iter().filter(|id| **id != tier_id).count() == 0 {
+            return Err(AppError::Validation(
+                "cannot deactivate the last active tier".to_string(),
+            ));
+        }
+    }
+
+    // Tier-qualification inputs changed -> every member must be re-ranked.
+    // sort_order counts: the recalculation SP tie-breaks by sort_order.
+    let recalc_needed = min_nights != existing.min_nights
+        || is_active != existing_is_active
+        || sort_order != existing.sort_order;
+
+    sqlx::query!(
+        r#"
+        UPDATE tiers
+        SET name = $2, min_nights = $3, benefits = $4, color = $5,
+            sort_order = $6, is_active = $7, updated_at = NOW()
+        WHERE id = $1
+        "#,
+        tier_id,
+        &name,
+        min_nights,
+        &benefits,
+        &color,
+        sort_order,
+        is_active,
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| tier_name_conflict_on_unique_violation(e, &name))?;
+
+    let recalculation = if recalc_needed {
+        Some(recalculate_all_member_tiers(&mut tx).await?)
+    } else {
+        None
+    };
+
+    tx.commit().await?;
+
+    let tier = fetch_tier_admin(state.db(), tier_id)
+        .await?
+        .ok_or_else(|| AppError::Internal("Updated tier not found".to_string()))?;
+
+    Ok(Json(ApiResponse::with_message(
+        TierMutationResult {
+            tier,
+            recalculation,
+        },
+        "Tier updated successfully",
+    )))
+}
+
 /// POST /loyalty/admin/award-points - Award points to a user (admin only)
 ///
 /// Delegates to the `award_points` stored procedure rather than
@@ -1860,13 +2293,17 @@ async fn admin_award_spending_with_nights(
 
     // Ensure user has loyalty status before invoking the SP (the SP
     // assumes the row exists; we keep this seed insert because legacy
-    // accounts may pre-date the loyalty enrollment hook).
+    // accounts may pre-date the loyalty enrollment hook). Default tier =
+    // lowest active tier by min_nights (not name-matched — 'Bronze' is
+    // renameable through the tier editor).
     sqlx::query!(
         r#"
         INSERT INTO user_loyalty (user_id, tier_id, current_points, total_nights)
         SELECT $1, t.id, 0, 0
         FROM tiers t
-        WHERE t.name = 'Bronze'
+        WHERE t.is_active = true
+        ORDER BY t.min_nights ASC, t.sort_order ASC
+        LIMIT 1
         ON CONFLICT (user_id) DO NOTHING
         "#,
         payload.user_id,
@@ -1961,13 +2398,16 @@ async fn admin_award_nights(
 
     let mut tx = state.db().begin().await?;
 
-    // Ensure user has loyalty status before invoking the SP.
+    // Ensure user has loyalty status before invoking the SP. Default tier
+    // = lowest active tier by min_nights ('Bronze' is renameable).
     sqlx::query!(
         r#"
         INSERT INTO user_loyalty (user_id, tier_id, current_points, total_nights)
         SELECT $1, t.id, 0, 0
         FROM tiers t
-        WHERE t.name = 'Bronze'
+        WHERE t.is_active = true
+        ORDER BY t.min_nights ASC, t.sort_order ASC
+        LIMIT 1
         ON CONFLICT (user_id) DO NOTHING
         "#,
         payload.user_id,

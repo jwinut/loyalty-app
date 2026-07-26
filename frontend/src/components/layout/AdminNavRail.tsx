@@ -6,6 +6,7 @@ type AdminNavItem = { to: string; labelKey: string };
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: '/admin/loyalty', labelKey: 'adminNav.loyalty' },
+  { to: '/admin/perks', labelKey: 'adminNav.perks' },
   { to: '/admin/coupons', labelKey: 'adminNav.coupons' },
   { to: '/admin/users', labelKey: 'adminNav.users' },
   { to: '/admin/surveys', labelKey: 'adminNav.surveys' },

@@ -1,5 +1,6 @@
 import { UserLoyaltyStatus, Tier } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { FiChevronUp, FiAward } from 'react-icons/fi';
 import { logger } from '../../utils/logger';
 import { tierTheme } from '../../utils/tierTheme';
@@ -147,6 +148,12 @@ export default function TierStatus({ loyaltyStatus, allTiers }: TierStatusProps)
               ? t('loyalty.unlockBenefitsNights', { nights: loyaltyStatus.nights_to_next_tier })
               : t('loyalty.maxTierReached')}
           </div>
+          <Link
+            to="/benefits"
+            className="mt-2 inline-block text-fine text-brand-600 hover:underline"
+          >
+            {t('tierBenefits.viewAll')}
+          </Link>
         </div>
       )}
 

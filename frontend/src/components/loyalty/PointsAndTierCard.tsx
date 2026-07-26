@@ -1,7 +1,9 @@
+import { Link } from 'react-router';
 import { UserLoyaltyStatus } from '../../services/loyaltyService';
 import { useTranslation } from 'react-i18next';
 import { FiStar } from 'react-icons/fi';
 import { Card } from '../ui/Card';
+import { resolveTierBenefits } from '../../utils/tierBenefits';
 import { tierTheme } from '../../utils/tierTheme';
 
 interface PointsAndTierCardProps {
@@ -9,8 +11,9 @@ interface PointsAndTierCardProps {
 }
 
 export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = tierTheme(loyaltyStatus.tier_name, loyaltyStatus.tier_color);
+  const benefits = resolveTierBenefits(loyaltyStatus.tier_benefits, i18n.language);
 
   return (
     <Card className="h-auto border-l-4" style={{ borderLeftColor: theme.accent }}>
@@ -48,9 +51,9 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
         <div className="text-sm font-semibold text-stone-700 mb-3">
           {t('loyalty.tierBenefits')}
         </div>
-        {typeof loyaltyStatus.tier_benefits === 'object' && loyaltyStatus.tier_benefits !== null && 'perks' in loyaltyStatus.tier_benefits && Array.isArray(loyaltyStatus.tier_benefits.perks) && loyaltyStatus.tier_benefits.perks.length > 0 && (
+        {benefits.perks.length > 0 && (
           <ul className="space-y-2">
-            {loyaltyStatus.tier_benefits.perks.map((perk, index) => (
+            {benefits.perks.map((perk, index) => (
               <li key={index} className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
                       style={{ backgroundColor: theme.accent }}
@@ -60,6 +63,15 @@ export default function PointsAndTierCard({ loyaltyStatus }: PointsAndTierCardPr
             ))}
           </ul>
         )}
+        <div className="mt-3">
+          <Link
+            to="/benefits"
+            data-testid="view-all-benefits-link"
+            className="text-sm text-stone-500 hover:underline"
+          >
+            {t('tierBenefits.viewAll')}
+          </Link>
+        </div>
       </div>
     </Card>
   );

@@ -44,6 +44,7 @@ pub mod sse_test;
 pub mod stays_test;
 pub mod storage_test;
 pub mod survey_test;
+pub mod tier_admin_test;
 pub mod user_test;
 
 // Re-export common utilities for convenience

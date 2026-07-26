@@ -915,16 +915,22 @@ impl OAuthService for OAuthServiceImpl {
         .await
         .map_err(|e| AppError::DatabaseQuery(format!("Failed to log OAuth login: {}", e)))?;
 
-        // Enroll in loyalty program with the default Bronze tier. Same
-        // shape as `ensure_loyalty_enrollment`, inlined to stay inside
-        // the transaction.
-        let tier_id: Option<Uuid> =
-            sqlx::query_scalar!(r#"SELECT id FROM tiers WHERE name = 'Bronze' LIMIT 1"#,)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(|e| {
-                    AppError::DatabaseQuery(format!("Failed to get default tier: {}", e))
-                })?;
+        // Enroll in loyalty program with the default tier — the lowest
+        // active tier by min_nights, not a name match ('Bronze' is
+        // renameable through the admin tier editor). Same shape as
+        // `ensure_loyalty_enrollment`, inlined to stay inside the
+        // transaction.
+        let tier_id: Option<Uuid> = sqlx::query_scalar!(
+            r#"
+            SELECT id FROM tiers
+            WHERE is_active = true
+            ORDER BY min_nights ASC, sort_order ASC
+            LIMIT 1
+            "#,
+        )
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| AppError::DatabaseQuery(format!("Failed to get default tier: {}", e)))?;
         let tier_id =
             tier_id.ok_or_else(|| AppError::NotFound("Default tier not found".to_string()))?;
         sqlx::query!(

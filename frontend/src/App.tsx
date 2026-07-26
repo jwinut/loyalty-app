@@ -40,6 +40,8 @@ const BookingPage = lazy(() => import('./pages/BookingPage'));
 const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage'));
 const MemberCardPage = lazy(() => import('./pages/MemberCardPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TierBenefitsPage = lazy(() => import('./pages/TierBenefitsPage'));
+const TierPerksManagement = lazy(() => import('./pages/admin/TierPerksManagement'));
 const RoomTypeManagement = lazy(() => import('./pages/admin/RoomTypeManagement'));
 const RoomManagement = lazy(() => import('./pages/admin/RoomManagement'));
 const RoomAvailability = lazy(() => import('./pages/admin/RoomAvailability'));
@@ -280,6 +282,10 @@ function App() {
           path="/privacy"
           element={<PrivacyPage />}
         />
+        <Route
+          path="/benefits"
+          element={<TierBenefitsPage />}
+        />
 
         {/* Protected routes */}
         <Route
@@ -351,6 +357,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <CouponManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/perks"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <TierPerksManagement />
             </ProtectedRoute>
           }
         />

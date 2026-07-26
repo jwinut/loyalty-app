@@ -495,13 +495,17 @@ async fn register(
     .await
     .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
 
-    // Create initial loyalty record (Bronze tier, 0 points, 0 nights)
+    // Create initial loyalty record (default tier, 0 points, 0 nights).
+    // Default tier = lowest active tier by min_nights, not a name match —
+    // 'Bronze' is renameable through the admin tier editor.
     sqlx::query(
         r#"
         INSERT INTO user_loyalty (user_id, current_points, total_nights, tier_id)
         SELECT $1, 0, 0, id
         FROM tiers
-        WHERE name = 'Bronze'
+        WHERE is_active = true
+        ORDER BY min_nights ASC, sort_order ASC
+        LIMIT 1
         "#,
     )
     .bind(&user_row.id)

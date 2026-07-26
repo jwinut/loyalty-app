@@ -72,13 +72,22 @@ export default function AppShell({
       <footer className="mx-auto max-w-page px-4 pb-24 pt-6 text-center sm:px-6 lg:pb-6">
         <div className="flex flex-col items-center gap-3">
           <BrandLogo variant="monogram" />
-          <Link
-            to="/privacy"
-            className="text-caption text-ink-muted hover:text-ink"
-            data-testid="footer-privacy-link"
-          >
-            {t('privacy.footerLink')}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/benefits"
+              className="text-caption text-ink-muted hover:text-ink"
+              data-testid="footer-benefits-link"
+            >
+              {t('tierBenefits.footerLink')}
+            </Link>
+            <Link
+              to="/privacy"
+              className="text-caption text-ink-muted hover:text-ink"
+              data-testid="footer-privacy-link"
+            >
+              {t('privacy.footerLink')}
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

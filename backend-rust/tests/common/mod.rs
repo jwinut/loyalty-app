@@ -334,19 +334,30 @@ async fn ensure_template_db() -> Result<(), Box<dyn std::error::Error + Send + S
         .execute(property_line_channel_migration)
         .await?;
 
-    // Seed tiers
+    // Seed the four tiers in the LEGACY flat Thai shape BEFORE applying the
+    // bilingual-benefits migration below — exactly the state a deployed
+    // database was in when that migration first ran. This makes every suite
+    // run exercise the real legacy -> bilingual transform instead of testing
+    // against hand-seeded post-migration rows. Content mirrors what seed.rs
+    // seeded before the bilingual change.
     template_pool
         .execute(
             r#"
             INSERT INTO tiers (name, min_points, min_nights, benefits, color, sort_order, is_active)
             VALUES
-                ('Bronze', 0, 0, '{"discount": 0}', '#CD7F32', 1, true),
-                ('Silver', 0, 1, '{"discount": 5}', '#C0C0C0', 2, true),
-                ('Gold', 0, 10, '{"discount": 10}', '#FFD700', 3, true),
-                ('Platinum', 0, 20, '{"discount": 15}', '#E5E4E2', 4, true)
+                ('Bronze', 0, 0, '{"description": "ระดับต้อนรับสำหรับสมาชิกใหม่", "perks": ["ราคาพิเศษสำหรับสมาชิก", "บริการแต่งห้องวันเกิด", "ได้รับคะแนนเพิ่ม"]}', '#CD7F32', 1, true),
+                ('Silver', 0, 1, '{"description": "สิทธิพิเศษระดับกลางสำหรับสมาชิกที่ใช้บริการ", "perks": ["ส่วนลดเครื่องดื่ม 10%", "ได้รับคะแนนเพิ่ม"]}', '#C0C0C0', 2, true),
+                ('Gold', 0, 10, '{"description": "สิทธิพิเศษระดับพรีเมียมสำหรับสมาชิกที่มีค่า", "perks": ["อัพเกรดห้องฟรี", "ได้รับคะแนนเพิ่ม"]}', '#FFD700', 3, true),
+                ('Platinum', 0, 20, '{"description": "สิทธิพิเศษสุดพิเศษสำหรับสมาชิกระดับสูงสุด", "perks": ["ส่วนลดพิเศษสำหรับสมาชิกขั้นสูงสุด"]}', '#E5E4E2', 4, true)
             ON CONFLICT (name) DO NOTHING
             "#,
         )
+        .await?;
+
+    let tier_benefits_bilingual_migration =
+        include_str!("../../migrations/20260726000000_tier_benefits_bilingual.sql");
+    template_pool
+        .execute(tier_benefits_bilingual_migration)
         .await?;
 
     // Seed membership_id_sequence
