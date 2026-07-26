@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { UserLoyaltyStatus } from '../../services/loyaltyService';
 import PointsAndTierCard from './PointsAndTierCard';
@@ -11,19 +12,23 @@ interface LoyaltyCarouselProps {
 }
 
 export default function LoyaltyCarousel({ loyaltyStatus, transactions }: LoyaltyCarouselProps) {
+  const { i18n } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const [cardHeight, setCardHeight] = useState<number | null>(null);
   const pointsCardRef = useRef<HTMLDivElement>(null);
 
-  // Measure the PointsAndTierCard height
+  // Measure the PointsAndTierCard height. The language is a dependency
+  // because the card renders localized perk copy: switching the UI language
+  // changes the content length (and therefore the height) without any
+  // loyaltyStatus change, which would otherwise leave a stale fixed height.
   useEffect(() => {
     if (pointsCardRef.current) {
       const height = pointsCardRef.current.offsetHeight;
       setCardHeight(height);
     }
-  }, [loyaltyStatus]);
+  }, [loyaltyStatus, i18n.language]);
 
   const slides = [
     {

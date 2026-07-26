@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use sqlx::FromRow;
 use uuid::Uuid;
-use validator::Validate;
 
 /// Tier entity representing a record in the `tiers` table
 ///
@@ -115,53 +114,74 @@ impl From<Tier> for TierResponse {
     }
 }
 
-/// Request payload for creating a new tier
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct CreateTierRequest {
-    /// Tier name (must be unique)
-    #[validate(length(min = 1, max = 50, message = "Name must be 1-50 characters"))]
+/// Tier response DTO for the admin tier editor
+/// (`GET/POST/PUT /api/loyalty/admin/tiers`).
+///
+/// snake_case on the wire, like the rest of the loyalty routes. Includes
+/// inactive tiers and the number of members currently on the tier.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TierAdminResponse {
+    /// Unique identifier
+    pub id: Uuid,
+
+    /// Tier name (unique)
     pub name: String,
 
-    /// Minimum points (legacy, default 0)
-    pub min_points: Option<i32>,
-
-    /// Minimum nights required
-    #[validate(range(min = 0, message = "Minimum nights cannot be negative"))]
+    /// Minimum nights required to achieve this tier
     pub min_nights: i32,
 
-    /// Tier benefits as JSON
-    pub benefits: Option<JsonValue>,
+    /// Bilingual benefits:
+    /// `{"en": {"description", "perks"}, "th": {"description", "perks"}}`
+    pub benefits: JsonValue,
 
-    /// Display color (hex format)
-    #[validate(length(equal = 7, message = "Color must be 7 characters (e.g., #FFFFFF)"))]
+    /// Hex color code for UI display (e.g., "#CD7F32")
     pub color: String,
 
     /// Sort order for display
     pub sort_order: i32,
 
+    /// Whether this tier is active (inactive tiers are hidden from the
+    /// public tiers endpoint and skipped by tier recalculation)
+    pub is_active: bool,
+
+    /// Number of user_loyalty rows currently pointing at this tier
+    pub user_count: i64,
+}
+
+/// Request payload for creating a new tier
+/// (`POST /api/loyalty/admin/tiers`)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTierRequest {
+    /// Tier name (must be unique, non-empty)
+    pub name: String,
+
+    /// Minimum nights required (>= 0)
+    pub min_nights: i32,
+
+    /// Display color (must match `^#[0-9a-fA-F]{6}$`)
+    pub color: String,
+
+    /// Sort order for display (defaults to max(sort_order) + 1)
+    pub sort_order: Option<i32>,
+
     /// Whether tier is active (default true)
     pub is_active: Option<bool>,
+
+    /// Bilingual benefits payload; defaults to empty en/th sections
+    pub benefits: Option<JsonValue>,
 }
 
 /// Request payload for updating an existing tier
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+/// (`PUT /api/loyalty/admin/tiers/:tier_id`) — every field optional
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpdateTierRequest {
-    /// Updated tier name
-    #[validate(length(min = 1, max = 50, message = "Name must be 1-50 characters"))]
+    /// Updated tier name (must stay unique, non-empty)
     pub name: Option<String>,
 
-    /// Updated minimum points
-    pub min_points: Option<i32>,
-
-    /// Updated minimum nights
-    #[validate(range(min = 0, message = "Minimum nights cannot be negative"))]
+    /// Updated minimum nights (>= 0)
     pub min_nights: Option<i32>,
 
-    /// Updated benefits
-    pub benefits: Option<JsonValue>,
-
-    /// Updated color
-    #[validate(length(equal = 7, message = "Color must be 7 characters (e.g., #FFFFFF)"))]
+    /// Updated color (must match `^#[0-9a-fA-F]{6}$`)
     pub color: Option<String>,
 
     /// Updated sort order
@@ -169,6 +189,54 @@ pub struct UpdateTierRequest {
 
     /// Updated active status
     pub is_active: Option<bool>,
+
+    /// Updated bilingual benefits payload
+    pub benefits: Option<JsonValue>,
+}
+
+/// Empty bilingual benefits object — the default for new tiers created
+/// without a benefits payload, so consumers always see the locked shape.
+pub fn empty_bilingual_benefits() -> JsonValue {
+    serde_json::json!({
+        "en": { "description": "", "perks": [] },
+        "th": { "description": "", "perks": [] }
+    })
+}
+
+/// Validate a tier display color: `^#[0-9a-fA-F]{6}$`.
+pub fn is_valid_tier_color(color: &str) -> bool {
+    let bytes = color.as_bytes();
+    bytes.len() == 7 && bytes[0] == b'#' && bytes[1..].iter().all(|b| b.is_ascii_hexdigit())
+}
+
+/// Validate the bilingual benefits payload:
+/// an object with `en` and `th` objects, each carrying a string
+/// `description` and a `perks` array of strings.
+pub fn validate_bilingual_benefits(benefits: &JsonValue) -> Result<(), String> {
+    let obj = benefits
+        .as_object()
+        .ok_or_else(|| "benefits must be an object".to_string())?;
+
+    for lang in ["en", "th"] {
+        let lang_obj = obj
+            .get(lang)
+            .and_then(|v| v.as_object())
+            .ok_or_else(|| format!("benefits must contain an '{lang}' object"))?;
+
+        if !lang_obj.get("description").is_some_and(|d| d.is_string()) {
+            return Err(format!("benefits.{lang}.description must be a string"));
+        }
+
+        let perks_ok = lang_obj
+            .get("perks")
+            .and_then(|p| p.as_array())
+            .is_some_and(|perks| perks.iter().all(|p| p.is_string()));
+        if !perks_ok {
+            return Err(format!("benefits.{lang}.perks must be an array of strings"));
+        }
+    }
+
+    Ok(())
 }
 
 /// Summary of tier for quick reference
@@ -276,5 +344,64 @@ mod tests {
         assert_eq!(response.name, "Gold");
         assert_eq!(response.min_nights, 10);
         assert!(response.is_active);
+    }
+
+    #[test]
+    fn test_is_valid_tier_color() {
+        assert!(is_valid_tier_color("#CD7F32"));
+        assert!(is_valid_tier_color("#abcdef"));
+        assert!(is_valid_tier_color("#ABC123"));
+
+        assert!(!is_valid_tier_color("CD7F32")); // missing #
+        assert!(!is_valid_tier_color("#CD7F3")); // too short
+        assert!(!is_valid_tier_color("#CD7F321")); // too long
+        assert!(!is_valid_tier_color("#GGGGGG")); // not hex
+        assert!(!is_valid_tier_color("red"));
+        assert!(!is_valid_tier_color(""));
+    }
+
+    #[test]
+    fn test_validate_bilingual_benefits_accepts_valid_shape() {
+        let valid = serde_json::json!({
+            "en": { "description": "Welcome tier", "perks": ["Member rates"] },
+            "th": { "description": "ระดับต้อนรับ", "perks": ["ราคาพิเศษ"] }
+        });
+        assert!(validate_bilingual_benefits(&valid).is_ok());
+
+        assert!(validate_bilingual_benefits(&empty_bilingual_benefits()).is_ok());
+    }
+
+    #[test]
+    fn test_validate_bilingual_benefits_rejects_bad_shapes() {
+        // Not an object
+        assert!(validate_bilingual_benefits(&serde_json::json!([])).is_err());
+        // Missing th
+        assert!(validate_bilingual_benefits(&serde_json::json!({
+            "en": { "description": "x", "perks": [] }
+        }))
+        .is_err());
+        // Legacy flat shape
+        assert!(validate_bilingual_benefits(&serde_json::json!({
+            "description": "x", "perks": ["y"]
+        }))
+        .is_err());
+        // description not a string
+        assert!(validate_bilingual_benefits(&serde_json::json!({
+            "en": { "description": 1, "perks": [] },
+            "th": { "description": "x", "perks": [] }
+        }))
+        .is_err());
+        // perks not an array of strings
+        assert!(validate_bilingual_benefits(&serde_json::json!({
+            "en": { "description": "x", "perks": [1] },
+            "th": { "description": "x", "perks": [] }
+        }))
+        .is_err());
+        // perks missing
+        assert!(validate_bilingual_benefits(&serde_json::json!({
+            "en": { "description": "x" },
+            "th": { "description": "x", "perks": [] }
+        }))
+        .is_err());
     }
 }

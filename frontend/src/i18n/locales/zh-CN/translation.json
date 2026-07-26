@@ -395,6 +395,53 @@
     }
   },
   "admin": {
+    "perks": {
+      "title": "等级与礼遇",
+      "subtitle": "管理会员等级门槛及展示给会员的礼遇",
+      "menuTitle": "等级与礼遇",
+      "menuDescription": "编辑会员等级和礼遇",
+      "table": {
+        "name": "等级",
+        "minNights": "最低晚数",
+        "color": "颜色",
+        "sortOrder": "排序",
+        "status": "状态",
+        "perks": "礼遇",
+        "members": "会员数",
+        "actions": "操作"
+      },
+      "active": "启用",
+      "inactive": "停用",
+      "edit": "编辑",
+      "addTier": "新增等级",
+      "createTitle": "创建等级",
+      "editTitle": "编辑 {{name}}",
+      "form": {
+        "name": "等级名称",
+        "minNights": "最低入住晚数",
+        "color": "颜色 (hex)",
+        "sortOrder": "显示顺序",
+        "isActive": "启用",
+        "descriptionEn": "描述（英文）",
+        "descriptionTh": "描述（泰文）",
+        "perksEn": "礼遇（英文）",
+        "perksTh": "礼遇（泰文）",
+        "addPerk": "添加礼遇",
+        "removePerk": "删除",
+        "perkPlaceholder": "例如：免费早餐"
+      },
+      "thresholdWarning": "更改最低晚数或启用状态将重新计算所有会员的等级。",
+      "saved": "已保存等级",
+      "created": "已创建等级",
+      "recalculated": "{{checked}} 名会员中有 {{changed}} 名等级发生变化",
+      "loadFailed": "加载等级失败",
+      "saveFailed": "保存等级失败",
+      "validation": {
+        "nameRequired": "请输入等级名称",
+        "minNightsInvalid": "最低晚数必须为 0 或以上",
+        "colorInvalid": "颜色必须是 hex 值，如 #D4AF37"
+      }
+    },
     "loyalty": {
       "title": "客户积分管理",
       "subtitle": "监控和管理客户积分、等级和奖励",
@@ -1146,6 +1193,20 @@
     "noMembershipId": "您的会员编号尚未生成，请联系前台。",
     "showAtDesk": "入住时请在前台出示此二维码，让您的入住计入会员记录。"
   },
+  "tierBenefits": {
+    "title": "会员礼遇",
+    "subtitle": "住得越多，礼遇越多 — 会员等级按入住晚数计算，每一晚都算数。",
+    "navTitle": "会员礼遇",
+    "navDescription": "查看各等级的专属礼遇",
+    "footerLink": "会员礼遇",
+    "viewAll": "查看全部礼遇",
+    "nightsRequired": "{{nights}}+ 晚",
+    "baseTier": "所有会员",
+    "yourTier": "您的等级",
+    "signInPrompt": "登录后查看您的等级和进度",
+    "loadFailed": "无法加载礼遇信息",
+    "retry": "重试"
+  },
   "privacy": {
     "title": "隐私声明",
     "footerLink": "隐私声明",
@@ -1185,6 +1246,7 @@
   },
   "adminNav": {
     "loyalty": "积分",
+    "perks": "等级与礼遇",
     "coupons": "优惠券",
     "users": "用户",
     "surveys": "调研",

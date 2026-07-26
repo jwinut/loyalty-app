@@ -429,6 +429,53 @@
     }
   },
   "admin": {
+    "perks": {
+      "title": "Tiers & Perks",
+      "subtitle": "Manage tier levels and the perks shown to members",
+      "menuTitle": "Tiers & Perks",
+      "menuDescription": "Edit tier levels and member perks",
+      "table": {
+        "name": "Tier",
+        "minNights": "Min nights",
+        "color": "Color",
+        "sortOrder": "Order",
+        "status": "Status",
+        "perks": "Perks",
+        "members": "Members",
+        "actions": "Actions"
+      },
+      "active": "Active",
+      "inactive": "Inactive",
+      "edit": "Edit",
+      "addTier": "Add tier",
+      "createTitle": "Create tier",
+      "editTitle": "Edit {{name}}",
+      "form": {
+        "name": "Tier name",
+        "minNights": "Minimum nights",
+        "color": "Color (hex)",
+        "sortOrder": "Sort order",
+        "isActive": "Active",
+        "descriptionEn": "Description (English)",
+        "descriptionTh": "Description (Thai)",
+        "perksEn": "Perks (English)",
+        "perksTh": "Perks (Thai)",
+        "addPerk": "Add perk",
+        "removePerk": "Remove",
+        "perkPlaceholder": "e.g. Free breakfast"
+      },
+      "thresholdWarning": "Changing the minimum nights or active flag recalculates every member's tier.",
+      "saved": "Tier saved",
+      "created": "Tier created",
+      "recalculated": "{{changed}} of {{checked}} members changed tier",
+      "loadFailed": "Failed to load tiers",
+      "saveFailed": "Failed to save tier",
+      "validation": {
+        "nameRequired": "Tier name is required",
+        "minNightsInvalid": "Minimum nights must be 0 or more",
+        "colorInvalid": "Color must be a hex value like #D4AF37"
+      }
+    },
     "loyalty": {
       "title": "Customer Loyalty Management",
       "subtitle": "Monitor and manage customer points, tiers, and rewards",
@@ -1794,6 +1841,20 @@
     "noMembershipId": "Your membership ID is not ready yet. Please contact the front desk.",
     "showAtDesk": "Show this QR code at the front desk when you check in, so your stay counts toward your membership."
   },
+  "tierBenefits": {
+    "title": "Member Benefits",
+    "subtitle": "The longer you stay, the more you enjoy. Your tier is based on nights stayed — every night counts.",
+    "navTitle": "Member Benefits",
+    "navDescription": "See what each tier gets",
+    "footerLink": "Member benefits",
+    "viewAll": "View all benefits",
+    "nightsRequired": "{{nights}}+ nights",
+    "baseTier": "All members",
+    "yourTier": "Your tier",
+    "signInPrompt": "Sign in to see your tier and progress",
+    "loadFailed": "Could not load benefits",
+    "retry": "Try again"
+  },
   "privacy": {
     "title": "Privacy Notice",
     "footerLink": "Privacy notice",
@@ -1817,6 +1878,7 @@
   },
   "adminNav": {
     "loyalty": "Loyalty",
+    "perks": "Tiers & Perks",
     "coupons": "Coupons",
     "users": "Users",
     "surveys": "Surveys",

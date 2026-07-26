@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import TierStatus from '../TierStatus';
 import { UserLoyaltyStatus, Tier } from '../../../services/loyaltyService';
 import { tierTheme } from '../../../utils/tierTheme';
+
+// The next-tier teaser carries a react-router <Link> to /benefits, so every
+// render needs a router context.
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 // Mock dependencies
 const mockTranslate = vi.fn((key: string, params?: any) => {
@@ -21,6 +26,7 @@ const mockTranslate = vi.fn((key: string, params?: any) => {
     'loyalty.topTierMessage': "You've reached the highest tier!",
     'loyalty.topTierDescription': 'Enjoy all premium benefits',
     'loyalty.maxTierReached': 'Max tier reached',
+    'tierBenefits.viewAll': 'View all benefits',
   };
 
   if (params && translations[key]) {
@@ -55,6 +61,7 @@ describe('TierStatus', () => {
       benefits: { description: 'Bronze benefits', perks: ['Basic perk'] },
       color: '#CD7F32',
       sort_order: 1,
+      is_active: true,
     },
     {
       id: 'silver',
@@ -64,6 +71,7 @@ describe('TierStatus', () => {
       benefits: { description: 'Silver benefits', perks: ['Silver perk'] },
       color: '#C0C0C0',
       sort_order: 2,
+      is_active: true,
     },
     {
       id: 'gold',
@@ -73,6 +81,7 @@ describe('TierStatus', () => {
       benefits: { description: 'Gold benefits', perks: ['Gold perk'] },
       color: '#FFD700',
       sort_order: 3,
+      is_active: true,
     },
     {
       id: 'platinum',
@@ -82,6 +91,7 @@ describe('TierStatus', () => {
       benefits: { description: 'Platinum benefits', perks: ['Platinum perk'] },
       color: '#E5E4E2',
       sort_order: 4,
+      is_active: true,
     },
   ];
 
@@ -292,6 +302,30 @@ describe('TierStatus', () => {
       render(<TierStatus loyaltyStatus={topTierStatus} allTiers={mockTiers} />);
 
       expect(screen.queryByText(/Next tier:/)).not.toBeInTheDocument();
+    });
+
+    it('should link to the public benefits page from the next-tier teaser', () => {
+      render(<TierStatus loyaltyStatus={mockLoyaltyStatus} allTiers={mockTiers} />);
+
+      const link = screen.getByRole('link', { name: 'View all benefits' });
+      expect(link).toHaveAttribute('href', '/benefits');
+    });
+
+    it('should not show the benefits link when at top tier', () => {
+      const topTierStatus = {
+        ...mockLoyaltyStatus,
+        tier_name: 'Platinum',
+        tier_color: '#E5E4E2',
+        next_tier_name: null,
+        next_tier_points: null,
+        points_to_next_tier: null,
+      };
+
+      render(<TierStatus loyaltyStatus={topTierStatus} allTiers={mockTiers} />);
+
+      expect(
+        screen.queryByRole('link', { name: 'View all benefits' }),
+      ).not.toBeInTheDocument();
     });
   });
 

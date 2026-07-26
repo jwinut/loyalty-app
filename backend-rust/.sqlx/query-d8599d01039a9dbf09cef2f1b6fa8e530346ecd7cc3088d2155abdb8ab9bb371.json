@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT r.tier_changed AS \"tier_changed!\"\n        FROM user_loyalty ul\n        CROSS JOIN LATERAL recalculate_user_tier_by_nights(ul.user_id) r\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tier_changed!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d8599d01039a9dbf09cef2f1b6fa8e530346ecd7cc3088d2155abdb8ab9bb371"
+}

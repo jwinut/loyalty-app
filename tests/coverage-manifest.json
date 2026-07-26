@@ -1,18 +1,19 @@
 {
-  "totalPages": 19,
+  "totalPages": 21,
   "testedPages": 12,
-  "coverage": "63.2%",
-  "lastUpdated": "2025-12-20",
+  "coverage": "57.1%",
+  "lastUpdated": "2026-07-26",
   "pages": {
     "public": {
-      "total": 4,
+      "total": 5,
       "tested": 4,
-      "coverage": "100%",
+      "coverage": "80%",
       "pages": [
         { "path": "/login", "tested": true, "testFile": "login-flow.browser.spec.ts" },
         { "path": "/register", "tested": true, "testFile": "login-flow.browser.spec.ts" },
         { "path": "/reset-password", "tested": true, "testFile": "login-flow.browser.spec.ts" },
-        { "path": "/oauth/success", "tested": true, "testFile": "login-flow.browser.spec.ts" }
+        { "path": "/oauth/success", "tested": true, "testFile": "login-flow.browser.spec.ts" },
+        { "path": "/benefits", "tested": false }
       ]
     },
     "user": {
@@ -29,12 +30,13 @@
       ]
     },
     "admin": {
-      "total": 9,
+      "total": 10,
       "tested": 2,
-      "coverage": "22.2%",
+      "coverage": "20%",
       "pages": [
         { "path": "/admin/loyalty", "tested": true, "testFile": "admin-loyalty.browser.spec.ts" },
         { "path": "/admin/users", "tested": true, "testFile": "admin-users.browser.spec.ts" },
+        { "path": "/admin/perks", "tested": false },
         { "path": "/admin/coupons", "tested": false },
         { "path": "/admin/surveys", "tested": false },
         { "path": "/admin/surveys/create", "tested": false },
@@ -62,7 +64,7 @@
     ]
   },
   "apiTests": {
-    "total": 195,
+    "total": 204,
     "description": "E2E API tests covering critical user flows"
   }
 }

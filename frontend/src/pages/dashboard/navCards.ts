@@ -34,6 +34,13 @@ export const GUEST_NAV_CARDS: NavCardDef[] = [
     testId: 'nav-member-card',
   },
   {
+    to: '/benefits',
+    icon: FiAward,
+    titleKey: 'tierBenefits.navTitle',
+    descKey: 'tierBenefits.navDescription',
+    testId: 'nav-benefits',
+  },
+  {
     to: '/profile',
     icon: FiUser,
     titleKey: 'dashboard.myProfile',
@@ -75,6 +82,13 @@ export const ADMIN_NAV_CARDS: NavCardDef[] = [
     icon: FiAward,
     titleKey: 'dashboard.loyaltyManagement',
     descKey: 'dashboard.manageLoyaltyAdmin',
+  },
+  {
+    to: '/admin/perks',
+    icon: FiAward,
+    titleKey: 'admin.perks.menuTitle',
+    descKey: 'admin.perks.menuDescription',
+    testId: 'nav-admin-perks',
   },
   {
     to: '/admin/coupons',

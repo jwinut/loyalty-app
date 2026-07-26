@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import PointsAndTierCard from '../PointsAndTierCard';
 import { UserLoyaltyStatus } from '../../../services/loyaltyService';
 import { tierTheme, contrastRatio } from '../../../utils/tierTheme';
+
+// The "view all benefits" line is a react-router <Link> to /benefits, so
+// every render needs a router context.
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 // Mock dependencies
 const mockTranslate = vi.fn((key: string) => {
@@ -11,13 +16,22 @@ const mockTranslate = vi.fn((key: string) => {
     'loyalty.member': 'Member',
     'loyalty.availablePoints': 'Available Points',
     'loyalty.tierBenefits': 'Tier Benefits',
+    'tierBenefits.viewAll': 'View all benefits',
   };
   return translations[key] || key;
 });
 
+// Mutable so individual tests can exercise the Thai rendering path.
+let mockLanguage = 'en';
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: mockTranslate,
+    i18n: {
+      get language() {
+        return mockLanguage;
+      },
+    },
   }),
 }));
 
@@ -51,6 +65,7 @@ describe('PointsAndTierCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   describe('Basic Rendering', () => {
@@ -309,6 +324,29 @@ describe('PointsAndTierCard', () => {
       expect(screen.getByText('Single perk')).toBeInTheDocument();
     });
 
+    it('should render a subtle view-all-benefits link to /benefits below the perks list', () => {
+      render(<PointsAndTierCard loyaltyStatus={mockLoyaltyStatus} />);
+
+      const link = screen.getByTestId('view-all-benefits-link');
+      expect(link).toHaveAttribute('href', '/benefits');
+      expect(link).toHaveTextContent('View all benefits');
+      expect(link).toHaveClass('text-sm', 'text-stone-500');
+    });
+
+    it('should keep the view-all-benefits link when there are no perks', () => {
+      const noPerksStatus = {
+        ...mockLoyaltyStatus,
+        tier_benefits: {
+          description: 'No perks',
+          perks: [],
+        },
+      };
+
+      render(<PointsAndTierCard loyaltyStatus={noPerksStatus} />);
+
+      expect(screen.getByTestId('view-all-benefits-link')).toHaveAttribute('href', '/benefits');
+    });
+
     it('should display many perks', () => {
       const manyPerksStatus = {
         ...mockLoyaltyStatus,
@@ -328,6 +366,46 @@ describe('PointsAndTierCard', () => {
     });
   });
 
+  describe('Bilingual Benefits Resolution', () => {
+    const bilingualStatus = {
+      ...mockLoyaltyStatus,
+      tier_benefits: {
+        en: { description: 'Gold, in English', perks: ['English perk'] },
+        th: { description: 'Gold, in Thai', perks: ['Thai perk'] },
+      },
+    };
+
+    it('should render the en perks for an English UI', () => {
+      render(<PointsAndTierCard loyaltyStatus={bilingualStatus} />);
+
+      expect(screen.getByText('English perk')).toBeInTheDocument();
+      expect(screen.queryByText('Thai perk')).not.toBeInTheDocument();
+    });
+
+    it('should render the th perks for a Thai UI', () => {
+      mockLanguage = 'th';
+
+      render(<PointsAndTierCard loyaltyStatus={bilingualStatus} />);
+
+      expect(screen.getByText('Thai perk')).toBeInTheDocument();
+      expect(screen.queryByText('English perk')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to en perks when a Thai UI has no th entry', () => {
+      mockLanguage = 'th';
+      const enOnlyStatus = {
+        ...mockLoyaltyStatus,
+        tier_benefits: {
+          en: { description: 'Gold, in English', perks: ['English perk'] },
+        },
+      };
+
+      render(<PointsAndTierCard loyaltyStatus={enOnlyStatus} />);
+
+      expect(screen.getByText('English perk')).toBeInTheDocument();
+    });
+  });
+
   describe('Translation Keys', () => {
     it('should use correct translation keys', () => {
       render(<PointsAndTierCard loyaltyStatus={mockLoyaltyStatus} />);
@@ -336,6 +414,7 @@ describe('PointsAndTierCard', () => {
       expect(mockTranslate).toHaveBeenCalledWith('loyalty.member');
       expect(mockTranslate).toHaveBeenCalledWith('loyalty.availablePoints');
       expect(mockTranslate).toHaveBeenCalledWith('loyalty.tierBenefits');
+      expect(mockTranslate).toHaveBeenCalledWith('tierBenefits.viewAll');
     });
   });
 

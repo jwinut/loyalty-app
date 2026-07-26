@@ -1549,13 +1549,30 @@ async fn ensure_loyalty_enrollment(db: &sqlx::PgPool, user_id: Uuid) -> Result<(
         .await?;
 
     if existing.is_none() {
-        // Get default tier (Bronze)
-        let tier: Option<(i32,)> =
-            sqlx::query_as("SELECT id FROM tiers WHERE name = 'Bronze' LIMIT 1")
-                .fetch_optional(db)
-                .await?;
+        // Default tier = the lowest active tier by min_nights (then
+        // sort_order) — same rule as `services/oauth.rs` provisioning.
+        // Never a name match: 'Bronze' is renameable through the admin
+        // tier editor.
+        let tier_id: Option<Uuid> = sqlx::query_scalar(
+            r#"
+            SELECT id FROM tiers
+            WHERE is_active = true
+            ORDER BY min_nights ASC, sort_order ASC
+            LIMIT 1
+            "#,
+        )
+        .fetch_optional(db)
+        .await?;
 
-        let tier_id = tier.map(|t| t.0).unwrap_or(1);
+        let Some(tier_id) = tier_id else {
+            // No active tier is a real error — enrolling with a fabricated
+            // tier id would silently corrupt the loyalty record.
+            tracing::error!(
+                user_id = %user_id,
+                "[OAuth] No active tier exists; cannot enroll user in loyalty program"
+            );
+            return Err(sqlx::Error::RowNotFound);
+        };
 
         sqlx::query(
             r#"INSERT INTO user_loyalty (user_id, tier_id, current_points, total_nights)

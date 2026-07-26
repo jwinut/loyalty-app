@@ -4,6 +4,20 @@ import userEvent from '@testing-library/user-event';
 import LoyaltyCarousel from '../LoyaltyCarousel';
 import { UserLoyaltyStatus, PointsTransaction } from '../../../services/loyaltyService';
 
+// Mutable so the height re-measurement test can simulate a language switch.
+let mockLanguage = 'en';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: {
+      get language() {
+        return mockLanguage;
+      },
+    },
+  }),
+}));
+
 // Mock child components
 vi.mock('../PointsAndTierCard', () => ({
   default: ({ loyaltyStatus }: { loyaltyStatus: UserLoyaltyStatus }) => (
@@ -73,6 +87,38 @@ describe('LoyaltyCarousel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLanguage = 'en';
+  });
+
+  describe('Height Measurement', () => {
+    it('re-measures the card height when the UI language changes', () => {
+      // The card renders localized perk copy, so a language switch changes
+      // its height without any loyaltyStatus change — the fixed viewport
+      // height must follow it instead of going stale.
+      let mockHeight = 320;
+      const offsetHeightSpy = vi
+        .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+        .mockImplementation(() => mockHeight);
+
+      try {
+        const { container, rerender } = render(
+          <LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />
+        );
+
+        const viewport = container.querySelector('.overflow-hidden') as HTMLElement;
+        expect(viewport).toHaveStyle({ height: '320px' });
+
+        mockHeight = 480;
+        mockLanguage = 'th';
+        rerender(
+          <LoyaltyCarousel loyaltyStatus={mockLoyaltyStatus} transactions={mockTransactions} />
+        );
+
+        expect(viewport).toHaveStyle({ height: '480px' });
+      } finally {
+        offsetHeightSpy.mockRestore();
+      }
+    });
   });
 
   describe('Basic Rendering', () => {

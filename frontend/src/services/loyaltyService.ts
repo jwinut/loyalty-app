@@ -15,17 +15,102 @@ const api = axios.create({
 // Use the unified auth token interceptor
 addAuthTokenInterceptor(api);
 
+export interface TierBenefitsContent {
+  description: string;
+  perks: string[];
+}
+
+/**
+ * Bilingual payload stored in tiers.benefits. Legacy rows used the flat
+ * { description, perks } shape (Thai copy); resolveTierBenefits() in
+ * utils/tierBenefits handles both, so keep the legacy fields optional here.
+ */
+export interface TierBenefits {
+  en?: TierBenefitsContent;
+  th?: TierBenefitsContent;
+  description?: string;
+  perks?: string[];
+}
+
 export interface Tier {
   id: string;
   name: string;
   min_points: number; // Not used - kept for legacy compatibility (always 0)
   min_nights: number; // ONLY requirement for tier - membership based on nights stayed
-  benefits: {
-    description: string;
-    perks: string[];
-  };
+  benefits: TierBenefits;
   color: string;
   sort_order: number;
+  is_active: boolean;
+}
+
+export interface AdminTier {
+  id: string;
+  name: string;
+  min_nights: number;
+  benefits: TierBenefits;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
+  user_count: number;
+}
+
+export interface TierUpsertRequest {
+  name?: string;
+  min_nights?: number;
+  color?: string;
+  sort_order?: number;
+  is_active?: boolean;
+  benefits?: { en: TierBenefitsContent; th: TierBenefitsContent };
+}
+
+/**
+ * Error thrown by the tier admin mutations (createTier/updateTier) so the
+ * management form can distinguish a 409 duplicate-name conflict or a server
+ * 400 validation failure from a plain network error. `serverMessage` carries
+ * the backend's human-readable `message` field verbatim when a response came
+ * back; both fields are undefined for network-level failures. Other service
+ * methods keep throwing generic `Error`s.
+ */
+export class TierApiError extends Error {
+  status?: number;
+  serverMessage?: string;
+
+  constructor(message: string, status?: number, serverMessage?: string) {
+    super(message);
+    this.name = 'TierApiError';
+    this.status = status;
+    this.serverMessage = serverMessage;
+  }
+}
+
+/**
+ * Builds a TierApiError from an unknown failure, capturing the HTTP status
+ * and the backend's `{ error, message }` body when a response exists.
+ */
+function toTierApiError(error: unknown, fallbackMessage: string): TierApiError {
+  if (axios.isAxiosError(error) && error.response) {
+    const data: unknown = error.response.data;
+    let serverMessage: string | undefined;
+    if (data !== null && typeof data === 'object' && 'message' in data) {
+      const message = (data as { message: unknown }).message;
+      if (typeof message === 'string' && message.length > 0) {
+        serverMessage = message;
+      }
+    }
+    return new TierApiError(serverMessage ?? fallbackMessage, error.response.status, serverMessage);
+  }
+  return new TierApiError(fallbackMessage);
+}
+
+/** Summary of the member-tier recalculation run after a threshold change. */
+export interface TierRecalculation {
+  users_checked: number;
+  tiers_changed: number;
+}
+
+export interface TierUpsertResult {
+  tier: AdminTier;
+  recalculation: TierRecalculation | null;
 }
 
 export interface UserLoyaltyStatus {
@@ -354,6 +439,47 @@ export class LoyaltyService {
     } catch (error) {
       logger.error('Error awarding spending with nights:', error);
       throw new Error('Failed to award spending with nights');
+    }
+  }
+
+  /**
+   * Get all tiers including inactive ones, with member counts (admin only)
+   */
+  async getAdminTiers(): Promise<AdminTier[]> {
+    try {
+      const response = await api.get('/loyalty/admin/tiers');
+      return response.data.data;
+    } catch (error) {
+      logger.error('Error fetching admin tiers:', error);
+      throw new Error('Failed to fetch tiers');
+    }
+  }
+
+  /**
+   * Create a tier (admin only). Triggers a member-tier recalculation when
+   * the new tier is active.
+   */
+  async createTier(request: TierUpsertRequest): Promise<TierUpsertResult> {
+    try {
+      const response = await api.post('/loyalty/admin/tiers', request);
+      return response.data.data;
+    } catch (error) {
+      logger.error('Error creating tier:', error);
+      throw toTierApiError(error, 'Failed to create tier');
+    }
+  }
+
+  /**
+   * Update a tier (admin only). Changing min_nights or is_active triggers
+   * a member-tier recalculation, summarized in the result.
+   */
+  async updateTier(tierId: string, request: TierUpsertRequest): Promise<TierUpsertResult> {
+    try {
+      const response = await api.put(`/loyalty/admin/tiers/${tierId}`, request);
+      return response.data.data;
+    } catch (error) {
+      logger.error('Error updating tier:', error);
+      throw toTierApiError(error, 'Failed to update tier');
     }
   }
 }

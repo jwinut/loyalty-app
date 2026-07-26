@@ -99,6 +99,9 @@ impl Modify for SecurityAddon {
         crate::openapi::paths::get_transactions,
         crate::openapi::paths::award_points,
         crate::openapi::paths::recalculate_tier,
+        crate::openapi::paths::admin_get_tiers,
+        crate::openapi::paths::admin_create_tier,
+        crate::openapi::paths::admin_update_tier,
         // Coupon endpoints
         crate::openapi::paths::list_coupons,
         crate::openapi::paths::get_coupon,
@@ -163,6 +166,11 @@ impl Modify for SecurityAddon {
             schemas::AwardPointsRequest,
             schemas::AwardPointsResult,
             schemas::RecalculateTierResult,
+            schemas::TierAdminResponse,
+            schemas::CreateTierRequest,
+            schemas::UpdateTierRequest,
+            schemas::TierRecalculationSummary,
+            schemas::TierMutationResult,
             // Coupon schemas
             schemas::CouponResponse,
             schemas::CouponType,
@@ -772,6 +780,90 @@ pub mod schemas {
         /// Current total nights
         #[schema(example = 12)]
         pub total_nights: i32,
+    }
+
+    /// Tier response for the admin tier editor (includes inactive tiers
+    /// and member counts)
+    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    pub struct TierAdminResponse {
+        /// Tier ID
+        pub id: Uuid,
+        /// Tier name (unique)
+        #[schema(example = "Gold")]
+        pub name: String,
+        /// Minimum nights required
+        #[schema(example = 10)]
+        pub min_nights: i32,
+        /// Bilingual benefits: {"en": {"description", "perks"}, "th": {"description", "perks"}}
+        pub benefits: serde_json::Value,
+        /// Display color (hex)
+        #[schema(example = "#FFD700")]
+        pub color: String,
+        /// Sort order for display
+        #[schema(example = 3)]
+        pub sort_order: i32,
+        /// Whether tier is active
+        pub is_active: bool,
+        /// Number of members currently on this tier
+        #[schema(example = 42)]
+        pub user_count: i64,
+    }
+
+    /// Create tier request (admin)
+    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    pub struct CreateTierRequest {
+        /// Tier name (unique, non-empty)
+        #[schema(example = "Diamond")]
+        pub name: String,
+        /// Minimum nights required (>= 0)
+        #[schema(example = 30)]
+        pub min_nights: i32,
+        /// Display color (must match ^#[0-9a-fA-F]{6}$)
+        #[schema(example = "#B9F2FF")]
+        pub color: String,
+        /// Sort order (defaults to max(sort_order) + 1)
+        pub sort_order: Option<i32>,
+        /// Whether tier is active (default true)
+        pub is_active: Option<bool>,
+        /// Bilingual benefits payload (defaults to empty en/th sections)
+        pub benefits: Option<serde_json::Value>,
+    }
+
+    /// Update tier request (admin) — all fields optional
+    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    pub struct UpdateTierRequest {
+        /// Updated tier name (must stay unique, non-empty)
+        pub name: Option<String>,
+        /// Updated minimum nights (>= 0)
+        pub min_nights: Option<i32>,
+        /// Updated display color (must match ^#[0-9a-fA-F]{6}$)
+        pub color: Option<String>,
+        /// Updated sort order
+        pub sort_order: Option<i32>,
+        /// Updated active status
+        pub is_active: Option<bool>,
+        /// Updated bilingual benefits payload
+        pub benefits: Option<serde_json::Value>,
+    }
+
+    /// Summary of a full-membership tier recalculation
+    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    pub struct TierRecalculationSummary {
+        /// Number of members visited
+        #[schema(example = 120)]
+        pub users_checked: i64,
+        /// How many of them changed tier
+        #[schema(example = 3)]
+        pub tiers_changed: i64,
+    }
+
+    /// Result of a tier create/update
+    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    pub struct TierMutationResult {
+        /// The created/updated tier
+        pub tier: TierAdminResponse,
+        /// Recalculation summary — null when no recalculation ran
+        pub recalculation: Option<TierRecalculationSummary>,
     }
 
     // ============================================================================
@@ -1746,6 +1838,58 @@ pub mod paths {
         )
     )]
     pub async fn recalculate_tier() {}
+
+    /// List ALL loyalty tiers incl. inactive, with member counts (admin only)
+    #[utoipa::path(
+        get,
+        path = "/loyalty/admin/tiers",
+        tag = "loyalty",
+        security(("bearer_auth" = [])),
+        responses(
+            (status = 200, description = "All tiers ordered by sort_order", body = [TierAdminResponse]),
+            (status = 401, description = "Not authenticated", body = ErrorResponse),
+            (status = 403, description = "Admin access required", body = ErrorResponse)
+        )
+    )]
+    pub async fn admin_get_tiers() {}
+
+    /// Create a loyalty tier (admin only)
+    #[utoipa::path(
+        post,
+        path = "/loyalty/admin/tiers",
+        tag = "loyalty",
+        request_body = CreateTierRequest,
+        security(("bearer_auth" = [])),
+        responses(
+            (status = 201, description = "Tier created; recalculation runs when the tier is active", body = TierMutationResult),
+            (status = 400, description = "Validation error", body = ErrorResponse),
+            (status = 401, description = "Not authenticated", body = ErrorResponse),
+            (status = 403, description = "Admin access required", body = ErrorResponse),
+            (status = 409, description = "Duplicate tier name", body = ErrorResponse)
+        )
+    )]
+    pub async fn admin_create_tier() {}
+
+    /// Update a loyalty tier (admin only)
+    #[utoipa::path(
+        put,
+        path = "/loyalty/admin/tiers/{tierId}",
+        tag = "loyalty",
+        params(
+            ("tierId" = uuid::Uuid, Path, description = "Tier ID to update")
+        ),
+        request_body = UpdateTierRequest,
+        security(("bearer_auth" = [])),
+        responses(
+            (status = 200, description = "Tier updated; recalculation runs when min_nights or is_active changed", body = TierMutationResult),
+            (status = 400, description = "Validation error", body = ErrorResponse),
+            (status = 401, description = "Not authenticated", body = ErrorResponse),
+            (status = 403, description = "Admin access required", body = ErrorResponse),
+            (status = 404, description = "Tier not found", body = ErrorResponse),
+            (status = 409, description = "Duplicate tier name", body = ErrorResponse)
+        )
+    )]
+    pub async fn admin_update_tier() {}
 
     // ============================================================================
     // Coupon Endpoints

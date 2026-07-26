@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE tiers\n        SET name = $2, min_nights = $3, benefits = $4, color = $5,\n            sort_order = $6, is_active = $7, updated_at = NOW()\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Int4",
+        "Jsonb",
+        "Varchar",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18cd56d1c98bd7ae993bb02d079b2de01c3cb6e719d651cb63dd6561c7529246"
+}

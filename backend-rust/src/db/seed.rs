@@ -38,6 +38,11 @@ struct SeedSurvey {
 /// - Silver: 1+ nights
 /// - Gold: 10+ nights
 /// - Platinum: 20+ nights
+///
+/// Benefits use the bilingual shape consumed by the frontend:
+/// `{"en": {"description", "perks"}, "th": {"description", "perks"}}`.
+/// The `20260726000000_tier_benefits_bilingual.sql` migration upgrades
+/// pre-existing rows (seeded in the legacy flat Thai shape) to match.
 fn get_sample_tiers() -> Vec<SeedTier> {
     vec![
         SeedTier {
@@ -45,8 +50,14 @@ fn get_sample_tiers() -> Vec<SeedTier> {
             min_points: 0,
             min_nights: 0,
             benefits: json!({
-                "description": "ระดับต้อนรับสำหรับสมาชิกใหม่",
-                "perks": ["ราคาพิเศษสำหรับสมาชิก", "บริการแต่งห้องวันเกิด", "ได้รับคะแนนเพิ่ม"]
+                "en": {
+                    "description": "Welcome tier for new members",
+                    "perks": ["Special member rates", "Birthday room decoration service", "Earn bonus points"]
+                },
+                "th": {
+                    "description": "ระดับต้อนรับสำหรับสมาชิกใหม่",
+                    "perks": ["ราคาพิเศษสำหรับสมาชิก", "บริการแต่งห้องวันเกิด", "ได้รับคะแนนเพิ่ม"]
+                }
             }),
             color: "#CD7F32",
             sort_order: 1,
@@ -57,8 +68,14 @@ fn get_sample_tiers() -> Vec<SeedTier> {
             min_points: 0,
             min_nights: 1,
             benefits: json!({
-                "description": "สิทธิพิเศษระดับกลางสำหรับสมาชิกที่ใช้บริการ",
-                "perks": ["ส่วนลดเครื่องดื่ม 10%", "ได้รับคะแนนเพิ่ม"]
+                "en": {
+                    "description": "Mid-tier privileges for returning guests",
+                    "perks": ["10% discount on beverages", "Earn bonus points"]
+                },
+                "th": {
+                    "description": "สิทธิพิเศษระดับกลางสำหรับสมาชิกที่ใช้บริการ",
+                    "perks": ["ส่วนลดเครื่องดื่ม 10%", "ได้รับคะแนนเพิ่ม"]
+                }
             }),
             color: "#C0C0C0",
             sort_order: 2,
@@ -69,8 +86,14 @@ fn get_sample_tiers() -> Vec<SeedTier> {
             min_points: 0,
             min_nights: 10,
             benefits: json!({
-                "description": "สิทธิพิเศษระดับพรีเมียมสำหรับสมาชิกที่มีค่า",
-                "perks": ["อัพเกรดห้องฟรี", "ได้รับคะแนนเพิ่ม"]
+                "en": {
+                    "description": "Premium privileges for our valued members",
+                    "perks": ["Free room upgrade", "Earn bonus points"]
+                },
+                "th": {
+                    "description": "สิทธิพิเศษระดับพรีเมียมสำหรับสมาชิกที่มีค่า",
+                    "perks": ["อัพเกรดห้องฟรี", "ได้รับคะแนนเพิ่ม"]
+                }
             }),
             color: "#D4AF37",
             sort_order: 3,
@@ -81,8 +104,14 @@ fn get_sample_tiers() -> Vec<SeedTier> {
             min_points: 0,
             min_nights: 20,
             benefits: json!({
-                "description": "สิทธิพิเศษสุดพิเศษสำหรับสมาชิกระดับสูงสุด",
-                "perks": ["ส่วนลดพิเศษสำหรับสมาชิกขั้นสูงสุด"]
+                "en": {
+                    "description": "Exclusive privileges for our top-tier members",
+                    "perks": ["Exclusive discounts for top-tier members"]
+                },
+                "th": {
+                    "description": "สิทธิพิเศษสุดพิเศษสำหรับสมาชิกระดับสูงสุด",
+                    "perks": ["ส่วนลดพิเศษสำหรับสมาชิกขั้นสูงสุด"]
+                }
             }),
             color: "#6B7280",
             sort_order: 4,
@@ -259,6 +288,13 @@ async fn seed_membership_sequence(db: &PgPool) -> Result<()> {
 /// Seed default tiers for the loyalty program
 ///
 /// Tiers define membership levels based on total nights stayed.
+///
+/// Seeding is STRUCTURAL: the four defaults are inserted only when the
+/// tiers table is completely empty. A per-name existence check would
+/// resurrect renamed tiers on the next startup (rename Bronze -> Copper
+/// and a fresh active 'Bronze' reappears, leaving two min_nights=0 tiers
+/// and nondeterministic default assignment). A non-empty table — whatever
+/// its contents — is admin-owned state and is left untouched.
 async fn seed_tiers(db: &PgPool) -> Result<()> {
     info!("Checking tiers...");
 
@@ -281,21 +317,23 @@ async fn seed_tiers(db: &PgPool) -> Result<()> {
         return Ok(());
     }
 
+    // Structural guard: only seed a completely empty table.
+    let tier_count: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM tiers"#)
+        .fetch_one(db)
+        .await
+        .context("Failed to count existing tiers")?;
+
+    if tier_count > 0 {
+        info!(
+            "Tiers table already has {} row(s), skipping seeding (admin-owned state)",
+            tier_count
+        );
+        return Ok(());
+    }
+
     let tiers = get_sample_tiers();
 
     for tier in &tiers {
-        // Check if tier already exists
-        let existing: Option<Uuid> =
-            sqlx::query_scalar!("SELECT id FROM tiers WHERE name = $1", tier.name)
-                .fetch_optional(db)
-                .await
-                .context("Failed to check existing tier")?;
-
-        if existing.is_some() {
-            info!("Tier {} already exists, skipping", tier.name);
-            continue;
-        }
-
         // Insert the tier
         sqlx::query!(
             r#"
@@ -430,6 +468,36 @@ mod tests {
         assert_eq!(tiers[1].name, "Silver");
         assert_eq!(tiers[2].name, "Gold");
         assert_eq!(tiers[3].name, "Platinum");
+    }
+
+    #[test]
+    fn test_sample_tiers_bilingual_benefits() {
+        for tier in get_sample_tiers() {
+            for lang in ["en", "th"] {
+                let lang_obj = tier
+                    .benefits
+                    .get(lang)
+                    .unwrap_or_else(|| panic!("{} benefits must have '{}'", tier.name, lang));
+                assert!(
+                    lang_obj.get("description").is_some_and(|d| d.is_string()),
+                    "{} '{}' benefits must have a string description",
+                    tier.name,
+                    lang
+                );
+                let perks = lang_obj
+                    .get("perks")
+                    .and_then(|p| p.as_array())
+                    .unwrap_or_else(|| {
+                        panic!("{} '{}' benefits must have perks array", tier.name, lang)
+                    });
+                assert!(
+                    !perks.is_empty() && perks.iter().all(|p| p.is_string()),
+                    "{} '{}' perks must be non-empty strings",
+                    tier.name,
+                    lang
+                );
+            }
+        }
     }
 
     #[test]

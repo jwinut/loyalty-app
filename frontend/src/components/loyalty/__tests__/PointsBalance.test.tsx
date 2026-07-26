@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import PointsBalance from '../PointsBalance';
 import { UserLoyaltyStatus } from '../../../services/loyaltyService';
 import { tierTheme, contrastRatio } from '../../../utils/tierTheme';
+
+// The "+N more benefits" line is a react-router <Link> to /benefits, so every
+// render needs a router context.
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 // Mock dependencies
 const mockTranslate = vi.fn((key: string, params?: any) => {
@@ -13,6 +18,7 @@ const mockTranslate = vi.fn((key: string, params?: any) => {
     'loyalty.tierBenefits': 'Tier Benefits',
     'loyalty.noDescription': 'No tier description available',
     'loyalty.moreBenefits': 'more benefits',
+    'tierBenefits.viewAll': 'View all benefits',
   };
 
   if (params) {
@@ -22,9 +28,17 @@ const mockTranslate = vi.fn((key: string, params?: any) => {
   return translations[key] || key;
 });
 
+// Mutable so individual tests can exercise the Thai rendering path.
+let mockLanguage = 'en';
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: mockTranslate,
+    i18n: {
+      get language() {
+        return mockLanguage;
+      },
+    },
   }),
 }));
 
@@ -58,6 +72,7 @@ describe('PointsBalance', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   describe('Basic Rendering', () => {
@@ -259,6 +274,14 @@ describe('PointsBalance', () => {
       expect(screen.getByText('+1 more benefits')).toBeInTheDocument();
     });
 
+    it('should link "+X more benefits" to the public benefits page', () => {
+      render(<PointsBalance loyaltyStatus={mockLoyaltyStatus} />);
+
+      const link = screen.getByRole('link', { name: 'View all benefits' });
+      expect(link).toHaveAttribute('href', '/benefits');
+      expect(link).toHaveTextContent('+1 more benefits');
+    });
+
     it('should display correct count for multiple additional perks', () => {
       const manyPerksStatus = {
         ...mockLoyaltyStatus,
@@ -340,6 +363,48 @@ describe('PointsBalance', () => {
 
       expect(bullet0).toHaveStyle({ backgroundColor: tierTheme('Gold', GOLD_HEX).accent });
       expect(bullet1).toHaveStyle({ backgroundColor: tierTheme('Gold', GOLD_HEX).accent });
+    });
+  });
+
+  describe('Bilingual Benefits Resolution', () => {
+    const bilingualStatus = {
+      ...mockLoyaltyStatus,
+      tier_benefits: {
+        en: { description: 'Gold, in English', perks: ['English perk'] },
+        th: { description: 'Gold, in Thai', perks: ['Thai perk'] },
+      },
+    };
+
+    it('should render the en description and perks for an English UI', () => {
+      render(<PointsBalance loyaltyStatus={bilingualStatus} />);
+
+      expect(screen.getByText('Gold, in English')).toBeInTheDocument();
+      expect(screen.getByText('English perk')).toBeInTheDocument();
+      expect(screen.queryByText('Thai perk')).not.toBeInTheDocument();
+    });
+
+    it('should render the th description and perks for a Thai UI', () => {
+      mockLanguage = 'th';
+
+      render(<PointsBalance loyaltyStatus={bilingualStatus} />);
+
+      expect(screen.getByText('Gold, in Thai')).toBeInTheDocument();
+      expect(screen.getByText('Thai perk')).toBeInTheDocument();
+      expect(screen.queryByText('English perk')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to th content when an English UI has no en entry', () => {
+      const thOnlyStatus = {
+        ...mockLoyaltyStatus,
+        tier_benefits: {
+          th: { description: 'Gold, in Thai', perks: ['Thai perk'] },
+        },
+      };
+
+      render(<PointsBalance loyaltyStatus={thOnlyStatus} />);
+
+      expect(screen.getByText('Gold, in Thai')).toBeInTheDocument();
+      expect(screen.getByText('Thai perk')).toBeInTheDocument();
     });
   });
 
