@@ -1,7 +1,8 @@
 //! Email service module
 //!
 //! Provides email sending functionality including:
-//! - SMTP configuration from environment variables
+//! - SMTP configuration derived from [`crate::config::SmtpConfig`] (never read
+//!   from the environment here — see [`EmailConfig::from_smtp_config`])
 //! - Send generic emails with HTML content
 //! - Send password reset emails
 //! - Send welcome emails
@@ -206,55 +207,49 @@ pub struct EmailConfig {
     pub user: String,
     /// SMTP password
     pub pass: String,
-    /// Sender email address
+    /// Sender address for the `From` header, already resolved by
+    /// [`SmtpConfig::from_address`] (`SMTP_FROM`, else `SMTP_USER`).
     pub from: String,
     /// Frontend URL for constructing links
     pub frontend_url: String,
 }
 
 impl EmailConfig {
-    /// Create a new EmailConfig from environment variables
+    /// Create a new EmailConfig from [`SmtpConfig`].
     ///
-    /// Required environment variables:
-    /// - SMTP_HOST: SMTP server hostname
-    /// - SMTP_PORT: SMTP server port (default: 465)
-    /// - SMTP_USER: SMTP username
-    /// - SMTP_PASS: SMTP password
-    /// - SMTP_FROM: Sender email address (defaults to SMTP_USER)
-    /// - FRONTEND_URL: Frontend URL for links (default: http://localhost:3000)
-    pub fn from_env() -> Option<Self> {
-        let host = std::env::var("SMTP_HOST").ok()?;
-        let port = std::env::var("SMTP_PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or(465);
-        let user = std::env::var("SMTP_USER").ok()?;
-        let pass = std::env::var("SMTP_PASS").ok()?;
-        let from = std::env::var("SMTP_FROM").unwrap_or_else(|_| user.clone());
-        let frontend_url =
-            std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
-
-        Some(Self {
-            host,
-            port,
-            user,
-            pass,
-            from,
-            frontend_url,
-        })
-    }
-
-    /// Create a new EmailConfig from SmtpConfig
+    /// This is the **only** path from configuration to a live mailer. There
+    /// used to be a second one — a `from_env()` that read `SMTP_*` directly
+    /// and was the sole reader of `SMTP_FROM` — but it had zero call sites,
+    /// so the documented `SMTP_FROM` setting quietly did nothing while this
+    /// constructor hardcoded the From address to `SMTP_USER` (issue #352).
+    /// Keep it single-sourced: [`SmtpConfig::from_address`] decides the
+    /// sender, nothing here reads the environment.
+    ///
+    /// Returns `None` when host/user/pass are missing **or blank** — an unset
+    /// secret arrives from compose as an empty string, and an empty relay
+    /// host would otherwise build a transport that can never connect.
     pub fn from_smtp_config(smtp: &SmtpConfig, frontend_url: &str) -> Option<Self> {
         Some(Self {
-            host: smtp.host.clone()?,
+            host: smtp.host()?.to_string(),
             port: smtp.port,
-            user: smtp.user.clone()?,
-            pass: smtp.pass.clone()?,
-            from: smtp.user.clone()?,
+            user: smtp.user()?.to_string(),
+            pass: smtp.pass()?.to_string(),
+            // `from_address()` falls back to the user, so this is Some
+            // whenever `user()` was — no environment loses its sender.
+            from: smtp.from_address()?.to_string(),
             frontend_url: frontend_url.to_string(),
         })
     }
+}
+
+/// Does `address` parse as a `lettre` mailbox?
+///
+/// Accepts both the bare form (`noreply@example.com`) and the display-name
+/// form (`Loyalty App <noreply@example.com>`). Used at startup so a malformed
+/// `SMTP_FROM` is reported once, loudly, instead of failing every send at
+/// request time (issue #352).
+pub fn is_valid_mailbox(address: &str) -> bool {
+    address.parse::<Mailbox>().is_ok()
 }
 
 /// Email service trait defining email operations
@@ -357,11 +352,6 @@ impl EmailServiceImpl {
         Self { config, mailer }
     }
 
-    /// Create a new EmailServiceImpl from environment variables
-    pub fn from_env() -> Self {
-        Self::new(EmailConfig::from_env())
-    }
-
     /// Create a new EmailServiceImpl from SmtpConfig
     pub fn from_smtp_config(smtp: &SmtpConfig, frontend_url: &str) -> Self {
         Self::new(EmailConfig::from_smtp_config(smtp, frontend_url))
@@ -405,6 +395,10 @@ impl EmailService for EmailServiceImpl {
             },
         };
 
+        // `config.from` is `SMTP_FROM` when set, else `SMTP_USER` — resolved
+        // once in `SmtpConfig::from_address`. A malformed value is also
+        // reported at startup (see `log_startup_info`) so it doesn't surface
+        // for the first time here, mid-request.
         let from_mailbox = Self::parse_mailbox(&config.from)?;
         let to_mailbox = Self::parse_mailbox(to)?;
 
@@ -665,6 +659,86 @@ mod tests {
             .send_email("test@example.com", "Test Subject", "<p>Test</p>")
             .await;
         assert!(result.is_ok());
+    }
+
+    // ------------------------------------------------------------------
+    // SMTP_FROM plumbing (issue #352)
+    //
+    // `SMTP_FROM` was documented and stored as a secret, but the only code
+    // that read it was a `from_env()` with no call sites; the live path
+    // hardcoded the sender to SMTP_USER. These pin the wiring.
+    // ------------------------------------------------------------------
+
+    fn smtp_config_with_from(from: Option<&str>) -> SmtpConfig {
+        SmtpConfig {
+            host: Some("smtp.example.com".to_string()),
+            port: 587,
+            user: Some("mailbox@example.com".to_string()),
+            pass: Some("secret".to_string()),
+            from: from.map(str::to_string),
+            use_tls: true,
+        }
+    }
+
+    #[test]
+    fn email_config_uses_smtp_from_as_the_sender() {
+        let config = EmailConfig::from_smtp_config(
+            &smtp_config_with_from(Some("Loyalty App <mailbox@example.com>")),
+            "https://example.com",
+        )
+        .expect("fully configured SMTP should build an EmailConfig");
+
+        assert_eq!(config.from, "Loyalty App <mailbox@example.com>");
+        assert_eq!(config.user, "mailbox@example.com");
+    }
+
+    #[test]
+    fn email_config_falls_back_to_smtp_user_when_from_is_unset_or_blank() {
+        for from in [None, Some(""), Some("   ")] {
+            let config =
+                EmailConfig::from_smtp_config(&smtp_config_with_from(from), "https://example.com")
+                    .expect("fully configured SMTP should build an EmailConfig");
+
+            assert_eq!(
+                config.from, "mailbox@example.com",
+                "SMTP_FROM={:?} should fall back to SMTP_USER",
+                from
+            );
+        }
+    }
+
+    /// An unset secret arrives as `Some("")` from compose. Building a mailer
+    /// against an empty host produces a transport that can never connect,
+    /// while `is_configured()` would happily report success.
+    #[test]
+    fn email_config_is_none_when_credentials_are_blank() {
+        let blank = SmtpConfig {
+            host: Some(String::new()),
+            port: 587,
+            user: Some(String::new()),
+            pass: Some(String::new()),
+            from: None,
+            use_tls: true,
+        };
+        assert!(EmailConfig::from_smtp_config(&blank, "https://example.com").is_none());
+
+        let service = EmailServiceImpl::from_smtp_config(&blank, "https://example.com");
+        assert!(!service.is_configured());
+    }
+
+    /// The display-name form is the one an operator naturally writes into the
+    /// `SMTP_FROM` secret, and `lettre` must accept it — otherwise every send
+    /// fails with "Invalid email address".
+    #[test]
+    fn display_name_form_parses_as_a_mailbox() {
+        assert!(is_valid_mailbox("Loyalty App <noreply@example.com>"));
+        assert!(is_valid_mailbox("noreply@example.com"));
+    }
+
+    #[test]
+    fn malformed_from_addresses_are_rejected() {
+        assert!(!is_valid_mailbox("not an address"));
+        assert!(!is_valid_mailbox(""));
     }
 
     #[tokio::test]

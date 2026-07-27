@@ -238,6 +238,20 @@ pub struct OAuthConfig {
     pub line: LineOAuthConfig,
 }
 
+/// `Some(trimmed)` when a value is present and not blank, `None` otherwise.
+///
+/// Every compose file passes its optional settings as `VAR: ${VAR:-}`, so an
+/// **unset** secret does not arrive as `None` — it arrives as `Some("")`. A
+/// bare `.is_some()` therefore reports a stack with no SMTP at all as fully
+/// configured, which is exactly why `/api/health` claimed `"email":
+/// "configured"` everywhere (issue #352). Blank means absent.
+fn present(value: &Option<String>) -> Option<&str> {
+    value
+        .as_deref()
+        .map(str::trim)
+        .filter(|trimmed| !trimmed.is_empty())
+}
+
 /// SMTP email configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct SmtpConfig {
@@ -254,6 +268,18 @@ pub struct SmtpConfig {
     /// SMTP password
     pub pass: Option<String>,
 
+    /// Sender address for outgoing mail (`SMTP_FROM`).
+    ///
+    /// Accepts a bare address (`noreply@example.com`) or the display-name
+    /// form (`Loyalty App <noreply@example.com>`). Falls back to `SMTP_USER`
+    /// when unset or blank — see [`SmtpConfig::from_address`] — so
+    /// environments that never set it keep the previous behaviour exactly.
+    ///
+    /// The address must be one the authenticated mailbox genuinely **owns**:
+    /// a relay accepts AUTH and then rejects the message with
+    /// `553 5.7.1 ... Sender address rejected` if it is a mere alias.
+    pub from: Option<String>,
+
     /// Use TLS for SMTP connection
     #[serde(default = "default_smtp_tls")]
     pub use_tls: bool,
@@ -268,8 +294,36 @@ fn default_smtp_tls() -> bool {
 }
 
 impl SmtpConfig {
+    /// SMTP host, or `None` when unset/blank.
+    pub fn host(&self) -> Option<&str> {
+        present(&self.host)
+    }
+
+    /// SMTP username, or `None` when unset/blank.
+    pub fn user(&self) -> Option<&str> {
+        present(&self.user)
+    }
+
+    /// SMTP password, or `None` when unset/blank.
+    ///
+    /// Returned **untrimmed**: a password may legitimately begin or end with
+    /// whitespace, so trimming could silently break authentication. Only the
+    /// blank/non-blank decision uses the trimmed form.
+    pub fn pass(&self) -> Option<&str> {
+        self.pass.as_deref().filter(|pass| !pass.trim().is_empty())
+    }
+
+    /// Address that outgoing mail is sent **From**.
+    ///
+    /// `SMTP_FROM` when set, otherwise `SMTP_USER`. This is the single reader
+    /// of the setting — the From header is built from it in
+    /// `services::email`.
+    pub fn from_address(&self) -> Option<&str> {
+        present(&self.from).or_else(|| self.user())
+    }
+
     pub fn is_configured(&self) -> bool {
-        self.host.is_some() && self.user.is_some() && self.pass.is_some()
+        self.host().is_some() && self.user().is_some() && self.pass().is_some()
     }
 }
 
@@ -303,8 +357,16 @@ fn default_imap_tls() -> bool {
 }
 
 impl ImapConfig {
+    /// Same blank-is-absent rule as [`SmtpConfig::is_configured`]: compose
+    /// passes `IMAP_HOST: ${IMAP_HOST:-}`, so an unset secret arrives as an
+    /// empty string rather than as nothing at all.
     pub fn is_configured(&self) -> bool {
-        self.host.is_some() && self.user.is_some() && self.pass.is_some()
+        present(&self.host).is_some()
+            && present(&self.user).is_some()
+            && self
+                .pass
+                .as_deref()
+                .is_some_and(|pass| !pass.trim().is_empty())
     }
 }
 
@@ -772,6 +834,7 @@ impl Settings {
             .set_override_option("email.smtp.port", env::var("SMTP_PORT").ok())?
             .set_override_option("email.smtp.user", env::var("SMTP_USER").ok())?
             .set_override_option("email.smtp.pass", env::var("SMTP_PASS").ok())?
+            .set_override_option("email.smtp.from", env::var("SMTP_FROM").ok())?
             .set_override_option("email.imap.host", env::var("IMAP_HOST").ok())?
             .set_override_option("email.imap.port", env::var("IMAP_PORT").ok())?
             .set_override_option("email.imap.user", env::var("IMAP_USER").ok())?
@@ -1085,6 +1148,119 @@ mod tests {
         config.user = Some("user".to_string());
         config.pass = Some("pass".to_string());
         assert!(config.is_configured());
+    }
+
+    /// Issue #352 — every compose file passes `SMTP_HOST: ${SMTP_HOST:-}`, so
+    /// a stack with no SMTP secrets at all hands the backend `Some("")`, not
+    /// `None`. Reporting that as configured is what made `/api/health` lie.
+    #[test]
+    fn smtp_is_not_configured_when_values_are_empty_strings() {
+        let config = SmtpConfig {
+            host: Some(String::new()),
+            user: Some(String::new()),
+            pass: Some(String::new()),
+            ..SmtpConfig::default()
+        };
+        assert!(!config.is_configured());
+
+        let whitespace = SmtpConfig {
+            host: Some("   ".to_string()),
+            user: Some("\t\n".to_string()),
+            pass: Some("  ".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert!(!whitespace.is_configured());
+    }
+
+    /// A partially-empty triple is still not configured — a host with blank
+    /// credentials cannot authenticate.
+    #[test]
+    fn smtp_is_not_configured_when_only_some_values_are_empty() {
+        let config = SmtpConfig {
+            host: Some("smtp.example.com".to_string()),
+            user: Some("user@example.com".to_string()),
+            pass: Some(String::new()),
+            ..SmtpConfig::default()
+        };
+        assert!(!config.is_configured());
+    }
+
+    #[test]
+    fn imap_is_not_configured_when_values_are_empty_strings() {
+        let config = ImapConfig {
+            host: Some(String::new()),
+            user: Some(String::new()),
+            pass: Some(String::new()),
+            ..ImapConfig::default()
+        };
+        assert!(!config.is_configured());
+    }
+
+    /// A password may legitimately carry leading/trailing whitespace, so the
+    /// accessor must not trim the value it hands to the SMTP client — only
+    /// the blank/non-blank decision uses the trimmed form.
+    #[test]
+    fn smtp_pass_is_returned_untrimmed() {
+        let config = SmtpConfig {
+            pass: Some(" hunter2 ".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(config.pass(), Some(" hunter2 "));
+    }
+
+    // ------------------------------------------------------------------
+    // SMTP_FROM precedence (issue #352)
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn from_address_prefers_smtp_from_over_smtp_user() {
+        let config = SmtpConfig {
+            user: Some("mailbox@example.com".to_string()),
+            from: Some("Loyalty App <mailbox@example.com>".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(
+            config.from_address(),
+            Some("Loyalty App <mailbox@example.com>")
+        );
+    }
+
+    #[test]
+    fn from_address_falls_back_to_user_when_from_is_unset() {
+        let config = SmtpConfig {
+            user: Some("mailbox@example.com".to_string()),
+            from: None,
+            ..SmtpConfig::default()
+        };
+        assert_eq!(config.from_address(), Some("mailbox@example.com"));
+    }
+
+    /// The important fallback: an unset `SMTP_FROM` secret reaches the
+    /// container as an empty string, and must behave identically to unset so
+    /// nothing changes for stacks that never configure it.
+    #[test]
+    fn from_address_falls_back_to_user_when_from_is_blank() {
+        let config = SmtpConfig {
+            user: Some("mailbox@example.com".to_string()),
+            from: Some("   ".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(config.from_address(), Some("mailbox@example.com"));
+    }
+
+    #[test]
+    fn from_address_is_trimmed() {
+        let config = SmtpConfig {
+            user: Some("mailbox@example.com".to_string()),
+            from: Some("  noreply@example.com\n".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(config.from_address(), Some("noreply@example.com"));
+    }
+
+    #[test]
+    fn from_address_is_none_when_neither_is_set() {
+        assert_eq!(SmtpConfig::default().from_address(), None);
     }
 
     #[test]

@@ -408,7 +408,7 @@ backend-rust/
 | `SMTP_PORT` | SMTP server port (default: 465) |
 | `SMTP_USER` | SMTP username |
 | `SMTP_PASS` | SMTP password |
-| `SMTP_FROM` | Email from address |
+| `SMTP_FROM` | From address on outgoing mail. Falls back to `SMTP_USER` when unset or blank. Bare (`x@y.com`) or display-name (`Name <x@y.com>`) form; a malformed value is logged as an ERROR at startup. Must be an address the mailbox genuinely **owns** — an alias is refused with `553 5.7.1 …: Sender address rejected` *after* a successful AUTH (issue #352) |
 | `IMAP_HOST` | IMAP server hostname |
 | `IMAP_PORT` | IMAP server port (default: 993) |
 | `IMAP_USER` | IMAP username |

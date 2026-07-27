@@ -221,6 +221,9 @@ jobs:
           SMTP_PORT:            ${{ secrets.SMTP_PORT }}
           SMTP_USER:            ${{ secrets.SMTP_USER }}
           SMTP_PASS:            ${{ secrets.SMTP_PASS }}
+          # The secret existed and was documented, but was never sent — so the
+          # backend always fell back to SMTP_USER as its From address (#352).
+          SMTP_FROM:            ${{ secrets.SMTP_FROM }}
           IMAP_HOST:            ${{ secrets.IMAP_HOST }}
           IMAP_PORT:            ${{ secrets.IMAP_PORT }}
           IMAP_USER:            ${{ secrets.IMAP_USER }}
@@ -272,6 +275,7 @@ jobs:
             --arg SMTP_PORT            "${SMTP_PORT:-587}" \
             --arg SMTP_USER            "${SMTP_USER:-}" \
             --arg SMTP_PASS            "${SMTP_PASS:-}" \
+            --arg SMTP_FROM            "${SMTP_FROM:-}" \
             --arg IMAP_HOST            "${IMAP_HOST:-}" \
             --arg IMAP_PORT            "${IMAP_PORT:-993}" \
             --arg IMAP_USER            "${IMAP_USER:-}" \
@@ -305,6 +309,7 @@ jobs:
                 SMTP_PORT:            $SMTP_PORT,
                 SMTP_USER:            $SMTP_USER,
                 SMTP_PASS:            $SMTP_PASS,
+                SMTP_FROM:            $SMTP_FROM,
                 IMAP_HOST:            $IMAP_HOST,
                 IMAP_PORT:            $IMAP_PORT,
                 IMAP_USER:            $IMAP_USER,

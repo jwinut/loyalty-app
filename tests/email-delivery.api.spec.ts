@@ -28,6 +28,61 @@ test.describe('Email Delivery Tests', () => {
 
       console.log(`Email service status: ${health.services.email}`);
     });
+
+    /**
+     * Issue #352 — the regression gate for the health-honesty fix.
+     *
+     * `services.email` used to be the hard-coded string `"configured"`, so
+     * every stack claimed working outbound mail: CI, staging, and a
+     * production box whose mail subscription had lapsed alike. The value now
+     * reflects whether SMTP_HOST/USER/PASS are actually present and non-blank
+     * (compose passes `SMTP_HOST: ${SMTP_HOST:-}`, so an unset secret arrives
+     * as an empty string — which must read as absent, not as configured).
+     *
+     * The api project runs against `.github/actions/start-app-stack`, which
+     * sets no SMTP_* variables at all, so the only honest answer here is
+     * `not_configured`. If you point this suite at a stack that DOES have
+     * SMTP credentials, this test failing is correct behaviour, not a flake.
+     *
+     * What this cannot prove: that a message is deliverable. `/api/health`
+     * only ever sees configuration — a relay can authenticate and still
+     * reject the message. That gap is tracked as a separate canary follow-up.
+     */
+    test('Health endpoint should report email as not configured without SMTP credentials', async ({
+      request,
+    }) => {
+      const response = await request.get(`${backendUrl}/api/health`);
+      expect(response.ok()).toBeTruthy();
+
+      const health = await response.json();
+
+      expect(
+        health.services.email,
+        'The CI stack sets no SMTP_* variables, so /api/health must report ' +
+          '"not_configured". Reporting "configured" means the field is not ' +
+          'reading the real SMTP config (issue #352).'
+      ).toBe('not_configured');
+    });
+
+    /**
+     * The email field must stay OUT of the overall status. `deploy.yml` and
+     * `ci-build-e2e.yml`'s verify-staging poll this endpoint and treat a 503
+     * as a failed deploy (which also files a "Production deploy failed"
+     * issue). Unconfigured or broken mail must never block shipping code.
+     */
+    test('Unconfigured email must not degrade overall health status', async ({ request }) => {
+      const response = await request.get(`${backendUrl}/api/health`);
+
+      expect(response.status()).toBe(200);
+
+      const health = await response.json();
+      expect(health.services.email).toBe('not_configured');
+      expect(
+        health.status,
+        'Email is informational only — folding it into the overall status ' +
+          'would 503 the endpoint the deploy gates poll (issue #352).'
+      ).toBe('healthy');
+    });
   });
 
   test.describe('Admin Endpoints Require Auth', () => {
