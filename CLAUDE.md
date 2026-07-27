@@ -196,29 +196,47 @@ failure and **closed automatically on recovery**, which is also what clears
 `LAST-FAILURE`. Setup, token rotation and the alert drill:
 [`docs/restore-runbook.md`](docs/restore-runbook.md).
 
-**Release-please PRs currently merge without checks — this is a known,
-unfixed gap.** `release-please.yml` authors its release PR as
-`github-actions[bot]` using `GITHUB_TOKEN`, and GitHub treats
-`GITHUB_TOKEN`-driven events specially in two different ways:
+**Release PRs are authored by a GitHub App, so CI runs on them like any
+other PR.** `release-please.yml` mints an installation token for the
+**`hf-release-bot`** App (`vars.RELEASE_BOT_APP_ID` +
+`secrets.RELEASE_BOT_PRIVATE_KEY`, via `actions/create-github-app-token`)
+and passes it to the release-please action instead of `GITHUB_TOKEN`. The
+release PR is therefore authored by `hf-release-bot[bot]`, its
+`pull_request` runs are created *and start on their own*, and its head
+commit carries real checks before anyone merges it.
+
+Why that was needed: GitHub treats `GITHUB_TOKEN`-driven events specially
+in two different ways, neither with an opt-out setting —
 
 - **`push`** — no workflow run is created *at all* (the long-standing
   anti-recursion rule). Adding `release-please--**` to a workflow's `push:
   branches:` list therefore does nothing; that was tried in #377 and reverted
-  once release PR #378 confirmed zero `push` runs on the release branch.
+  in #379 once release PR #378 confirmed zero `push` runs on the release
+  branch.
 - **`pull_request`** — since 2026-06-11 a run *is* created, but parked in an
   approval-required state (`action_required`). It never starts unless a
   maintainer approves it in the Actions UI.
 
-Net position today: a release PR's head commit carries **no completed
-checks** unless someone manually approves its parked runs, and merging that
-PR is exactly what fires the unattended production deploy. This shortfall is
-what OpenSSF Scorecard alerts #92 (SAST) and #925 (CI-Tests) measure.
+So a release PR's head commit used to carry **no completed checks** unless
+someone manually approved its parked runs — and merging that PR is exactly
+what fires the unattended production deploy, making the one PR class that
+ships to production the one class nothing verified. That shortfall is what
+OpenSSF Scorecard alerts **#92** (SAST) and **#925** (CI-Tests) measure.
+Both score a rolling 30-PR window, so **they do not close on merge**: they
+recover as App-authored release PRs with real checks age into that window.
 
-Planned fix (**not yet implemented**): have `release-please.yml` mint a
-GitHub App installation token and pass it to the action, so the release PR is
-authored by an App identity rather than `GITHUB_TOKEN` and its CI runs are
-created and started like any other PR's. Until that lands, treat a release PR
-as unverified: check the checks before merging one.
+**No silent fallback.** The job asserts `vars.RELEASE_BOT_APP_ID` and
+`secrets.RELEASE_BOT_PRIVATE_KEY` are non-empty before minting, and that a
+non-empty token came back. If the App is uninstalled, the key rotated, or
+the secret deleted, the run **fails loudly** with a message naming both
+settings and no release PR appears — it never falls back to `GITHUB_TOKEN`,
+because a green run that re-parks the checks is the exact failure this
+removes. Recovery: re-add the credential per
+[`docs/secrets-runbook.md`](docs/secrets-runbook.md) → *Release-bot App*.
+The App is installed on this repository only, with exactly
+`contents=write`, `pull_requests=write`, `metadata=read` — notably **no
+`actions`**, so the release bot can cause workflow runs but never approve,
+cancel or re-run one.
 
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green

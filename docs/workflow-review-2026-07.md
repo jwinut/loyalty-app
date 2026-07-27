@@ -590,10 +590,100 @@ the immutable commit-SHA tag, and `pull_request` events already reach this
 job. `main` is unaffected: `is_default_branch` is true there, so `:main` is
 published exactly as before.
 
-**Real fix (not yet implemented):** have `release-please.yml` mint a GitHub
-App installation token and pass it to `googleapis/release-please-action` via
-`token:`. An App identity is not `GITHUB_TOKEN`, so its `pull_request` events
-create runs that start normally, and the release PR gets checks like any
-other PR. Until that lands the honest statement of the position is: **release
-PRs carry no completed checks unless a maintainer manually approves their
-parked runs**, and that is what Scorecard #92 / #925 are measuring.
+**Real fix:** have `release-please.yml` mint a GitHub App installation token
+and pass it to `googleapis/release-please-action` via `token:`. An App
+identity is not `GITHUB_TOKEN`, so its `pull_request` events create runs that
+start normally, and the release PR gets checks like any other PR. That is
+finding 53 below, and it is now implemented.
+
+### 53. Release PRs are now authored by a GitHub App, so their CI runs start on their own
+
+**`release-please.yml:57`** · correctness · high
+
+Finding 52 established the position and #379 corrected the docs to state it
+honestly: a release PR's head commit carries **no completed checks** unless a
+maintainer hand-approves its parked runs, and merging that PR is exactly what
+fires the unattended production deploy. #379 also named the real fix and was
+explicit that it was *not yet implemented*. This is that fix.
+
+`release-please.yml` now mints a **GitHub App installation token** with
+`actions/create-github-app-token` (pinned
+`bcd2ba49218906704ab6c1aa796996da409d3eb1`, v3.2.0) and passes it to
+`googleapis/release-please-action` through its `token:` input, replacing the
+input's implicit `${{ github.token }}` default. Events created by an App
+installation are ordinary events — they are not subject to either
+`GITHUB_TOKEN` rule — so the release PR is authored by `hf-release-bot[bot]`
+and its `pull_request` runs are created *and start on their own*.
+
+Note this is not in tension with finding 52's "explicitly **not** a PAT or
+GitHub App token". That sentence rejected a *token-only workflow whose only
+product is a green check* — metric-gaming. Nothing about the suite changes
+here; only the author identity does, which is the single thing that stops
+GitHub parking it.
+
+**The App.** `hf-release-bot`, installed on the `thehfhotel` org with
+`repository_selection=selected` — `thehfhotel/loyalty-app` only — holding
+exactly `contents=write` (push the release branch, tag, publish the release),
+`pull_requests=write` (open/update/label the PR) and `metadata=read`
+(mandatory, grants nothing). Deliberately **no `actions`** permission, so the
+release bot can *cause* workflow runs but can never approve, cancel or re-run
+one; and no `administration`, so it cannot touch settings or branch
+protection. The minted token is additionally scoped to this single repository
+and is revoked when the job ends. Credentials are `vars.RELEASE_BOT_APP_ID`
+and `secrets.RELEASE_BOT_PRIVATE_KEY`; inventory and rotation live in
+[`secrets-runbook.md` → Release-bot App](./secrets-runbook.md#release-bot-app--how-release-prs-get-ci).
+
+**Fails loudly, never falls back.** This is the load-bearing property. A guard
+step asserts both settings are non-empty *before* minting — absent ones expand
+to empty strings with no error, and an empty app-id otherwise surfaces as an
+opaque 401 that reads like an App problem rather than "the secret is gone" —
+and a second step asserts a non-empty token came back. There is no
+`|| github.token` anywhere in the file. A fallback would restore the
+parked-runs bug *while the workflow reported green*, which is precisely the
+failure mode this change exists to remove. The guard's error text mirrors the
+SMTP guard in `email-canary.yml`.
+
+**Permissions left alone, on purpose.** The job's `contents: write` /
+`pull-requests: write` scope `GITHUB_TOKEN`, which nothing in the job now uses
+— release-please makes every API call with the App token, and
+`create-github-app-token` authenticates with the private key. They are
+therefore *redundant, not wrong*, and this is not a widening: it is the exact
+set the job already had. Narrowing both to `contents: read` is the correct
+follow-up, but it belongs in a separate PR after a real release has been
+observed on the App token, so a tightened permission cannot mask the guard
+with a confusing 403.
+
+**Scorecard, stated accurately.** #92 (SAST, medium) and #925 (CI-Tests, low)
+sat at "26 of 30" precisely because the most recent release PRs had no checks.
+Both score a rolling window of the last 30 PRs, so **they do not close when
+this merges** — they recover as App-authored release PRs with real checks age
+into that window. Expect the ratio to climb over the next several releases.
+
+**Not provable until the next release.** Nothing offline can prove the token
+mints, that the PR is authored by `hf-release-bot[bot]`, or that its checks
+start unattended. What was verified before merge: `actionlint` clean on the
+file, `yaml.safe_load` parses it, `gh api
+repos/actions/create-github-app-token/git/ref/tags/v3.2.0` resolves to exactly
+the pinned SHA, and no `GITHUB_TOKEN`/`github.token` remains wired into any
+step input. It is settled empirically the first time `Release Please` runs on
+`main` afterwards. What to look for:
+
+1. The `Release Please` run on `main` is green and its log shows
+   *"Installation token minted for app-slug 'hf-release-bot'"*.
+2. The release PR's author is `hf-release-bot[bot]`, not `github-actions[bot]`.
+3. `gh pr checks <n>` on that PR lists **running/completed** checks with
+   `run_attempt: 1` and no `triggering_actor` who is a human — nothing sitting
+   in `action_required`.
+4. **No** `Deploy to Staging` / `Verify Staging` / `Promote latest tag` /
+   notifier job ran off `main` (they are all gated on
+   `github.ref == 'refs/heads/main'`; `deploy.yml`'s `workflow_run` is
+   filtered to `branches: [main]`).
+
+**Failure signature and rollback.** If the App is uninstalled or the key
+rotated away, `Release Please` fails on `main` at the guard step with an error
+naming both settings, and **no release PR appears** — that combination is the
+tell. Fix by restoring the credential per the secrets runbook. To back the
+change out entirely, revert this commit: `release-please.yml` returns to a
+single `Run release-please` step with no `token:` input, which restores the
+pre-existing behaviour (release PRs with parked runs needing manual approval)
+rather than breaking releases.

@@ -90,6 +90,91 @@ same trap that made the old backup workflow report green while backing up
 nothing. The canary's first step fails loudly on empty values for exactly this
 reason. See [`email-canary-runbook.md`](./email-canary-runbook.md).
 
+### Release-bot App — how release PRs get CI
+
+`.github/workflows/release-please.yml` does **not** authenticate as
+`GITHUB_TOKEN`. It mints a GitHub App installation token and hands that to the
+release-please action, so the release PR is authored by `hf-release-bot[bot]`
+and CI runs on it like any other PR. With `GITHUB_TOKEN`, GitHub parks the
+`pull_request` runs of `github-actions[bot]` PRs in `action_required` and
+raises no run at all for its pushes — release PRs then merged with zero checks
+on their head commit, which is what OpenSSF Scorecard alerts #92 and #925 were
+measuring. Full reasoning:
+[`workflow-review-2026-07.md` §53](./workflow-review-2026-07.md).
+
+| Setting | Kind | Value / contents |
+| --- | --- | --- |
+| `RELEASE_BOT_APP_ID` | repository **variable** (not secret — an App ID is public information) | numeric App ID of `hf-release-bot` |
+| `RELEASE_BOT_PRIVATE_KEY` | repository **secret** | the App's PEM private key, `-----BEGIN RSA PRIVATE KEY-----` … pasted whole, including the header/footer lines and trailing newline |
+
+**The App.** `hf-release-bot`, owned by the `thehfhotel` organisation and
+installed with `repository_selection=selected` — **`thehfhotel/loyalty-app`
+only**, not org-wide. Its permissions are exactly three:
+
+| Permission | Level | Why |
+| --- | --- | --- |
+| `contents` | write | push the `release-please--**` branch, create the `vX.Y.Z` tag and the GitHub release |
+| `pull_requests` | write | open, update and label the release PR |
+| `metadata` | read | mandatory for every App; grants nothing on its own |
+
+Deliberately **absent**: `actions` (so the bot cannot approve, cancel or re-run
+any workflow — it can only cause runs, never bless them), `administration` (no
+settings, no branch protection), `checks`, `issues`, `workflows`. The
+installation token the workflow mints is additionally scoped to this single
+repository (the action defaults to the current repo when `owner`/`repositories`
+are omitted) and is revoked when the job ends.
+
+Because the App holds `contents: write` on this repo, its private key is a
+**production-grade credential**: anyone holding it can push to `main` (subject
+to branch protection) and publish releases. Treat it like the deploy SSH key.
+
+**If it breaks, the workflow goes red — it never falls back.** A deleted
+secret, a rotated-away key or an uninstalled App all produce a failing
+`Release Please` run on `main` with an error naming both settings, and **no
+release PR appears**. That is intentional: a silent fallback to `GITHUB_TOKEN`
+would re-park the checks while reporting green. Recovery is to restore the
+credential below and re-run the workflow (`gh workflow run release-please.yml`)
+— nothing else is needed, release-please is idempotent and simply re-opens or
+re-updates the PR.
+
+#### Rotating `RELEASE_BOT_PRIVATE_KEY`
+
+Zero-downtime, because an App may hold several private keys at once and all of
+them are valid until deleted. Generate first, swap second, delete last.
+
+1. **Generate a new key.** GitHub → organisation `thehfhotel` → Settings →
+   Developer settings → GitHub Apps → `hf-release-bot` → *Private keys* →
+   **Generate a private key**. A `.pem` downloads.
+2. **Replace the secret** with the file, header/footer and all:
+
+   ```bash
+   gh secret set RELEASE_BOT_PRIVATE_KEY < ~/Downloads/hf-release-bot.*.private-key.pem
+   ```
+
+3. **Prove it works before deleting anything:**
+
+   ```bash
+   gh workflow run release-please.yml
+   gh run list --workflow=release-please.yml --limit 1
+   ```
+
+   A green run whose log contains `Installation token minted for app-slug
+   'hf-release-bot'` is the confirmation.
+4. **Delete the old key** in the same *Private keys* panel. Skipping this step
+   is the actual risk — an un-deleted old key stays valid forever.
+5. **Shred the download.** `rm -P ~/Downloads/hf-release-bot.*.pem`. Never
+   commit it, never paste it into an issue or a chat.
+
+`RELEASE_BOT_APP_ID` only changes if the App itself is recreated; read the new
+value off the App's settings page and `gh variable set RELEASE_BOT_APP_ID
+--body <id>`. If the App is ever reinstalled, keep
+`repository_selection=selected` and the same three permissions — adding
+`actions` would let the release bot approve its own workflow runs, which
+defeats the point.
+
+Suggested cadence: **annually**, and **immediately** if the `.pem` was ever
+downloaded to a shared machine, committed, or pasted anywhere.
+
 ### Inspecting and updating secrets
 
 ```bash
@@ -207,6 +292,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - JWT-family secrets: **every 90 days**
 - OAuth credentials: when the provider requires, or **annually**
 - API keys: **every 180 days**
+- `RELEASE_BOT_PRIVATE_KEY` (GitHub App): **annually** — different procedure,
+  see [Release-bot App](#release-bot-app--how-release-prs-get-ci)
 - After any security incident: **immediately**
 
 ### Impact on active sessions
