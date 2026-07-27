@@ -175,6 +175,14 @@ Workflows fire on push to `main`:
   non-gating security scanners. `cargo-audit` also runs on
   `backend-rust/Cargo.{lock,toml}` changes so a vulnerable crate cannot
   merge and auto-deploy inside the daily cron window.
+- `email-canary.yml` (**Email Canary**) — **non-gating.** Every 6h it
+  sends a real message through the production relay (`environment:
+  production`, so the env-scoped `SMTP_*` secrets resolve) to prove
+  outbound mail is *deliverable*, which `/api/health` can never do — it
+  only sees configuration. Alerts are GitHub issues, never email: the
+  only mailbox available would be the one that is down. It touches no
+  health endpoint and no deploy workflow depends on it. Runbook:
+  [`docs/email-canary-runbook.md`](docs/email-canary-runbook.md).
 Postgres backups deliberately do **not** run in CI. A systemd timer on
 evergreen (`scripts/evergreen/`) dumps, gzips and `age`-encrypts to
 `/srv/backups/loyalty`, so production data never transits a runner. The
