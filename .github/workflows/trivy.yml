@@ -182,6 +182,16 @@ jobs:
     # it directly off the commit means the SARIF is attributed to the commit
     # actually scanned instead of whatever main happened to be at.
     if: github.event_name != 'workflow_run'
+    # The workflow default (`contents: read`) is not enough for the SARIF
+    # upload below: github/codeql-action needs `security-events: write` for the
+    # code-scanning API, and `actions: read` to read the run it is attributing
+    # results to. Without this block the upload fails "Resource not accessible
+    # by integration" on every push to main. No `packages: read` — unlike the
+    # image jobs, this one never touches GHCR.
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
