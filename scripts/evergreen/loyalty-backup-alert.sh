@@ -134,6 +134,7 @@ mkdir -p "$BACKUP_DIR"
 # cannot silently drop the "we are fine again" signal AND erase the evidence.
 if [ "$ALERT_KIND" = 'failure' ]; then
   printf '%s\n' "$MESSAGE" > "$MARKER"
+  chmod 600 "$MARKER"   # match the dumps and .github-alert-issue; 644 was untidy
 fi
 
 # Always land it in the journal, tagged so it is greppable.

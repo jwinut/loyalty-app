@@ -19,7 +19,18 @@ set -euo pipefail
 umask 077
 
 REPO_RAW="https://raw.githubusercontent.com/thehfhotel/loyalty-app/main/scripts/evergreen"
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# `${BASH_SOURCE[0]:-}`, not `${BASH_SOURCE[0]}`: piped to bash — which is the
+# documented `curl … | sudo bash` install — there is no source file, so
+# BASH_SOURCE is unset and under `set -u` the bare form made
+# `BASH_SOURCE[0]: unbound variable` the installer's very first line of output.
+# How bad that is depends on the bash: on evergreen it was survivable noise (the
+# run continued and fetch() fell through to the curl branch, which is the right
+# behaviour for a piped install), but on bash 5.3 the failed command
+# substitution trips `set -e` and the installer exits before it even checks for
+# root. Either way it is unacceptable on a root-run installer. With a real
+# source file this still resolves the checkout directory, so
+# `sudo ./scripts/evergreen/install.sh` keeps using the local copies.
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-}")" && pwd)"
 CONF=/etc/loyalty-backup.conf
 BACKUP_DIR=/srv/backups/loyalty
 
@@ -117,12 +128,14 @@ Installed.
 Verify with a real run right now (does not wait for 18:00 UTC):
     systemctl start loyalty-backup.service
     journalctl -u loyalty-backup.service -n 40 --no-pager
-    ls -lh ${BACKUP_DIR}
+    sudo ls -lh ${BACKUP_DIR}     # 700, root-owned — without sudo it "does not exist"
 
 Then confirm the dump actually restores — an untested backup is not a backup.
-On YOUR machine (which holds the private key):
-    scp evergreen:${BACKUP_DIR}/loyalty_pg_*.sql.gz.age /tmp/
-    age --decrypt --identity ~/.age/loyalty-backup.key /tmp/loyalty_pg_*.sql.gz.age \\
+On YOUR machine (which holds the private key). Note the 'sudo cat' — ${BACKUP_DIR}
+is mode 700 and root-owned, so scp runs as your unprivileged login, cannot stat
+inside it, and fails with a misleading "No such file or directory":
+    ssh evergreen 'sudo cat ${BACKUP_DIR}/<dump>.sql.gz.age' > /tmp/restore.sql.gz.age
+    age --decrypt --identity ~/.age/loyalty-backup.key /tmp/restore.sql.gz.age \\
       | gunzip | head -20
 
 Set ALERT_COMMAND in ${CONF} so failures reach a human, then re-run this
