@@ -523,10 +523,14 @@ jobs:
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/backend@${{ steps.build-backend.outputs.digest }}
         run: |
-          # Deliberately no `-e` anywhere in this step: the EXPECTED outcome is
-          # a non-zero exit from `docker run`, and errexit would abort before
-          # the exit code could be inspected. Every failure path below exits
-          # explicitly instead.
+          # errexit must be turned OFF explicitly: GitHub runs `run:` blocks
+          # under `bash -e {0}`, so omitting `-e` from the `set` line is not
+          # enough. The EXPECTED outcome here is a non-zero exit from
+          # `docker run` (nothing listens on 4001 in a bare container), and
+          # under errexit the command substitution aborts the step before the
+          # exit code can be inspected — silently, with no output. Every
+          # failure path below exits explicitly instead.
+          set +e
           set -uo pipefail
 
           if ! docker pull "$IMAGE"; then
