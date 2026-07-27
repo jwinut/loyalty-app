@@ -127,6 +127,41 @@ async fn main() -> anyhow::Result<()> {
         // Continue startup even if seeding fails - data may already exist
     }
 
+    // Admin bootstrap sweep (issue #348): promote pre-existing 'customer'
+    // rows whose email is on the ADMIN_BOOTSTRAP_EMAILS allowlist. The
+    // in-transaction promotion in /api/auth/register covers new
+    // registrations; this sweep covers rows created before the variable
+    // was set (including OAuth-created accounts). Non-fatal, like seeding.
+    let bootstrap_emails = config.admin_bootstrap.email_list();
+    if !bootstrap_emails.is_empty() {
+        // Staging deploys real user data too — warn anywhere that isn't
+        // local development, not just production.
+        if config.is_production() || config.is_staging() {
+            warn!(
+                "ADMIN_BOOTSTRAP_EMAILS is set in {} ({} entries) — remove it once the \
+                 first admin exists: the first registration of a listed email becomes admin \
+                 without proving ownership of the address",
+                config.environment,
+                bootstrap_emails.len()
+            );
+        }
+        match db::seed::promote_bootstrap_admins(db.pool(), &bootstrap_emails).await {
+            // A promotion is a privileged event: surface a non-zero sweep
+            // at WARN (per-user WARN lines with ids come from
+            // promote_bootstrap_admins itself).
+            Ok(promoted) if promoted > 0 => warn!(
+                "Admin bootstrap sweep: promoted {} user(s) to admin ({} allowlisted email(s))",
+                promoted,
+                bootstrap_emails.len()
+            ),
+            Ok(_) => info!(
+                "Admin bootstrap sweep: nothing to promote ({} allowlisted email(s))",
+                bootstrap_emails.len()
+            ),
+            Err(e) => error!("Admin bootstrap sweep failed: {:#}", e),
+        }
+    }
+
     // Seed sample data (development only)
     if config.environment == Environment::Development {
         info!("Seeding sample data (development mode)...");

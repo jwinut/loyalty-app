@@ -24,7 +24,9 @@ export function getTestUserForWorker(workerIndex: number) {
   return TEST_USERS[workerIndex % TEST_USERS.length];
 }
 
-// Admin user for testing admin pages (configured in admins.e2e.json mounted in CI)
+// Admin user for testing admin pages. In CI the backend container sets
+// ADMIN_BOOTSTRAP_EMAILS=e2e-admin@test.local (.github/actions/start-app-stack),
+// so this account is promoted to a real admin when it registers.
 export const ADMIN_USER = {
   email: process.env.E2E_ADMIN_EMAIL || 'e2e-admin@test.local',
   password: process.env.E2E_ADMIN_PASSWORD || 'AdminPassword123!',

@@ -859,17 +859,95 @@ async fn process_google_auth(
             .unwrap_or_default();
         let avatar_url = user_info.picture.as_deref();
 
+        // Admin bootstrap (issue #348): a new OAuth account whose email
+        // is on the ADMIN_BOOTSTRAP_EMAILS allowlist may be created as
+        // 'admin' directly, mirroring /api/auth/register.
+        //
+        // SECURITY: `email` here is PROVIDER-SUPPLIED USER DATA (Google
+        // has verified ownership, but it is not operator configuration),
+        // so only its non-reversible hash is ever logged. Promotion
+        // follows the same one-shot rules as the register path and the
+        // startup sweep: it is refused when another user row matches the
+        // entry case-insensitively (the byte-exact lookup above found
+        // nothing, so any match is a case-variant row — ambiguous), or
+        // when a prior `admin_bootstrap_promotion` marker exists for the
+        // entry in `user_audit_log` (one-shot: a deliberate demotion or
+        // an already-consumed entry must never silently mint a new
+        // admin).
+        let mut bootstrap_admin = false;
+        let entry = email.trim().to_lowercase();
+        let entry_hash = crate::utils::hash_email(&entry);
+        if state.config().admin_bootstrap.contains(email) {
+            let variant_rows: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE lower(email) = $1")
+                    .bind(&entry)
+                    .fetch_one(db)
+                    .await
+                    .map_err(AppError::Database)?;
+
+            let prior_promotions: i64 = sqlx::query_scalar(
+                "SELECT COUNT(*) FROM user_audit_log \
+                 WHERE action = 'admin_bootstrap_promotion' AND details->>'email_hash' = $1",
+            )
+            .bind(&entry_hash)
+            .fetch_one(db)
+            .await
+            .map_err(AppError::Database)?;
+
+            if variant_rows > 0 {
+                tracing::warn!(
+                    email_hash = %entry_hash,
+                    matching_rows = variant_rows,
+                    "Admin bootstrap: refusing OAuth-path promotion — {} user row(s) match \
+                     the allowlist entry case-insensitively (ambiguous; possible \
+                     case-variant squatting). Creating as customer.",
+                    variant_rows
+                );
+            } else if prior_promotions > 0 {
+                tracing::warn!(
+                    email_hash = %entry_hash,
+                    "Admin bootstrap: refusing OAuth-path promotion — a promotion for this \
+                     entry is already recorded (one-shot). Creating as customer."
+                );
+            } else {
+                bootstrap_admin = true;
+                tracing::info!(
+                    email_hash = %entry_hash,
+                    user_id = %user_id,
+                    "Admin bootstrap: creating new Google OAuth user as admin \
+                     (ADMIN_BOOTSTRAP_EMAILS)"
+                );
+            }
+        }
+        let role = if bootstrap_admin { "admin" } else { "customer" };
+
         // Create user
         sqlx::query(
             r#"INSERT INTO users (id, email, password_hash, email_verified, oauth_provider, oauth_provider_id, role, is_active)
-               VALUES ($1, $2, '', true, 'google', $3, 'customer', true)"#,
+               VALUES ($1, $2, '', true, 'google', $3, $4::user_role, true)"#,
         )
         .bind(user_id)
         .bind(email)
         .bind(&user_info.id)
+        .bind(role)
         .execute(db)
         .await
         .map_err(AppError::Database)?;
+
+        // One-shot marker + audit trail for the bootstrap promotion,
+        // same shape as the register path and the startup sweep so
+        // future sweeps honour it (a later demotion must stick).
+        if bootstrap_admin {
+            sqlx::query(
+                "INSERT INTO user_audit_log (user_id, action, details) \
+                 VALUES ($1, 'admin_bootstrap_promotion', $2)",
+            )
+            .bind(user_id)
+            .bind(serde_json::json!({ "email_hash": entry_hash, "source": "oauth_google" }))
+            .execute(db)
+            .await
+            .map_err(AppError::Database)?;
+        }
 
         // Generate membership ID
         let membership_id = generate_membership_id(state).await?;
@@ -901,7 +979,7 @@ async fn process_google_auth(
         let user = UserResponse {
             id: user_id.to_string(),
             email: Some(email.to_string()),
-            role: "customer".to_string(),
+            role: role.to_string(),
             is_active: true,
             email_verified: true,
             oauth_provider: Some("google".to_string()),

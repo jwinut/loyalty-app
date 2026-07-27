@@ -82,6 +82,7 @@ runs:
           -e LINE_CLIENT_SECRET=e2e-line-channel-secret \
           -e LINE_CALLBACK_URL="http://localhost:${BACKEND_PORT}/api/oauth/line/callback" \
           -e FRONTEND_URL="http://localhost:${FRONTEND_PORT}" \
+          -e ADMIN_BOOTSTRAP_EMAILS=e2e-admin@test.local \
           -e RUST_LOG=info \
           "${IMAGE_BASE}/backend:${TAG}"
 
@@ -168,6 +169,9 @@ runs:
         # and the specs authenticate with these exact values.
         seed "e2e-browser@test.com"   "E2ETestPassword123!" "E2E" "Browser"
         seed "e2e-browser-2@test.com" "E2ETestPassword123!" "E2E" "Browser2"
-        # Admin email must stay in sync with admins.e2e.json.
+        # Admin email must stay in sync with ADMIN_BOOTSTRAP_EMAILS on the
+        # backend container above: registering it triggers the backend's
+        # promote-on-register path, so this account is a real admin from
+        # its very first JWT (issue #348).
         seed "e2e-admin@test.local"   "AdminPassword123!"   "E2E" "Admin"
         echo "E2E test users seeded"

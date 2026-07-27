@@ -91,6 +91,13 @@ services:
       LINE_CLIENT_SECRET: ${LINE_CHANNEL_SECRET}
       LINE_CALLBACK_URL: ${LINE_CALLBACK_URL}
 
+      # Admin bootstrap allowlist (issue #348): one-time first-admin
+      # provisioning. NOT in the GitHub-Actions .env payload — added by hand
+      # to the server-side .env for the bootstrap window, then removed (the
+      # next deploy rewrites .env without it anyway). Empty/unset = feature
+      # off; the backend logs a startup warning while it is set in production.
+      ADMIN_BOOTSTRAP_EMAILS: ${ADMIN_BOOTSTRAP_EMAILS:-}
+
       # Email Service (SMTP/IMAP)
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

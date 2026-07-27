@@ -30,6 +30,7 @@
 //! TEST_DATABASE_URL=postgresql://... TEST_REDIS_URL=redis://... cargo test --test integration
 //! ```
 
+pub mod admin_bootstrap_test;
 pub mod admin_test;
 pub mod auth_test;
 pub mod booking_test;

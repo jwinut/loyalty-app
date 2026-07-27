@@ -288,7 +288,9 @@ backend-rust/
 ├── rust-toolchain.toml     # Rust version specification
 ├── .env.example            # Environment template
 ├── config/
-│   └── admins.json         # Admin users configuration
+│   └── admins.json         # Legacy admin email lists (does NOT grant roles;
+│                           # provision admins via ADMIN_BOOTSTRAP_EMAILS —
+│                           # see .env.example — or the role-change endpoint)
 ├── migrations/
 │   └── 20240101000000_init.sql  # Database schema
 ├── scripts/
@@ -435,6 +437,54 @@ backend-rust/
 | `MAX_FILE_SIZE` | Maximum upload size (bytes) | `5242880` (5MB) |
 | `RATE_LIMIT_WINDOW_MS` | Rate limit window | `900000` (15 min) |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `10000` |
+
+### Admin Bootstrap (Optional)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ADMIN_BOOTSTRAP_EMAILS` | Comma-separated, case-insensitive emails auto-promoted to `admin` (issue #348) | unset (feature off) |
+
+Listed emails are promoted to the `admin` role at registration (the first
+JWT already carries `role=admin`) and by a startup sweep over pre-existing
+`customer` rows with a matching email. Existing `admin`/`super_admin` rows
+are never modified and nothing is ever demoted, so the sweep is idempotent.
+LINE-only accounts are created with `email = NULL`, so the allowlist can
+never match them — those accounts can only be promoted by an existing admin
+via the role-change endpoint.
+
+#### First-admin bootstrap (staging/production)
+
+This is the procedure the code supports for provisioning the first admin on
+a deployed stack. Registration does **not** verify email ownership — while
+the variable is set, anyone who registers a listed address becomes admin —
+so keep the window as short as possible.
+
+1. Add `ADMIN_BOOTSTRAP_EMAILS=you@example.com` to the server-side `.env`
+   in the deploy directory on the host (the file `docker compose` reads).
+2. Recreate the backend container so it picks up the value — a plain
+   `docker compose restart` does **not** re-read `.env`:
+
+   ```bash
+   # production (staging: swap in docker-compose.staging.yml)
+   docker compose -f docker-compose.yml -f docker-compose.ghcr.yml \
+     -f docker-compose.prod.yml up -d backend
+   ```
+
+3. Register — or log in via Google OAuth — with the listed address, then
+   verify an admin-only endpoint answers 200 for that account.
+4. Remove the variable from `.env` (or set it empty) and recreate the
+   backend again.
+
+Operational caveats:
+
+- The deploy workflows (`deploy.yml` for production, `ci-build-e2e.yml`
+  for staging) regenerate the server-side `.env` from GitHub secrets on
+  every deploy, and `ADMIN_BOOTSTRAP_EMAILS` is not part of that payload.
+  A hand-added value therefore does not survive the next deploy: complete
+  the bootstrap in one sitting, and still remove the value yourself
+  (step 4) rather than counting on a deploy to wipe it.
+- The backend logs a warning at startup while the variable is set in
+  production.
 
 ## Testing
 

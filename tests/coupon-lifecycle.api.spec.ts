@@ -4,11 +4,25 @@ import { retryRequest } from './helpers/retry';
 /**
  * E2E tests for complete coupon lifecycle
  * Tests coupon creation, activation, assignment, revocation, deletion, and expiration
+ *
+ * The CI backend container sets ADMIN_BOOTSTRAP_EMAILS=e2e-admin@test.local
+ * (.github/actions/start-app-stack/action.yml), so the seeded admin account
+ * is promoted to a real admin at registration (issue #348). beforeAll
+ * hard-asserts that privilege once; every admin test then asserts the full
+ * admin contract unconditionally — no "skip on 403" escapes.
+ *
+ * Request/response shapes follow the Rust backend
+ * (backend-rust/src/routes/coupons.rs): request DTOs are snake_case
+ * (coupon_type, usage_limit, valid_until), responses are wrapped in
+ * { success, data } and paginated lists in { items, total, page, limit,
+ * totalPages }. The camelCase shapes this spec used to send date from the
+ * old Node backend and never executed — they were hidden behind the skips.
  */
 test.describe('Coupon Lifecycle Management', () => {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:4202';
 
-  // Admin credentials - use fixed email that matches admins.e2e.json (mounted in E2E Docker)
+  // Admin credentials - fixed email listed in ADMIN_BOOTSTRAP_EMAILS on the
+  // CI backend container, so this account carries role=admin.
   const adminEmail = process.env.E2E_ADMIN_EMAIL || 'e2e-admin@test.local';
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'AdminPassword123!';
 
@@ -40,7 +54,7 @@ test.describe('Coupon Lifecycle Management', () => {
     }
 
     // Try to login as admin first (might already exist)
-    let adminLoginResponse = await request.post(`${backendUrl}/api/auth/login`, {
+    const adminLoginResponse = await request.post(`${backendUrl}/api/auth/login`, {
       data: {
         email: adminEmail,
         password: adminPassword,
@@ -69,11 +83,46 @@ test.describe('Coupon Lifecycle Management', () => {
       if (registerResponse.ok()) {
         const registerData = await registerResponse.json();
         adminToken = registerData.tokens?.accessToken || registerData.accessToken;
+      } else {
+        // A parallel or earlier run may have registered the account between
+        // our login attempt and this register (409 Conflict). Retry the
+        // login ONCE and take that token; the hard assertions below still
+        // apply unconditionally.
+        const retryLoginResponse = await request.post(`${backendUrl}/api/auth/login`, {
+          data: {
+            email: adminEmail,
+            password: adminPassword,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
+          },
+        });
+        if (retryLoginResponse.ok()) {
+          const retryLoginData = await retryLoginResponse.json();
+          adminToken = retryLoginData.tokens?.accessToken || retryLoginData.accessToken;
+        }
       }
     } else {
       const loginData = await adminLoginResponse.json();
       adminToken = loginData.tokens?.accessToken || loginData.accessToken;
     }
+
+    // The suite is a deploy gate: fail loudly here instead of letting every
+    // admin test silently skip when the account is not what we expect.
+    expect(adminToken, 'admin login/registration must yield a token').toBeTruthy();
+
+    // Hard-assert the account actually carries the admin role: an
+    // admin-only endpoint must answer 200, not 403.
+    const privilegeProbe = await request.get(`${backendUrl}/api/coupons/analytics/stats`, {
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+      },
+    });
+    expect(
+      privilegeProbe.status(),
+      `${adminEmail} must be a real admin — check ADMIN_BOOTSTRAP_EMAILS on the backend container`,
+    ).toBe(200);
 
     // Register customer user
     const customerRegisterResponse = await request.post(`${backendUrl}/api/auth/register`, {
@@ -89,39 +138,28 @@ test.describe('Coupon Lifecycle Management', () => {
       },
     });
 
-    if (customerRegisterResponse.ok()) {
-      const customerData = await customerRegisterResponse.json();
-      customerToken = customerData.tokens?.accessToken || customerData.accessToken;
-      customerId = customerData.user?.id;
-    }
-
-    // If we didn't get customerId from registration, try to get it from profile
-    if (!customerId && customerToken) {
-      const profileResponse = await request.get(`${backendUrl}/api/users/profile`, {
-        headers: {
-          'Authorization': `Bearer ${customerToken}`,
-        },
-      });
-      if (profileResponse.ok()) {
-        const profile = await profileResponse.json();
-        customerId = profile.userId;
-      }
-    }
+    expect(
+      customerRegisterResponse.ok(),
+      'customer registration must succeed (unique email per run)',
+    ).toBeTruthy();
+    const customerData = await customerRegisterResponse.json();
+    customerToken = customerData.tokens?.accessToken || customerData.accessToken;
+    customerId = customerData.user?.id;
+    expect(customerToken, 'customer registration must yield a token').toBeTruthy();
+    expect(customerId, 'customer registration must yield the user id').toBeTruthy();
   });
 
   test.describe('1. Create New Coupon', () => {
     test('should create a new draft coupon', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const couponData = {
         code: testCouponCode,
         name: 'E2E Test Coupon',
         description: 'Created by E2E test for lifecycle testing',
-        type: 'percentage',
+        coupon_type: 'percentage',
         value: 15,
         currency: 'THB',
-        usageLimitPerUser: 1,
-        usageLimit: 100,
+        usage_limit_per_user: 1,
+        usage_limit: 100,
       };
 
       const response = await request.post(`${backendUrl}/api/coupons`, {
@@ -133,31 +171,28 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // May fail with 403 if test user is not admin - that's expected
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
       expect(response.status()).toBe(201);
-      const coupon = await response.json();
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      const coupon = body.data;
 
       expect(coupon.code).toBe(couponData.code);
       expect(coupon.name).toBe(couponData.name);
-      expect(coupon.type).toBe(couponData.type);
+      expect(coupon.coupon_type).toBe(couponData.coupon_type);
       expect(coupon.status).toBe('draft'); // New coupons start as draft
 
       createdCouponId = coupon.id;
+      expect(createdCouponId).toBeTruthy();
     });
 
     test('should reject duplicate coupon code', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'No admin token or coupon not created');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       const response = await request.post(`${backendUrl}/api/coupons`, {
         data: {
           code: testCouponCode, // Same code as before
           name: 'Duplicate Code Test',
-          type: 'percentage',
+          coupon_type: 'percentage',
           value: 10,
         },
         headers: {
@@ -167,18 +202,16 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should fail due to duplicate code
-      expect([400, 409, 403]).toContain(response.status());
+      // Duplicate key maps to AppError::AlreadyExists -> 409 Conflict
+      expect(response.status()).toBe(409);
     });
 
     test('should validate coupon type', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const response = await request.post(`${backendUrl}/api/coupons`, {
         data: {
           code: `INVALID${Date.now()}`.slice(0, 20).toUpperCase(),
           name: 'Invalid Type Test',
-          type: 'invalid_type', // Invalid type
+          coupon_type: 'invalid_type', // Not a CouponType variant
           value: 10,
         },
         headers: {
@@ -188,14 +221,15 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should fail validation
-      expect([400, 403]).toContain(response.status());
+      // An unknown enum variant fails serde deserialization, which axum's
+      // Json extractor rejects with 422 before the handler runs.
+      expect(response.status()).toBe(422);
     });
   });
 
   test.describe('2. Activate Coupon', () => {
     test('should activate a draft coupon', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'No admin token or coupon not created');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       const response = await request.put(`${backendUrl}/api/coupons/${createdCouponId}`, {
         data: {
@@ -208,19 +242,14 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
       expect(response.status()).toBe(200);
-      const coupon = await response.json();
-
-      expect(coupon.status).toBe('active');
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.data.status).toBe('active');
     });
 
     test('should be able to pause an active coupon', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'No admin token or coupon not created');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       const response = await request.put(`${backendUrl}/api/coupons/${createdCouponId}`, {
         data: {
@@ -233,18 +262,13 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
       expect(response.status()).toBe(200);
-      const coupon = await response.json();
-
-      expect(coupon.status).toBe('paused');
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.data.status).toBe('paused');
 
       // Re-activate for next tests
-      await request.put(`${backendUrl}/api/coupons/${createdCouponId}`, {
+      const reactivate = await request.put(`${backendUrl}/api/coupons/${createdCouponId}`, {
         data: { status: 'active' },
         headers: {
           'Authorization': `Bearer ${adminToken}`,
@@ -252,12 +276,14 @@ test.describe('Coupon Lifecycle Management', () => {
           ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
         },
       });
+      expect(reactivate.status()).toBe(200);
     });
   });
 
   test.describe('3. Assign Coupon to User', () => {
     test('should assign coupon to a customer', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId || !customerId, 'Missing required data');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
+      expect(customerId, 'customer must have been registered').toBeTruthy();
 
       const response = await request.post(`${backendUrl}/api/coupons/assign`, {
         data: {
@@ -272,21 +298,17 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
       expect(response.status()).toBe(200);
-      const result = await response.json();
+      const body = await response.json();
 
-      expect(result.success).toBe(true);
-      expect(result.assignedCount).toBeGreaterThan(0);
+      // Response is { success, data: [UserCouponResponse, ...], message }
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data.length).toBe(1);
+      expect(body.data[0].status).toBe('available');
     });
 
     test('customer should see assigned coupon in my-coupons', async ({ request }) => {
-      test.skip(!customerToken, 'No customer token available');
-
       const response = await request.get(`${backendUrl}/api/coupons/my-coupons`, {
         headers: {
           'Authorization': `Bearer ${customerToken}`,
@@ -296,26 +318,22 @@ test.describe('Coupon Lifecycle Management', () => {
       expect(response.status()).toBe(200);
       const result = await response.json();
 
-      // API returns { success: true, data: { coupons: [...], total, page, limit, totalPages } }
+      // API returns { success: true, data: { items: [...], total, page, limit, totalPages } }
       expect(result.success).toBe(true);
-      const coupons = result.data?.coupons || result.coupons || [];
+      const coupons = result.data?.items ?? [];
       expect(Array.isArray(coupons)).toBe(true);
 
-      // Find our test coupon
-      const testCoupon = coupons.find((c: { coupon?: { code: string }, code?: string }) =>
-        (c.coupon?.code === testCouponCode) || (c.code === testCouponCode)
-      );
+      // Items are flat user-coupon rows joined with the coupon's code
+      const testCoupon = coupons.find((c: { code: string }) => c.code === testCouponCode);
+      expect(testCoupon, 'assigned coupon must appear in my-coupons').toBeTruthy();
+      expect(testCoupon.status).toBe('available');
 
-      if (testCoupon) {
-        // Store the userCouponId for revocation test
-        assignedUserCouponId = testCoupon.id;
-        expect(testCoupon.status).toBe('available');
-      }
+      // Store the userCouponId for the revocation tests
+      assignedUserCouponId = testCoupon.id;
+      expect(assignedUserCouponId).toBeTruthy();
     });
 
     test('should validate couponId format', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const response = await request.post(`${backendUrl}/api/coupons/assign`, {
         data: {
           couponId: 'not-a-valid-uuid',
@@ -328,12 +346,13 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should fail validation
-      expect([400, 403]).toContain(response.status());
+      // couponId deserializes into a Uuid; a malformed value fails serde and
+      // axum's Json extractor rejects it with 422 before the handler runs.
+      expect(response.status()).toBe(422);
     });
 
     test('should limit users per assignment request', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'Missing required data');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       // Create array of 101 fake UUIDs
       const tooManyUsers = Array(101).fill(null).map((_, i) =>
@@ -352,14 +371,14 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should fail validation (max 100 users)
-      expect([400, 403]).toContain(response.status());
+      // Handler-level validation (max 100 users) -> 400
+      expect(response.status()).toBe(400);
     });
   });
 
   test.describe('4. Revoke Coupon from User', () => {
     test('should revoke assigned coupon from user', async ({ request }) => {
-      test.skip(!adminToken || !assignedUserCouponId, 'Missing required data');
+      expect(assignedUserCouponId, 'user coupon must have been assigned').toBeTruthy();
 
       const response = await request.post(`${backendUrl}/api/coupons/user-coupons/${assignedUserCouponId}/revoke`, {
         data: {
@@ -372,16 +391,11 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
-      expect([200, 204]).toContain(response.status());
+      expect(response.status()).toBe(200);
     });
 
     test('customer should not see revoked coupon as available', async ({ request }) => {
-      test.skip(!customerToken || !assignedUserCouponId, 'Missing required data');
+      expect(assignedUserCouponId, 'user coupon must have been assigned').toBeTruthy();
 
       const response = await request.get(`${backendUrl}/api/coupons/my-coupons`, {
         headers: {
@@ -391,21 +405,20 @@ test.describe('Coupon Lifecycle Management', () => {
 
       expect(response.status()).toBe(200);
       const result = await response.json();
+      expect(result.success).toBe(true);
+      const coupons = result.data?.items ?? [];
 
-      const coupons = result.coupons || result;
+      // Revocation UPDATEs the row to status 'revoked' (it does not delete),
+      // and my-coupons applies no default status filter, so the row must
+      // still be listed — as revoked, never as available.
       const testCoupon = coupons.find((c: { id: string, status: string }) =>
         c.id === assignedUserCouponId
       );
-
-      // Coupon should either be revoked status or not in list at all
-      if (testCoupon) {
-        expect(testCoupon.status).toBe('revoked');
-      }
+      expect(testCoupon, 'revoked user-coupon row must still be listed').toBeTruthy();
+      expect(testCoupon.status).toBe('revoked');
     });
 
     test('should handle non-existent userCouponId', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const response = await request.post(`${backendUrl}/api/coupons/user-coupons/00000000-0000-0000-0000-000000000000/revoke`, {
         data: {
           reason: 'Testing non-existent',
@@ -417,14 +430,13 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should return 404 or 403
-      expect([403, 404]).toContain(response.status());
+      expect(response.status()).toBe(404);
     });
   });
 
   test.describe('5. Delete Coupon', () => {
     test('should delete a coupon', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'Missing required data');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       const response = await request.delete(`${backendUrl}/api/coupons/${createdCouponId}`, {
         headers: {
@@ -433,16 +445,11 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
-      expect([200, 204]).toContain(response.status());
+      expect(response.status()).toBe(200);
     });
 
     test('deleted coupon should not be accessible', async ({ request }) => {
-      test.skip(!adminToken || !createdCouponId, 'Missing required data');
+      expect(createdCouponId, 'coupon must have been created').toBeTruthy();
 
       const response = await request.get(`${backendUrl}/api/coupons/${createdCouponId}`, {
         headers: {
@@ -455,8 +462,6 @@ test.describe('Coupon Lifecycle Management', () => {
     });
 
     test('should handle non-existent couponId for deletion', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const response = await request.delete(`${backendUrl}/api/coupons/00000000-0000-0000-0000-000000000000`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
@@ -464,8 +469,7 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      // Should return 404 or 403
-      expect([403, 404]).toContain(response.status());
+      expect(response.status()).toBe(404);
     });
   });
 
@@ -473,8 +477,6 @@ test.describe('Coupon Lifecycle Management', () => {
     let expiredCouponId: string | null = null;
 
     test('should create a coupon with past expiration date', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 1); // Yesterday
 
@@ -482,10 +484,10 @@ test.describe('Coupon Lifecycle Management', () => {
         data: {
           code: `EXP${Date.now()}`.slice(0, 20).toUpperCase(),
           name: 'Expired Test Coupon',
-          type: 'percentage',
+          coupon_type: 'percentage',
           value: 10,
-          validUntil: pastDate.toISOString(),
-          status: 'active', // Try to create as active
+          valid_until: pastDate.toISOString(),
+          status: 'active', // Create as active; the past valid_until governs usability
         },
         headers: {
           'Authorization': `Bearer ${adminToken}`,
@@ -494,21 +496,14 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
-      // May succeed but coupon should be expired
-      if (response.status() === 201) {
-        const coupon = await response.json();
-        expiredCouponId = coupon.id;
-      }
+      expect(response.status()).toBe(201);
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expiredCouponId = body.data.id;
+      expect(expiredCouponId).toBeTruthy();
     });
 
     test('should handle coupon with expiration date set', async ({ request }) => {
-      test.skip(!adminToken, 'No admin token available');
-
       // Create a coupon that will expire soon
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
@@ -517,10 +512,10 @@ test.describe('Coupon Lifecycle Management', () => {
         data: {
           code: `FUT${Date.now()}`.slice(0, 20).toUpperCase(),
           name: 'Future Expiration Test',
-          type: 'fixed_amount',
+          coupon_type: 'fixed_amount',
           value: 100,
-          validFrom: new Date().toISOString(),
-          validUntil: futureDate.toISOString(),
+          valid_from: new Date().toISOString(),
+          valid_until: futureDate.toISOString(),
         },
         headers: {
           'Authorization': `Bearer ${adminToken}`,
@@ -529,23 +524,19 @@ test.describe('Coupon Lifecycle Management', () => {
         },
       });
 
-      if (response.status() === 403) {
-        test.skip(true, 'Test user does not have admin privileges');
-        return;
-      }
-
       expect(response.status()).toBe(201);
-      const coupon = await response.json();
-
-      expect(coupon.validUntil).toBeTruthy();
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.data.valid_until).toBeTruthy();
 
       // Clean up
-      await request.delete(`${backendUrl}/api/coupons/${coupon.id}`, {
+      const cleanup = await request.delete(`${backendUrl}/api/coupons/${body.data.id}`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
         },
       });
+      expect(cleanup.status()).toBe(200);
     });
 
     test.afterAll(async ({ request }) => {

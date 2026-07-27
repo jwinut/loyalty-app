@@ -76,9 +76,12 @@ The `docker compose.yml` is configured to read these environment variables autom
 
 ### New User Flow:
 - Automatic account creation using LINE profile data
-- Uses LINE ID as unique identifier (email format: `line_{id}@line.oauth`)
-- Email is marked as unverified (LINE doesn't provide email)
-- Gets appropriate role based on admin configuration
+- Uses the LINE user ID as the unique identifier (`oauth_provider_id`)
+- The account is created with **no email** (`email = NULL`) — LINE Login
+  does not provide one, and the backend does not synthesize one
+- Always created with the `customer` role: the `ADMIN_BOOTSTRAP_EMAILS`
+  allowlist is email-based and is never consulted on the LINE signup
+  path, so it cannot apply here (see below)
 - Redirected to dashboard with welcome message
 
 ### Existing User Flow:
@@ -88,18 +91,26 @@ The `docker compose.yml` is configured to read these environment variables autom
 
 ## Admin Role Assignment
 
-LINE OAuth users follow the same admin role assignment rules:
-- If email is in `adminEmails` → gets `admin` role
-- If email is in `superAdminEmails` → gets `super_admin` role  
-- Super admin takes precedence over admin if email is in both lists
-- Note: Since LINE doesn't provide email, role assignment typically won't apply
+Roles live in the **database** (`users.role`), not in `config/admins.json` —
+the `adminEmails` / `superAdminEmails` lists there do **not** grant roles at
+OAuth login. A user becomes an admin through one of:
+
+- **`ADMIN_BOOTSTRAP_EMAILS`** (env var, issue #348): a comma-separated,
+  case-insensitive allowlist applied at registration and by a startup
+  sweep over pre-existing `customer` rows. It can **never** apply to
+  LINE-only accounts: they are created with `email = NULL` (not a
+  synthetic address), the LINE signup path never consults the allowlist,
+  and the startup sweep matches on email — which a NULL email never
+  satisfies.
+- **An existing admin** changing the user's role via the admin role-change
+  endpoint (the only path for LINE-only users).
 
 ## Security Features
 
 - ✅ **Profile verification**: LINE users have verified profiles by default
 - ✅ **No password required**: OAuth users don't need passwords
 - ✅ **Unique LINE ID**: Each LINE account has a unique ID for identification
-- ✅ **Admin config integration**: Role assignment based on email configuration
+- ✅ **Admin bootstrap integration**: `ADMIN_BOOTSTRAP_EMAILS` never applies to LINE-only accounts, which are created with `email = NULL` (see above)
 - ✅ **Audit logging**: All OAuth actions are logged with provider information
 - ✅ **Session management**: Secure session handling with configurable secrets
 - ✅ **Error handling**: Graceful fallback when LINE OAuth is not configured

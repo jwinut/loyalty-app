@@ -711,6 +711,8 @@ fn create_test_config() -> loyalty_backend::Settings {
         loyalty_service: LoyaltyServiceConfig {
             token: Some(TEST_LOYALTY_SERVICE_TOKEN.to_string()),
         },
+        // Feature off by default; tests opt in via TestApp::new_with_config.
+        admin_bootstrap: AdminBootstrapConfig::default(),
     }
 }
 
