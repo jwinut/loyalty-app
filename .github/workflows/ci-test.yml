@@ -2,37 +2,9 @@ name: CI Tests
 
 on:
   push:
-    branches:
-      - main
-      # RELEASE-PLEASE BRANCHES GET THE REAL SUITE, PRE-MERGE.
-      #
-      # release-please opens its release PR using GITHUB_TOKEN, and GitHub does
-      # not raise `pull_request` workflow runs for bot-token events
-      # (anti-recursion). Result: PRs #350/#358/#362/#367/#372 all reached
-      # `main` with ZERO check runs on their head commit — and merging a
-      # release PR is precisely what triggers the UNATTENDED production
-      # deploy. The one PR class that ships to prod was the one class nobody
-      # verified first. (It is also the entire "26 of 30" shortfall behind
-      # OpenSSF Scorecard alerts #92 SAST and #925 CI-Tests.)
-      #
-      # The fix is to run the GENUINE gate on the branch itself, so real
-      # checks attach to the head commit before merge. Deliberately NOT a PAT,
-      # a GitHub App token, or a token-only workflow whose sole product is a
-      # green check — that would be metric-gaming, not verification.
-      #
-      # Glob, not the literal branch name: release-please builds the branch as
-      # `release-please--branches--<target>--components--<component>`, and the
-      # `<target>`/`<component>` halves move whenever
-      # release-please-config.json changes (adding a package, renaming the
-      # component, or targeting a maintenance branch). Only the
-      # `release-please--` prefix is fixed by the action's branch-name builder,
-      # so anchoring there is what survives a config edit. `**` also spans `/`,
-      # covering a future `separator` change.
-      - 'release-please--**'
+    branches: [main]
     # See ci-build-e2e.yml: skip workflow/docs-only pushes so a CI-config or
     # documentation change doesn't spin up the deploy-gating test pipeline.
-    # A release commit always touches .release-please-manifest.json and the
-    # three version files, so it can never be skipped by this list.
     paths-ignore:
       - '**.md'
       - 'docs/**'

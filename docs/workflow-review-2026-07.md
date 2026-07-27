@@ -56,7 +56,7 @@
 | 49 | low | correctness | `codeql.yml:28` | `cancel-in-progress: true` on a shared main/schedule concurrency group evicts main-branch and weekly analyses |
 | 50 | low | maintainability | `backup-production.yml:187` | Run summary prints a literal `${BACKUP_S3_BUCKET}` and silently reports empty fields on failure |
 | 51 | low | redundancy | `ci-test.yml:112` | Four overlapping dependency-CVE mechanisms with three different cadences and only one that pages anyone |
-| 52 | high | correctness | `ci-test.yml:4`, `ci-build-e2e.yml:4` | Release-please PRs carry zero check runs, so the only PR class that triggers a production deploy is the one class nothing verifies |
+| 52 | high | correctness | `release-please.yml:57` | Release-please PRs carry no completed check runs, so the only PR class that triggers a production deploy is the one class nothing verifies — **still open**, #377's `push:`-trigger fix was inert and has been reverted |
 
 ## HIGH severity
 
@@ -518,19 +518,20 @@ The same class of finding is produced by: `npm audit --audit-level=moderate` wit
 
 ## Addendum — found after the original review
 
-### 52. Release-please PRs carry zero check runs, so the only PR class that triggers a production deploy is the one class nothing verifies
+### 52. Release-please PRs carry no completed check runs, so the only PR class that triggers a production deploy is the one class nothing verifies
 
-**`ci-test.yml:4`, `ci-build-e2e.yml:4`** · correctness · high
+**`release-please.yml:57`** · correctness · high · **STILL OPEN**
 
-Both gating workflows triggered on `push: branches: [main]` and
+Both gating workflows trigger on `push: branches: [main]` and
 `pull_request: branches: [main]`. The release PR targets `main`, so on paper
-the `pull_request` trigger covers it. It does not: release-please opens and
-force-updates the PR using `GITHUB_TOKEN`, and GitHub deliberately raises no
-workflow run for events created by that token (anti-recursion). The head
-commit of every release PR therefore has **no check runs at all** — confirmed
-for #350, #358, #362, #367 and #372, all authored by `app/github-actions` on
-branch `release-please--branches--main--components--loyalty-app`, with runs
-observed sitting in `action_required` and never starting.
+the `pull_request` trigger covers it. In practice it does not produce checks:
+release-please opens and force-updates the PR using `GITHUB_TOKEN`, and
+GitHub does not let a `GITHUB_TOKEN`-driven event start a workflow run. The
+head commit of every release PR therefore reaches `main` with **no completed
+check runs** — observed for #350, #358, #362, #367, #372 and #378, all
+authored by `app/github-actions` on branch
+`release-please--branches--main--components--loyalty-app`, with runs sitting
+in `action_required` and never starting on their own.
 
 Consequence: merging a release PR is precisely what puts a new version on
 `main`, which fires CI Build & Deploy → staging → the now-**unattended**
@@ -539,34 +540,60 @@ class that ships to production is the single PR class that arrives unverified.
 It is also the entire shortfall behind OpenSSF Scorecard alerts #92 (SAST,
 medium) and #925 (CI-Tests, low), both stuck at "26 of 30".
 
-**Fix (applied):** add `release-please--**` to the `push: branches:` list of
-`ci-test.yml` and `ci-build-e2e.yml`, so the *genuine* suite runs on the
-release branch and real checks attach to the head commit before merge.
-Explicitly **not** a PAT or GitHub App token, and explicitly not a workflow
-whose only product is a green check — that inflates the Scorecard number
-without verifying anything.
+**Attempted fix (#377) — REVERTED, it did not work.** #377 added
+`release-please--**` to the `push: branches:` list of `ci-test.yml` and
+`ci-build-e2e.yml`, on the theory that the `push` trigger would fire where
+`pull_request` did not. The residual risk it flagged for itself is exactly
+what happened.
 
-Deploy safety, the whole risk of the change: every mutating job in
-`ci-build-e2e.yml` was already gated on
-`github.ref == 'refs/heads/main' && github.event_name == 'push'` —
-`promote-latest`, `wait-for-frontend-checks`, `deploy-staging`,
-`verify-staging`, `notify-verify-staging-failure` — so no new guard was
-needed for any of them. The one unguarded writer is `build-and-push`, which
-already pushes a commit-SHA image on every `pull_request`; its mutable
-`type=ref,event=branch` tag was scoped to `enable={{is_default_branch}}` so a
-release branch cannot mint a permanent junk tag in GHCR. `deploy.yml` cannot
-cascade: its `workflow_run` trigger is filtered `branches: [main]` (matched
-against `workflow_run.head_branch`), and `check-prerequisites` independently
-requires the triggering run's `Verify Staging` job to have concluded
-`success` — it is skipped off `main` — plus the SHA to still be the tip of
-`main`. `trivy.yml`'s image scans and `e2e.yml` are likewise
-`workflow_run … branches: [main]`, so neither fires on a release branch.
+Empirical result, measured on release PR #378 (`chore(main): release 4.5.2`,
+head `264f49dd`). The test was valid: `264f49dd`'s parent is `dbe23ea5` —
+#377's own merge commit — so the release branch was cut *from* #377, and
+`.github/workflows/ci-test.yml` **at `264f49dd` itself** carries the
+`release-please--**` entry. (This matters because a push to a non-default
+branch is evaluated against the workflow file on *that* branch, not the one
+on `main`.) release-please pushed that commit to the branch at
+`2026-07-27T21:53:43Z`. What the push produced:
 
-Residual risk, stated honestly: GitHub's anti-recursion rule suppresses
-workflow runs for *all* `GITHUB_TOKEN`-triggered events, and release-please
-pushes the release branch with that same token. If `push` is suppressed the
-same way `pull_request` is, checks still will not attach and this fix is
-inert (harmless, but inert). It can only be settled empirically at the next
-release. What to look for: check runs present on the release PR's head
-commit, and **no** `Deploy to Staging` / `Verify Staging` / `Promote latest
-tag` / notifier job having run.
+| | |
+| --- | --- |
+| Workflow runs on branch `release-please--branches--main--components--loyalty-app` | 44 |
+| …with `event == "pull_request"` | 44 |
+| …with `event == "push"` | **0** |
+
+The trigger was in place, on the right branch, on the right commit, and
+created nothing. #377 was inert and has been reverted (the `push: branches:`
+list is back to `[main]` in both workflows).
+
+**The two `GITHUB_TOKEN` behaviours are different, and that is the whole
+lesson.** GitHub's anti-recursion rule is not one rule:
+
+- **`push` from `GITHUB_TOKEN` → no workflow run is created at all.** There
+  is nothing to approve and nothing to see. This is why #377 was inert.
+- **`pull_request` from `GITHUB_TOKEN` → a run *is* created**, but parked in
+  an approval-required state (`status: completed`, `conclusion:
+  action_required`) and never started. This behaviour arrived 2026-06-11; it
+  is why the earlier release PRs show parked runs rather than no runs.
+
+#378's own five `pull_request` runs demonstrate the parked path end to end:
+all five were `created_at 2026-07-27T21:53:47Z` and sat unstarted until
+`run_started_at 22:00:36Z` as `run_attempt: 2` with `triggering_actor:
+jwinut` — i.e. they only ran because a human clicked approve in the Actions
+UI. Absent that click, the head commit merges with no completed checks.
+
+**Kept from #377:** the `enable={{is_default_branch}}` scoping on both
+`type=ref,event=branch` tags in `build-and-push`'s `docker/metadata-action`
+steps. It is correct independently of the trigger — nothing consumes a
+mutable `:<branch>` GHCR tag off `main`, every automated consumer
+(`deploy-staging`, `deploy.yml`, `regression-api`, `start-app-stack`) reads
+the immutable commit-SHA tag, and `pull_request` events already reach this
+job. `main` is unaffected: `is_default_branch` is true there, so `:main` is
+published exactly as before.
+
+**Real fix (not yet implemented):** have `release-please.yml` mint a GitHub
+App installation token and pass it to `googleapis/release-please-action` via
+`token:`. An App identity is not `GITHUB_TOKEN`, so its `pull_request` events
+create runs that start normally, and the release PR gets checks like any
+other PR. Until that lands the honest statement of the position is: **release
+PRs carry no completed checks unless a maintainer manually approves their
+parked runs**, and that is what Scorecard #92 / #925 are measuring.

@@ -196,18 +196,29 @@ failure and **closed automatically on recovery**, which is also what clears
 `LAST-FAILURE`. Setup, token rotation and the alert drill:
 [`docs/restore-runbook.md`](docs/restore-runbook.md).
 
-**Release-please branches run the full suite before merge.** `ci-test.yml`
-and `ci-build-e2e.yml` also trigger on `push` to `release-please--**`.
-release-please opens its PR with `GITHUB_TOKEN`, and GitHub raises no
-`pull_request` workflow run for bot-token events — so release PRs used to
-merge with *zero* checks on their head commit, and merging one is exactly
-what fires the unattended production deploy. The deploy-triggering PR class
-must not be the unverified one. Only the build/test half runs there: every
-mutating job (`promote-latest`, `deploy-staging`, `verify-staging`, the
-notifiers) is gated on `github.ref == 'refs/heads/main'`, and `deploy.yml`'s
-`workflow_run` trigger is filtered to `branches: [main]`, so a release-branch
-run cannot reach staging or production. Cost: one extra full pipeline each
-time release-please updates the release branch.
+**Release-please PRs currently merge without checks — this is a known,
+unfixed gap.** `release-please.yml` authors its release PR as
+`github-actions[bot]` using `GITHUB_TOKEN`, and GitHub treats
+`GITHUB_TOKEN`-driven events specially in two different ways:
+
+- **`push`** — no workflow run is created *at all* (the long-standing
+  anti-recursion rule). Adding `release-please--**` to a workflow's `push:
+  branches:` list therefore does nothing; that was tried in #377 and reverted
+  once release PR #378 confirmed zero `push` runs on the release branch.
+- **`pull_request`** — since 2026-06-11 a run *is* created, but parked in an
+  approval-required state (`action_required`). It never starts unless a
+  maintainer approves it in the Actions UI.
+
+Net position today: a release PR's head commit carries **no completed
+checks** unless someone manually approves its parked runs, and merging that
+PR is exactly what fires the unattended production deploy. This shortfall is
+what OpenSSF Scorecard alerts #92 (SAST) and #925 (CI-Tests) measure.
+
+Planned fix (**not yet implemented**): have `release-please.yml` mint a
+GitHub App installation token and pass it to the action, so the release PR is
+authored by an App identity rather than `GITHUB_TOKEN` and its CI runs are
+created and started like any other PR's. Until that lands, treat a release PR
+as unverified: check the checks before merging one.
 
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green
