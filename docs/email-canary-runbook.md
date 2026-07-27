@@ -68,19 +68,79 @@ outage.
 - Each run retries the send **3 times** (0s / 20s / 60s backoff). Only a run
   where *every* attempt fails counts as a confirmed failure — one refused
   connection at 03:23 is a blip, not an incident.
-- Failure → create the issue `Email canary - outbound mail is failing`, or
-  comment on it if it is already open.
-- "The canary could not run at all" (empty SMTP secrets) files a second issue,
-  `Email canary - probe could not run, SMTP secrets empty`, because the first
-  move differs: fix the workflow or the secrets, not the mailbox. Unverified is
-  still an alert — it is not the same as working.
-- Success → comment "delivering again" on **either** issue if open and **close
-  it**. A probe the relay accepted disproves both alarms at once. Failure
-  alerts are always paired with a recovery notification.
-- Neither title contains a colon, and both are searched as quoted phrases:
-  `gh issue list --search` speaks GitHub search syntax, where `word:` reads as
-  a qualifier. Get that wrong and the lookup silently returns nothing, filing a
-  duplicate issue on every probe instead of commenting on the open one.
+- Success → comment "delivering again" on **any** of the three alarms below
+  that is open, and **close it**. A probe the relay accepted disproves all
+  three at once: the canary evidently ran, saw its secrets, and got a `250`.
+  Failure alerts are always paired with a recovery notification.
+
+### The three alarms
+
+Each has a different *first move*, which is why they are three issues and not
+one. Every one of them is closed automatically by the same recovery step, so no
+alarm can be left without a closer. That step's `if:` is prefixed with
+`always() &&` deliberately: without it the step would be implicitly ANDed with
+`success()`, so a probe that recorded `result=ok` and then died would leave a
+stale alarm open even though the relay had just accepted a real message.
+
+| Title (no colons — see below) | Means | First move |
+| --- | --- | --- |
+| `Email canary - outbound mail is failing` | The probe ran and the relay refused every attempt. Mail is **known broken**. | Read the relay response quoted in the issue; work the table below. |
+| `Email canary - probe could not run, SMTP secrets empty` | The guard step found an empty `SMTP_HOST`/`USER`/`PASS`. Nothing was probed. | Fix the secrets/workflow — see "the environment-scope trap". |
+| `Email canary - the canary itself is broken, mail state unknown` | The run died somewhere the workflow does not model, or was cancelled. Mail is **neither known broken nor known working**. | **Read the run log first** — not the relay, not the secrets. |
+
+The third one is the catch-all. Before it existed, a probe step that died for
+any reason other than the secrets guard produced a red run and *no alert at
+all* — three separate holes:
+
+1. the probe dies early (missing tool, a `set -u` trip, `mktemp` failing):
+   `result` is never written, so the delivery-failure alert's `if:` is false,
+   and the misconfig alert's is false too because the guard passed;
+2. the probe writes `result=failed` **and then dies**: the output is there and
+   correct, but a step `if:` containing no status function is implicitly ANDed
+   with `success()`, so the alert is skipped on the run where it mattered most.
+   This is why the catch-all's own gate keys on step *outcomes*, never on
+   `steps.probe.outputs.result`;
+3. an alert step itself fails (a `gh`/network hiccup), or the run is cancelled.
+
+Its issue body leads with "the state of outbound mail is UNKNOWN", carries a
+table of every step's outcome, and deliberately contains **no relay
+diagnosis** — sending someone to inspect secrets or a mailbox that are both
+fine is how an alert loses its audience. If the probe *had* recorded
+`result=failed` before dying, the body says so and tells you to treat it as a
+probable mail outage as well. If **you** cancelled the run, close the issue.
+
+The catch-all sits *above* the final "fail the run" step on purpose: that step
+calls `exit 1` on every confirmed delivery failure, which makes `failure()`
+true for everything after it, so a catch-all placed below would file "the
+canary is broken" alongside every genuine mail outage.
+
+### Deduplication
+
+Alert lookups use the issues API, **not** the search index:
+
+```bash
+EXISTING=$(TITLE="$TITLE" gh issue list -R "$REPO" --state open --limit 200 \
+  --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+```
+
+`gh issue list --search` reads GitHub's *search index*, which lags writes by
+seconds to minutes, so two runs inside that window each conclude "no open
+issue" and each file one. Without `--search`, `gh` reads the issues API, which
+is read-after-write consistent. A post-create re-search would not help — it
+re-reads the same stale index. The residual race is two creates within the same
+few milliseconds; `concurrency: email-canary` (with `cancel-in-progress:
+false`) already serialises this workflow, so that is accepted.
+
+The four lookups in the workflow are byte-identical, so a reviewer can diff
+them by eye. None of the create paths passes `--label`: as in `cargo-audit.yml`
+and `deploy.yml`'s notifier, alerting must never depend on label configuration
+— an unlabelled issue beats an alert that failed because a label was renamed.
+Label after triage.
+
+**No title contains a colon.** The lookups no longer use `--search`, but the
+rule stands for the day someone reaches for it again: `--search` speaks GitHub
+search syntax, where `word:` reads as a qualifier, so a colon silently matches
+nothing and files a duplicate on every probe.
 
 ---
 
@@ -97,6 +157,7 @@ response code is the diagnosis:
 | `4xx`, "try again later" | Throttling. Three failures in a row is still worth a look. | Check send volume; consider whether the relay is rate-limiting. |
 | `curl: (7)` / timeout / TLS error | Network or relay down. | Check the provider's status page; re-run the workflow. |
 | "one or more SMTP secrets were empty" | The canary never probed. | See "the environment-scope trap" below. |
+| "the canary itself is broken, mail state unknown" | No relay response exists — the run died or was cancelled. | Read the run log; the issue's step-outcome table says which step. Mail may be perfectly fine. |
 
 While any of these is unresolved, assume **password resets, email verification
 and booking mail are all failing**, and that `/api/health` will keep saying
@@ -109,20 +170,48 @@ issue and closes it automatically.
 
 Actions → **Email Canary** → *Run workflow*:
 
-- **Normal probe** — leave both inputs unchecked. Sends a real canary message
+- **Normal probe** — leave every input unchecked. Sends a real canary message
   and, if an alert issue is open, closes it.
-- **Exercise the alert path** — check `simulate_failure`. The send is retried
-  with a deliberately unowned envelope sender
+- **Exercise the delivery-failure alert** — check `simulate_failure`. The send
+  is retried with a deliberately unowned envelope sender
   (`simulated-failure@canary.invalid`, a reserved TLD per RFC 2606), so the
   relay refuses it exactly the way it refused everything in #352 — a real
   rejection, not a faked exit code, and no message can escape to a real
   mailbox. The alert issue is then filed for real, so **close it yourself**
   afterwards or let the next scheduled run close it.
+- **Exercise the catch-all alert** — check `simulate_crash`. The probe step
+  dereferences a deliberately unset variable under `set -u`, which kills the
+  shell outright *before* anything is written to `$GITHUB_OUTPUT` — a genuine
+  dead step, not a scripted `exit 1`, and the same discipline `simulate_failure`
+  uses. Expect: the probe step red, the two normal alert steps skipped, and
+  `Email canary - the canary itself is broken, mail state unknown` filed with
+  `Probe recorded result` = *never written*. **No mail is sent.** Close the
+  issue yourself afterwards or let the next scheduled run close it.
+  `simulate_crash` **wins over** `simulate_failure` if both are checked: the
+  crash happens before the send is even assembled.
 - **Probe without side effects** — check `skip_alert`. Sends (or fails) and
   reports in the job summary, but never creates, comments on, or closes an
-  issue. Useful when verifying a relay change.
+  issue — including the catch-all. Useful when verifying a relay change.
 
 `workflow_dispatch` only appears once the workflow is on `main`.
+
+### Known gap — a job-level death cannot alert
+
+Every alarm above is raised by a *step inside the job*. If the job itself never
+gets to run those steps, nothing is filed:
+
+- the job hits its `timeout-minutes: 15` ceiling,
+- the runner is lost (hardware, network, a spot reclaim),
+- the whole workflow is cancelled before the alert steps are reached, or
+- the YAML fails to parse / the `production` environment blocks the job.
+
+In those cases the only signal is **a red run in the Actions list**. This is a
+deliberate call: catching it would need a second job (`if: always()`, `needs:
+probe`) whose only purpose is to watch the first, and a monitor-the-monitor job
+is its own maintenance burden and its own thing to go quietly wrong. A
+scheduled canary that silently stops appearing is a slow failure mode, so the
+compensating habit is: if you have not seen a green **Email Canary** run in the
+last ~12 hours (it runs every 6), open the Actions tab and look.
 
 ---
 
@@ -131,6 +220,7 @@ Actions → **Email Canary** → *Run workflow*:
 | Name | Where | Notes |
 | --- | --- | --- |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Secrets on the **`production` environment** | The same values `deploy.yml` already pipes through a runner on every production deploy — using them here is not a new exposure class. |
+| `SMTP_PORT` specifically | Same secret — **single source of truth** | A repo *variable* named `SMTP_PORT` is read by nothing. When the secret is empty the canary falls back to **587/STARTTLS** and logs a `::warning`, because 587 is what `deploy.yml`, all four `docker-compose.*.yml` files and the backend's `config/mod.rs` fall back to. A canary that defaulted to 465 would probe implicit TLS on a door the app never opens and report green about it. |
 | `CANARY_EMAIL_TO` | *Optional* secret or variable | Where the canary mail goes. **Unset today**, so the canary sends the mailbox a message to itself. That default needs no second mailbox to exist and still has to pass `MAIL FROM`, which is the stage where #352 failed. |
 
 ### The environment-scope trap
