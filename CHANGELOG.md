@@ -11,6 +11,15 @@ merging that PR is what tags `vX.Y.Z` and publishes the GitHub release.
 Entries below the generated sections are the earlier hand-written, dated
 format, kept verbatim for history.
 
+## [4.4.1](https://github.com/thehfhotel/loyalty-app/compare/v4.4.0...v4.4.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ci:** provision the E2E admin via ADMIN_BOOTSTRAP_EMAILS and drop the skip-on-403 masks ([#357](https://github.com/thehfhotel/loyalty-app/issues/357)) ([71e6437](https://github.com/thehfhotel/loyalty-app/commit/71e6437742f70cc5595e06f076859c92e76b1961))
+* **ci:** restore security-events permission on trivy scan-filesystem ([#359](https://github.com/thehfhotel/loyalty-app/issues/359)) ([0911ed1](https://github.com/thehfhotel/loyalty-app/commit/0911ed125a8019f75aca773775e858e9582327a1))
+* **ops:** backup unit could never start on evergreen (snap docker) ([#351](https://github.com/thehfhotel/loyalty-app/issues/351)) ([96c9ab7](https://github.com/thehfhotel/loyalty-app/commit/96c9ab743d10ab53996db4e1adc8e0465f85a2ff))
+
 ## [4.4.0](https://github.com/thehfhotel/loyalty-app/compare/v4.3.0...v4.4.0) (2026-07-26)
 
 
