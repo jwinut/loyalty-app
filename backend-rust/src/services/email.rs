@@ -509,11 +509,17 @@ impl EmailService for EmailServiceImpl {
         // once in `SmtpConfig::from_address`. A malformed value is also
         // reported at startup (see `log_startup_info`) so it doesn't surface
         // for the first time here, mid-request.
-        let from_mailbox = Self::parse_mailbox(&config.from).inspect_err(|_| {
+        //
+        // `map_err(|e| { …; e })` rather than `inspect_err`: the crate's MSRV
+        // is 1.75 (Cargo.toml `rust-version`) and `Result::inspect_err` is
+        // 1.76, which `clippy::incompatible_msrv` rejects.
+        let from_mailbox = Self::parse_mailbox(&config.from).map_err(|e| {
             counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => "invalid_address").increment(1);
+            e
         })?;
-        let to_mailbox = Self::parse_mailbox(to).inspect_err(|_| {
+        let to_mailbox = Self::parse_mailbox(to).map_err(|e| {
             counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => "invalid_address").increment(1);
+            e
         })?;
 
         // Create plain text version by stripping HTML tags (simple approach)
