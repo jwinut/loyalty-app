@@ -27,6 +27,58 @@ name: Release Please
 # version instead re-syncs from Cargo.toml on the next cargo invocation, and
 # nothing in CI builds with `--locked`, so a temporarily stale entry there is
 # cosmetic. Committed in sync here.
+#
+# =============================================================================
+# WHY THIS JOB AUTHENTICATES AS A GITHUB APP AND NOT AS GITHUB_TOKEN
+#
+# Release PRs used to arrive with ZERO check runs on their head commit, and
+# merging a release PR is exactly what fires the UNATTENDED production deploy.
+# The one PR class that ships to production was the one class nothing verified.
+# That is the whole of OpenSSF Scorecard alerts #92 (SAST) and #925 (CI-Tests).
+#
+# Two separate GitHub behaviours produced it, both keyed on the *token that
+# authored the event*, and neither has an opt-out setting:
+#
+#   1. `pull_request` runs for PRs authored by `github-actions[bot]` are PARKED
+#      in an approval-required state (`action_required`) — a rule GitHub
+#      introduced 2026-06-11. They never start unless a human clicks approve.
+#   2. `push` events made with GITHUB_TOKEN raise NO workflow run at all
+#      (the long-standing anti-recursion rule).
+#
+# Adding `release-please--**` to the `push:` triggers of ci-test.yml /
+# ci-build-e2e.yml was an earlier attempt at this (#377) and was inert for
+# reason (2): the branch push carries the same GITHUB_TOKEN, so no run is
+# created. Release PR #378 confirmed it — 44 runs on the release branch, all
+# 44 `pull_request`, ZERO `push` — and #379 reverted the trigger. Do not
+# re-add it; the author identity, not the trigger list, is what was wrong.
+#
+# GitHub's documented fix is to author the PR with a **GitHub App installation
+# token**. Events created by an App installation are ordinary events: they
+# raise `pull_request` runs that start immediately, and they raise `push` runs.
+# So the release PR now gets checks on its head commit like any other PR.
+#
+# The App is `hf-release-bot` (app_id in `vars.RELEASE_BOT_APP_ID`, private key
+# in `secrets.RELEASE_BOT_PRIVATE_KEY`), installed on the `thehfhotel` org with
+# repository_selection=selected — this repository only — and holding exactly
+# three permissions: contents=write, pull_requests=write, metadata=read. It has
+# NO `actions` permission, so it cannot approve, cancel or re-run workflows,
+# and NO `administration`, so it cannot touch settings or branch protection.
+#
+# FAIL LOUDLY, NEVER FALL BACK. If the token cannot be minted — key rotated,
+# secret deleted, App uninstalled — this job MUST go red. There is deliberately
+# no `|| github.token` anywhere below: a fallback would silently restore the
+# parked-runs problem while the workflow reported green, which is precisely the
+# failure mode this change exists to remove. The guard step below therefore
+# checks both settings are non-empty BEFORE minting (an empty
+# `vars.RELEASE_BOT_APP_ID` otherwise surfaces as an opaque 401 from the API),
+# and a second step asserts a non-empty token actually came back.
+#
+# Operational dependency, stated plainly: this workflow now depends on an App
+# that a human can delete or whose key a human can rotate. If it breaks, the
+# symptom is "Release Please" failing on `main` with one of the two guard
+# errors and no release PR appearing. The fix is to re-add the credential —
+# see docs/secrets-runbook.md → "Release-bot App".
+# =============================================================================
 
 on:
   push:
@@ -48,13 +100,88 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      # Create/update the release PR branch, and tag + publish on merge.
+      # NOTE — these two are now REDUNDANT and are deliberately left unchanged
+      # rather than silently narrowed in the same PR that switches the auth.
+      #
+      # They scope GITHUB_TOKEN, and after this change nothing in this job uses
+      # GITHUB_TOKEN: release-please receives the App installation token via its
+      # `token:` input (below) and makes every API call with it, and
+      # create-github-app-token authenticates with the private key, not with
+      # GITHUB_TOKEN. Narrowing both to `contents: read` is the correct
+      # follow-up, but it should land only once a real release has been
+      # observed running end-to-end on the App token — so that if something
+      # does go wrong, the failure is the loud guard below and not a confusing
+      # 403 from a permission that was tightened at the same time.
+      #
+      # This is NOT a widening: it is the exact permission set the job already
+      # had before the App token existed.
       contents: write
       pull-requests: write
 
     steps:
+      # -----------------------------------------------------------------------
+      # A missing credential must be a red run with a readable message, never a
+      # quiet fallback to GITHUB_TOKEN. `vars.*` and `secrets.*` that do not
+      # exist expand to EMPTY STRINGS with no error, so nothing below would
+      # notice on its own: create-github-app-token would just report a 401 that
+      # reads like an App/permissions problem rather than "the secret is gone".
+      # -----------------------------------------------------------------------
+      - name: Guard — hf-release-bot App credentials must be visible to this job
+        env:
+          RELEASE_BOT_APP_ID: ${{ vars.RELEASE_BOT_APP_ID }}
+          RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${RELEASE_BOT_APP_ID:-}" ] || missing="${missing} vars.RELEASE_BOT_APP_ID (Settings -> Secrets and variables -> Actions -> Variables)"
+          [ -n "${RELEASE_BOT_PRIVATE_KEY:-}" ] || missing="${missing} secrets.RELEASE_BOT_PRIVATE_KEY (Settings -> Secrets and variables -> Actions -> Secrets)"
+
+          if [ -n "$missing" ]; then
+            echo "::error title=Release Please cannot authenticate::Empty release-bot setting(s):${missing}. These belong to the 'hf-release-bot' GitHub App, which must stay installed on thehfhotel/loyalty-app with contents=write, pull_requests=write, metadata=read. This job DOES NOT fall back to GITHUB_TOKEN on purpose: a release PR authored by github-actions[bot] gets its pull_request runs PARKED in action_required and gets no push runs at all, so it would merge to main with zero checks and fire the unattended production deploy unverified. Restore the credential (docs/secrets-runbook.md -> 'Release-bot App') and re-run; do not work around this by removing the token: input."
+            exit 1
+          fi
+          echo "vars.RELEASE_BOT_APP_ID and secrets.RELEASE_BOT_PRIVATE_KEY are both non-empty."
+
+      - name: Mint hf-release-bot installation token
+        id: app-token
+        # `app-id` is soft-deprecated upstream in favour of `client-id`; both
+        # are accepted at v3.2.0 and app-id only emits a deprecation notice.
+        # Switch to client-id when the App's client ID is recorded as a repo
+        # variable — that is a rename, not a behaviour change.
+        #
+        # `owner`/`repositories` are intentionally omitted: the action then
+        # scopes the token to THIS repository, which is the narrowest option
+        # and matches the App's repository_selection=selected installation.
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      # Belt and braces. The mint step above fails on an API error by itself,
+      # so this mainly defends the invariant against a future edit that adds a
+      # `continue-on-error:` or an `|| github.token` fallback: an empty token
+      # reaching release-please would make it fall back to the ambient
+      # GITHUB_TOKEN and quietly re-create the parked-runs bug, green.
+      - name: Assert an installation token was actually minted
+        env:
+          # Via env, never inlined as ${{ }} into the script body — repo rule:
+          # no expression interpolation inside `run:`.
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          APP_INSTALLATION_ID: ${{ steps.app-token.outputs.installation-id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_TOKEN:-}" ]; then
+            echo "::error title=Release Please got an empty App token::actions/create-github-app-token produced no token, so release-please would silently fall back to GITHUB_TOKEN and open a release PR that CI refuses to run (parked in action_required). Check the 'hf-release-bot' App is still installed on thehfhotel/loyalty-app and that secrets.RELEASE_BOT_PRIVATE_KEY matches a key that has not been deleted in the App settings. See docs/secrets-runbook.md -> 'Release-bot App'."
+            exit 1
+          fi
+          echo "Installation token minted for app-slug '${APP_SLUG}' (installation ${APP_INSTALLATION_ID})."
+
       - name: Run release-please
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
+          # The App token, NOT github.token (which is this input's default).
+          # This is the single line that makes release PRs runnable by CI.
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
