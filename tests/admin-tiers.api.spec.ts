@@ -5,20 +5,20 @@ import { retryRequest } from './helpers/retry';
  * E2E tests for admin tier management (/api/loyalty/admin/tiers)
  *
  * Runs against a SHARED stack, so it never mutates the four real tiers:
- * when it can act as admin it works on ONE fixed-name INACTIVE probe tier
- * with create-if-missing-else-reuse semantics (repeated runs converge to a
+ * it works on ONE fixed-name INACTIVE probe tier with
+ * create-if-missing-else-reuse semantics (repeated runs converge to a
  * single row instead of accumulating uniquely-named tiers), updates only
  * that tier, and verifies it is visible in the admin list but hidden from
  * the public /api/loyalty/tiers endpoint.
  *
- * Admin capability is probed once in beforeAll: the CI stack seeds
- * e2e-admin@test.local through the public register endpoint, which may or
- * may not be elevated to the admin role depending on the stack's admin
- * provisioning. Instead of skipping when it is not elevated (this suite is
- * a deploy gate — silent skips would hide regressions), every mutation
- * test asserts the OTHER contract in that case: the endpoint must enforce
- * 403 for the non-elevated account. Both branches are real assertions
- * about the deployed backend.
+ * The CI backend container sets ADMIN_BOOTSTRAP_EMAILS=e2e-admin@test.local
+ * (.github/actions/start-app-stack/action.yml), so registering that email
+ * yields a REAL admin account from its very first JWT (issue #348).
+ * beforeAll hard-asserts that guarantee once, and every admin test then
+ * asserts the full admin contract unconditionally — no dual-branch 403
+ * arms, no skips (this suite is a deploy gate; silent skips would hide
+ * regressions). RBAC enforcement is still covered explicitly by the
+ * unauthenticated (401) and plain-customer (403) tests.
  */
 test.describe('Admin Tier Management', () => {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:4202';
@@ -36,7 +36,6 @@ test.describe('Admin Tier Management', () => {
   const tierName = 'E2E Perks Probe (inactive)';
 
   let adminToken: string | null = null;
-  let adminIsPrivileged = false;
   let customerToken: string | null = null;
   let csrfToken: string | null = null;
   let createdTierId: string | null = null;
@@ -98,17 +97,38 @@ test.describe('Admin Tier Management', () => {
       if (registerResponse.ok()) {
         const registerData = await registerResponse.json();
         adminToken = registerData.tokens?.accessToken || registerData.accessToken;
+      } else {
+        // A parallel or earlier run may have registered the account between
+        // our login attempt and this register (409 Conflict). Retry the
+        // login ONCE and take that token; the hard assertions below still
+        // apply unconditionally.
+        const retryLoginResponse = await request.post(`${backendUrl}/api/auth/login`, {
+          data: { email: adminEmail, password: adminPassword },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
+          },
+        });
+        if (retryLoginResponse.ok()) {
+          const retryLoginData = await retryLoginResponse.json();
+          adminToken = retryLoginData.tokens?.accessToken || retryLoginData.accessToken;
+        }
       }
     }
 
-    // Probe whether the account actually carries the admin role on this
-    // stack (depends on the stack's admin provisioning).
-    if (adminToken) {
-      const probe = await request.get(`${backendUrl}/api/loyalty/admin/tiers`, {
-        headers: authHeaders(adminToken),
-      });
-      adminIsPrivileged = probe.status() === 200;
-    }
+    // Hard-assert the account actually carries the admin role. The CI
+    // backend sets ADMIN_BOOTSTRAP_EMAILS=e2e-admin@test.local, which
+    // promotes this account to admin at registration — fail loudly here
+    // instead of silently degrading the deploy gate.
+    expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
+    const probe = await request.get(`${backendUrl}/api/loyalty/admin/tiers`, {
+      headers: authHeaders(adminToken as string),
+    });
+    expect(
+      probe.status(),
+      `GET /api/loyalty/admin/tiers must answer 200 for ${adminEmail} — ` +
+        'check ADMIN_BOOTSTRAP_EMAILS on the backend container',
+    ).toBe(200);
 
     // Register a regular customer for the 403 checks
     const customerRegisterResponse = await request.post(`${backendUrl}/api/auth/register`, {
@@ -176,24 +196,8 @@ test.describe('Admin Tier Management', () => {
   });
 
   test.describe('2. Create Inactive Tier', () => {
-    test('create or reuse the probe tier: full contract as admin, 403 otherwise', async ({ request }) => {
+    test('should create or reuse the inactive probe tier', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
-
-      if (!adminIsPrivileged) {
-        // Stack without admin provisioning: RBAC must still hold.
-        const response = await request.post(`${backendUrl}/api/loyalty/admin/tiers`, {
-          data: {
-            name: tierName,
-            min_nights: 9999,
-            color: '#123456',
-            is_active: false,
-            benefits: initialBenefits,
-          },
-          headers: authHeaders(adminToken as string),
-        });
-        expect(response.status()).toBe(403);
-        return;
-      }
 
       // Create-if-missing-else-reuse: look the fixed name up first so
       // repeated runs on a shared stack converge to one probe row.
@@ -258,23 +262,22 @@ test.describe('Admin Tier Management', () => {
       expect(createdTierId).toBeTruthy();
     });
 
-    test('invalid tier payloads: 400 as admin, 403 otherwise', async ({ request }) => {
+    test('invalid tier payloads are rejected with 400', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
-      const rejectedStatus = adminIsPrivileged ? 400 : 403;
 
       // Invalid color
       const badColor = await request.post(`${backendUrl}/api/loyalty/admin/tiers`, {
         data: { name: `E2E Bad Color ${Date.now()}`, min_nights: 1, color: 'red', is_active: false },
         headers: authHeaders(adminToken as string),
       });
-      expect(badColor.status()).toBe(rejectedStatus);
+      expect(badColor.status()).toBe(400);
 
       // Negative min_nights
       const badNights = await request.post(`${backendUrl}/api/loyalty/admin/tiers`, {
         data: { name: `E2E Bad Nights ${Date.now()}`, min_nights: -1, color: '#123456', is_active: false },
         headers: authHeaders(adminToken as string),
       });
-      expect(badNights.status()).toBe(rejectedStatus);
+      expect(badNights.status()).toBe(400);
 
       // Legacy flat benefits shape must be rejected
       const badBenefits = await request.post(`${backendUrl}/api/loyalty/admin/tiers`, {
@@ -287,43 +290,25 @@ test.describe('Admin Tier Management', () => {
         },
         headers: authHeaders(adminToken as string),
       });
-      expect(badBenefits.status()).toBe(rejectedStatus);
+      expect(badBenefits.status()).toBe(400);
     });
 
-    test('duplicate tier name: 409 as admin, 403 otherwise', async ({ request }) => {
+    test('duplicate tier name is rejected with 409', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
+      expect(createdTierId, 'tier must have been created').toBeTruthy();
 
       const response = await request.post(`${backendUrl}/api/loyalty/admin/tiers`, {
         data: { name: tierName, min_nights: 9999, color: '#123456', is_active: false },
         headers: authHeaders(adminToken as string),
       });
 
-      if (!adminIsPrivileged) {
-        expect(response.status()).toBe(403);
-        return;
-      }
-
-      expect(createdTierId, 'tier must have been created').toBeTruthy();
       expect(response.status()).toBe(409);
     });
   });
 
   test.describe('3. Update the Created Tier', () => {
-    test('update benefits and color: full contract as admin, 403 otherwise', async ({ request }) => {
+    test('should update benefits and color on the probe tier', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
-
-      if (!adminIsPrivileged) {
-        const response = await request.put(
-          `${backendUrl}/api/loyalty/admin/tiers/00000000-0000-0000-0000-000000000000`,
-          {
-            data: { benefits: updatedBenefits, color: '#654321' },
-            headers: authHeaders(adminToken as string),
-          },
-        );
-        expect(response.status()).toBe(403);
-        return;
-      }
-
       expect(createdTierId, 'tier must have been created').toBeTruthy();
       const response = await request.put(
         `${backendUrl}/api/loyalty/admin/tiers/${createdTierId}`,
@@ -344,7 +329,7 @@ test.describe('Admin Tier Management', () => {
       expect(body.data.recalculation).toBeNull();
     });
 
-    test('unknown tier id: 404 as admin, 403 otherwise', async ({ request }) => {
+    test('unknown tier id returns 404', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
 
       const response = await request.put(
@@ -354,22 +339,17 @@ test.describe('Admin Tier Management', () => {
           headers: authHeaders(adminToken as string),
         },
       );
-      expect(response.status()).toBe(adminIsPrivileged ? 404 : 403);
+      expect(response.status()).toBe(404);
     });
   });
 
   test.describe('4. Visibility', () => {
-    test('admin tier list: includes the inactive tier as admin, 403 otherwise', async ({ request }) => {
+    test('admin tier list includes the inactive probe tier', async ({ request }) => {
       expect(adminToken, 'admin account login/registration must succeed').toBeTruthy();
 
       const response = await request.get(`${backendUrl}/api/loyalty/admin/tiers`, {
         headers: authHeaders(adminToken as string),
       });
-
-      if (!adminIsPrivileged) {
-        expect(response.status()).toBe(403);
-        return;
-      }
 
       expect(response.status()).toBe(200);
       const body = await response.json();

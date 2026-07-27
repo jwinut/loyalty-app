@@ -430,6 +430,56 @@ pub struct LoyaltyServiceConfig {
     pub token: Option<String>,
 }
 
+/// Admin bootstrap allowlist (issue #348).
+///
+/// `ADMIN_BOOTSTRAP_EMAILS` is a comma-separated, case-insensitive list of
+/// email addresses whose accounts are promoted to the `admin` role
+/// automatically: in-transaction during `/api/auth/register` (so the very
+/// first JWT already carries `role=admin`) and via a startup sweep that
+/// covers pre-existing rows (including OAuth-created accounts).
+///
+/// Promotion is ONE-SHOT and UNAMBIGUOUS. Because `users.email`
+/// uniqueness is byte-exact while this allowlist matches
+/// case-insensitively, several distinct rows can match one entry; a
+/// promotion happens only when (a) exactly one user row matches the
+/// entry case-insensitively, (b) no matching row already holds
+/// admin/super_admin, and (c) no prior promotion for the entry is
+/// recorded in `user_audit_log` (action `admin_bootstrap_promotion`, the
+/// one-shot marker). Only `customer` rows are ever touched, nothing is
+/// ever demoted, and a deliberate demotion through the admin API is
+/// never undone by a later restart.
+///
+/// Intended for E2E stacks and one-time first-admin bootstrap. Remove the
+/// variable once the first admin exists: registration does not verify
+/// email ownership, so the FIRST registration of a listed address still
+/// becomes admin. Empty/unset disables the feature entirely.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct AdminBootstrapConfig {
+    /// Comma-separated allowlist; `None` or blank = feature off.
+    #[serde(default)]
+    pub emails: Option<String>,
+}
+
+impl AdminBootstrapConfig {
+    /// Parsed allowlist: split on `,`, trimmed, lowercased, empties dropped.
+    pub fn email_list(&self) -> Vec<String> {
+        self.emails
+            .as_deref()
+            .unwrap_or("")
+            .split(',')
+            .map(|e| e.trim().to_lowercase())
+            .filter(|e| !e.is_empty())
+            .collect()
+    }
+
+    /// Case-insensitive membership test. Always `false` when the list is
+    /// empty/unset (feature off).
+    pub fn contains(&self, email: &str) -> bool {
+        let needle = email.trim().to_lowercase();
+        !needle.is_empty() && self.email_list().iter().any(|e| e == &needle)
+    }
+}
+
 /// Server configuration
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
@@ -637,6 +687,10 @@ pub struct Settings {
     /// Inbound service token (PMS → loyalty accrual calls)
     #[serde(default)]
     pub loyalty_service: LoyaltyServiceConfig,
+
+    /// Admin bootstrap allowlist (`ADMIN_BOOTSTRAP_EMAILS`, issue #348)
+    #[serde(default)]
+    pub admin_bootstrap: AdminBootstrapConfig,
 }
 
 impl Settings {
@@ -751,6 +805,10 @@ impl Settings {
             .set_override_option(
                 "loyalty_service.token",
                 env::var("LOYALTY_SERVICE_TOKEN").ok(),
+            )?
+            .set_override_option(
+                "admin_bootstrap.emails",
+                env::var("ADMIN_BOOTSTRAP_EMAILS").ok(),
             )?
             .set_override_option("security.max_file_size", env::var("MAX_FILE_SIZE").ok())?
             .set_override_option(
@@ -931,6 +989,35 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_admin_bootstrap_email_list_parsing() {
+        // Unset = off
+        let cfg = AdminBootstrapConfig::default();
+        assert!(cfg.email_list().is_empty());
+        assert!(!cfg.contains("anyone@example.com"));
+
+        // Blank / separators-only = off
+        let cfg = AdminBootstrapConfig {
+            emails: Some("  , ,".to_string()),
+        };
+        assert!(cfg.email_list().is_empty());
+        assert!(!cfg.contains("anyone@example.com"));
+
+        // Comma-separated, trimmed, lowercased, case-insensitive matching
+        let cfg = AdminBootstrapConfig {
+            emails: Some(" Admin@Example.COM , e2e-admin@test.local ".to_string()),
+        };
+        assert_eq!(
+            cfg.email_list(),
+            vec!["admin@example.com", "e2e-admin@test.local"]
+        );
+        assert!(cfg.contains("admin@example.com"));
+        assert!(cfg.contains("ADMIN@example.com"));
+        assert!(cfg.contains("e2e-admin@test.local"));
+        assert!(!cfg.contains("other@example.com"));
+        assert!(!cfg.contains(""));
+    }
 
     #[test]
     fn test_environment_from_string() {

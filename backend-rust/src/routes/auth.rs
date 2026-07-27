@@ -446,10 +446,118 @@ async fn register(
     .await
     .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
 
-    let user_row = match user_row {
+    let mut user_row = match user_row {
         Some(row) => row,
         None => return Err(AppError::Conflict("Email already registered".to_string())),
     };
+
+    // Admin bootstrap (issue #348): when the registering email is on the
+    // ADMIN_BOOTSTRAP_EMAILS allowlist, promote the freshly inserted row
+    // to 'admin' inside the same transaction, so the very first JWT (and
+    // the response body below) already carry role=admin.
+    //
+    // SECURITY: `payload.email` is USER INPUT, not operator config — the
+    // allowlist match only proves the submitted address collides
+    // case-insensitively with a configured entry. `users.email`
+    // uniqueness is byte-exact, so a case variant of a listed address is
+    // a DISTINCT row that still satisfies `contains()`. Promotion is
+    // therefore one-shot and unambiguous; it happens only when:
+    //
+    // (a) no OTHER user row matches the entry case-insensitively (the
+    //     only candidate is the row just inserted) — ambiguity means a
+    //     case-variant row exists and we refuse;
+    // (b) no matching row already holds admin/super_admin — implied by
+    //     (a) here, because the sole matching row is the one this
+    //     transaction just inserted with role 'customer';
+    // (c) no prior bootstrap promotion is recorded for the entry — the
+    //     `admin_bootstrap_promotion` row in `user_audit_log` is the
+    //     one-shot marker shared with the startup sweep.
+    //
+    // Checks, role UPDATE, and marker INSERT all run in this
+    // transaction, so the promotion cannot half-apply. The raw email is
+    // never logged (user input, PII) — only its stable hash.
+    if state.config().admin_bootstrap.contains(&payload.email) {
+        let entry = payload.email.trim().to_lowercase();
+        let entry_hash = crate::utils::hash_email(&entry);
+
+        // Serialize concurrent promotions for the same entry (two case
+        // variants registering at once would otherwise each see zero
+        // "other" rows under READ COMMITTED). Transaction-scoped lock,
+        // shared with the startup sweep; released on commit/rollback.
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
+            .bind(format!("admin_bootstrap:{entry}"))
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+        // (a) rows OTHER than the one just inserted.
+        let other_matches: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE lower(email) = $1 AND id <> $2")
+                .bind(&entry)
+                .bind(user_row.id)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+        // (c) one-shot marker.
+        let prior_promotions: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM user_audit_log \
+             WHERE action = 'admin_bootstrap_promotion' AND details->>'email_hash' = $1",
+        )
+        .bind(&entry_hash)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+        if other_matches > 0 {
+            tracing::warn!(
+                email_hash = %entry_hash,
+                user_id = %user_row.id,
+                other_matching_rows = other_matches,
+                "Admin bootstrap: refusing register-path promotion — {} other user row(s) \
+                 match the allowlist entry case-insensitively (ambiguous; possible \
+                 case-variant escalation attempt). Registering as customer.",
+                other_matches
+            );
+        } else if prior_promotions > 0 {
+            tracing::warn!(
+                email_hash = %entry_hash,
+                user_id = %user_row.id,
+                "Admin bootstrap: refusing register-path promotion — a promotion for this \
+                 entry is already recorded (one-shot). Registering as customer."
+            );
+        } else {
+            sqlx::query(
+                r#"
+                UPDATE users
+                SET role = 'admin'::user_role, updated_at = NOW()
+                WHERE id = $1 AND role = 'customer'::user_role
+                "#,
+            )
+            .bind(user_row.id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+            // One-shot marker + audit trail, same transaction as the UPDATE.
+            sqlx::query(
+                "INSERT INTO user_audit_log (user_id, action, details) \
+                 VALUES ($1, 'admin_bootstrap_promotion', $2)",
+            )
+            .bind(user_row.id)
+            .bind(serde_json::json!({ "email_hash": entry_hash, "source": "register" }))
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| AppError::DatabaseQuery(e.to_string()))?;
+
+            user_row.role = Some(UserRole::Admin);
+            tracing::info!(
+                email_hash = %entry_hash,
+                user_id = %user_row.id,
+                "Admin bootstrap: promoted registering user to admin (ADMIN_BOOTSTRAP_EMAILS)"
+            );
+        }
+    }
 
     // Create user profile
     sqlx::query(

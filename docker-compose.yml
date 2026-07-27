@@ -55,6 +55,9 @@ services:
       LINE_CLIENT_SECRET: ${LINE_CHANNEL_SECRET:?LINE_CHANNEL_SECRET is required}
       LINE_CALLBACK_URL: ${LINE_CALLBACK_URL:?LINE_CALLBACK_URL is required}
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      # Admin bootstrap allowlist (issue #348) — empty/unset = feature off.
+      # See .env.example for semantics and the remove-after-use warning.
+      ADMIN_BOOTSTRAP_EMAILS: ${ADMIN_BOOTSTRAP_EMAILS:-}
       # Email configuration (optional)
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

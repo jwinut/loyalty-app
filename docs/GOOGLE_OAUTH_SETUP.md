@@ -96,7 +96,7 @@ The `docker compose.yml` is configured to read these environment variables from 
 ### New User Flow:
 - Automatic account creation using Google profile data
 - Email is marked as verified (Google emails are trusted)
-- Gets appropriate role based on admin configuration
+- Created with the `customer` role (unless listed in `ADMIN_BOOTSTRAP_EMAILS`, see below)
 - Redirected to dashboard with welcome message
 
 ### Existing User Flow:
@@ -106,16 +106,31 @@ The `docker compose.yml` is configured to read these environment variables from 
 
 ## Admin Role Assignment
 
-Google OAuth users follow the same admin role assignment rules:
-- If email is in `adminEmails` → gets `admin` role
-- If email is in `superAdminEmails` → gets `super_admin` role  
-- Super admin takes precedence over admin if email is in both lists
+Roles live in the **database** (`users.role`), not in `config/admins.json` —
+the `adminEmails` / `superAdminEmails` lists there do **not** grant roles at
+OAuth login. A Google OAuth user becomes an admin through one of:
+
+- **`ADMIN_BOOTSTRAP_EMAILS`** (env var, issue #348): a comma-separated,
+  case-insensitive allowlist. New OAuth accounts with a listed email are
+  created as `admin`, and a startup sweep promotes pre-existing `customer`
+  rows with a listed email. Intended for E2E stacks and one-time
+  first-admin bootstrap — remove it afterwards. On staging/production the
+  variable must be added to the server-side `.env` and the backend
+  recreated; the step-by-step procedure (including why a hand-added value
+  does not survive the next deploy) is in `backend-rust/README.md`
+  ("First-admin bootstrap") and `.env.production.example`.
+- **An existing admin** changing the user's role via the admin role-change
+  endpoint.
+
+The `/api/auth/cf-exchange` admin auto-login reads the DB role, so a user
+must already be `admin`/`super_admin` in the database for it to work — the
+bootstrap is what creates that first row.
 
 ## Security Features
 
 - ✅ **Email verification**: Google users have verified emails by default
 - ✅ **No password required**: OAuth users don't need passwords
-- ✅ **Admin config integration**: Role assignment based on email configuration
+- ✅ **Admin bootstrap integration**: Optional first-admin provisioning via `ADMIN_BOOTSTRAP_EMAILS`
 - ✅ **Audit logging**: All OAuth actions are logged with provider information
 - ✅ **Session management**: Secure session handling with configurable secrets
 - ✅ **Error handling**: Graceful fallback when Google OAuth is not configured

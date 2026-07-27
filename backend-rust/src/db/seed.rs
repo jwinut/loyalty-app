@@ -231,6 +231,164 @@ pub async fn seed_sample_data(db: &PgPool) -> Result<()> {
     Ok(())
 }
 
+/// Promote pre-existing users on the admin bootstrap allowlist to 'admin'
+/// (issue #348).
+///
+/// Startup counterpart of the in-transaction promotion in
+/// `/api/auth/register`: covers rows that already existed before
+/// `ADMIN_BOOTSTRAP_EMAILS` was set — including OAuth-created accounts.
+/// Matching is case-insensitive, but `users.email` uniqueness is
+/// byte-exact, so several distinct rows can match one allowlist entry.
+/// A promotion for an entry therefore happens only when ALL of these
+/// hold, evaluated inside one transaction per entry:
+///
+/// (a) exactly ONE user row matches the entry case-insensitively —
+///     multiple matches mean a case-variant row exists (possible
+///     squatting) and the sweep refuses to promote, logging a WARN;
+/// (b) that row still holds role `customer` — existing
+///     admins/super_admins are never modified and nothing is ever
+///     demoted, which also keeps the sweep idempotent;
+/// (c) no prior bootstrap promotion is recorded for the entry — the
+///     `admin_bootstrap_promotion` row in `user_audit_log` is the
+///     one-shot marker, so a deliberate demotion via
+///     `PATCH /api/admin/users/:id/role` is never silently undone by
+///     the next restart.
+///
+/// The role UPDATE and the audit-marker INSERT share the transaction,
+/// so a promotion cannot half-apply. Returns the number of rows
+/// promoted.
+pub async fn promote_bootstrap_admins(db: &PgPool, emails: &[String]) -> Result<u64> {
+    let mut allowlist: Vec<String> = emails
+        .iter()
+        .map(|e| e.trim().to_lowercase())
+        .filter(|e| !e.is_empty())
+        .collect();
+    allowlist.sort();
+    allowlist.dedup();
+
+    if allowlist.is_empty() {
+        return Ok(0);
+    }
+
+    let mut promoted: u64 = 0;
+
+    for entry in &allowlist {
+        // Log the stable non-reversible hash, never the raw address
+        // (emails are PII; see src/utils/email_hash.rs).
+        let entry_hash = crate::utils::hash_email(entry);
+
+        let mut tx = db
+            .begin()
+            .await
+            .context("Failed to begin bootstrap promotion transaction")?;
+
+        // Serialize with the register-path promotion for the same entry:
+        // without this, a registration committing between our checks and
+        // our UPDATE could produce a second matching row unseen under
+        // READ COMMITTED. Transaction-scoped, released on commit/rollback.
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
+            .bind(format!("admin_bootstrap:{entry}"))
+            .execute(&mut *tx)
+            .await
+            .context("Failed to acquire bootstrap promotion advisory lock")?;
+
+        // (a) exactly one candidate row for the entry.
+        let candidates: Vec<(Uuid, String)> =
+            sqlx::query_as("SELECT id, role::text FROM users WHERE lower(email) = $1")
+                .bind(entry)
+                .fetch_all(&mut *tx)
+                .await
+                .context("Failed to list bootstrap promotion candidates")?;
+
+        let (user_id, role) = match candidates.as_slice() {
+            [] => continue, // no matching row yet — nothing to sweep
+            [only] => only.clone(),
+            many => {
+                warn!(
+                    email_hash = %entry_hash,
+                    candidate_count = many.len(),
+                    "Admin bootstrap sweep: refusing to promote — {} user rows match the \
+                     allowlist entry case-insensitively (ambiguous; possible case-variant \
+                     squatting). Resolve the duplicate rows before re-enabling bootstrap.",
+                    many.len()
+                );
+                continue;
+            },
+        };
+
+        // (b) only `customer` rows are ever promoted; admin/super_admin
+        // rows are left untouched (idempotent no-op).
+        if role != "customer" {
+            continue;
+        }
+
+        // (c) one-shot marker: a recorded promotion for this entry means
+        // it was already used — possibly followed by a deliberate
+        // demotion through the admin API, which must stick.
+        let prior_promotions: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM user_audit_log \
+             WHERE action = 'admin_bootstrap_promotion' AND details->>'email_hash' = $1",
+        )
+        .bind(&entry_hash)
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to check bootstrap promotion marker")?;
+
+        if prior_promotions > 0 {
+            info!(
+                email_hash = %entry_hash,
+                user_id = %user_id,
+                "Admin bootstrap sweep: skipping — a promotion for this entry is already \
+                 recorded (one-shot); a deliberate demotion is not undone"
+            );
+            continue;
+        }
+
+        let updated = sqlx::query(
+            r#"
+            UPDATE users
+            SET role = 'admin'::user_role, updated_at = NOW()
+            WHERE id = $1
+              AND role = 'customer'::user_role
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .context("Failed to promote bootstrap admin")?
+        .rows_affected();
+
+        if updated != 1 {
+            continue; // row changed under us; tx rolls back on drop
+        }
+
+        // One-shot marker + audit trail, same transaction as the UPDATE.
+        sqlx::query(
+            "INSERT INTO user_audit_log (user_id, action, details) \
+             VALUES ($1, 'admin_bootstrap_promotion', $2)",
+        )
+        .bind(user_id)
+        .bind(json!({ "email_hash": entry_hash, "source": "startup_sweep" }))
+        .execute(&mut *tx)
+        .await
+        .context("Failed to record bootstrap promotion audit marker")?;
+
+        tx.commit()
+            .await
+            .context("Failed to commit bootstrap promotion")?;
+
+        // WARN, not INFO: granting admin is a privileged event.
+        warn!(
+            user_id = %user_id,
+            email_hash = %entry_hash,
+            "Admin bootstrap sweep: promoted user to admin (ADMIN_BOOTSTRAP_EMAILS)"
+        );
+        promoted += 1;
+    }
+
+    Ok(promoted)
+}
+
 /// Initialize the membership ID sequence
 ///
 /// The membership_id_sequence table is required for generating unique
