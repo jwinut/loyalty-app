@@ -2,6 +2,18 @@
 #
 # Copy to /etc/loyalty-backup.conf on evergreen and fill in AGE_RECIPIENT.
 # Everything else has a working default.
+#
+# ############################################################################
+# ##  install.sh NEVER RE-APPLIES THIS FILE TO AN EXISTING CONF.            ##
+# ##                                                                        ##
+# ##  It copies the example only when /etc/loyalty-backup.conf is absent,   ##
+# ##  so that upgrades cannot clobber your AGE_RECIPIENT, your SMTP block   ##
+# ##  or your token. The cost is that ANY setting added here after the host ##
+# ##  was provisioned has to be merged into the live file BY HAND. When a   ##
+# ##  new option appears below, edit the real conf on evergreen — re-running ##
+# ##  install.sh will not do it for you. (It does print a DRIFT NOTICE when ##
+# ##  the live conf has no GITHUB_REPO, which is the one that matters now.) ##
+# ############################################################################
 
 # REQUIRED. The age PUBLIC key backups are encrypted to. Safe to store here in
 # plaintext — it can only encrypt. The matching PRIVATE key lives solely on the
@@ -22,20 +34,95 @@ AGE_RECIPIENT="age18sdlft5g3rnwlyhshykht3s9gmydylallnvmkmrr4ms3g08pfvmss5qm0k"
 #KEEP_DAYS=30
 #KEEP_MIN=7
 
-# OPTIONAL but strongly recommended: how a failure reaches a human. The alert
-# text arrives on stdin. Without this, failures are only visible in the journal
-# and in $BACKUP_DIR/LAST-FAILURE.
+# ---------------------------------------------------------------------------
+# ALERTING — how a failure (and a recovery) reaches a human.
 #
-# The bundled email transport needs no MTA (evergreen has none) — it sends via
-# curl over SMTPS. Fill in the SMTP block below and point ALERT_COMMAND at it:
+# The alert text arrives on stdin. Without ALERT_COMMAND, failures are visible
+# only in the journal and in $BACKUP_DIR/LAST-FAILURE, and nobody watches those.
 #
-#   ALERT_COMMAND=/usr/local/bin/loyalty-backup-notify-email.sh
+# RECOMMENDED PRIMARY: the GitHub-issue transport.
+#
+#   ALERT_COMMAND=/usr/local/bin/loyalty-backup-notify-github.sh
+#
+# Why not email as the primary? Shared fate. The only mailbox available is
+# info@saichon.com, which also carries this app's password resets — and when its
+# subscription lapsed (#352) every send was refused. An email-only alert channel
+# routed through the mailbox that is most likely to be broken suppresses its own
+# alarm: the backup fails, the alert cannot leave the host, and the failure is
+# discovered whenever someone next looks. GitHub does not share fate with the
+# mailbox, is already where "Production deploy failed" and "outbound mail is
+# failing" land, and de-duplicates: one issue that gets a comment per night and
+# CLOSES ITSELF on recovery, rather than one message per night forever.
+#
+# OPTIONAL SECOND CHANNEL: email as well, not instead. Two independent channels
+# beat one, as long as the primary does not depend on the thing being watched.
+#
+#   ALERT_COMMAND='M="$(cat)"; printf "%s\n" "$M" | /usr/local/bin/loyalty-backup-notify-email.sh >/dev/null 2>&1 || true; printf "%s\n" "$M" | /usr/local/bin/loyalty-backup-notify-github.sh'
+#
+# Three things about that line are deliberate, and each is a real bug if changed:
+#
+#   * SINGLE QUOTES. This file is SOURCED, so a double-quoted value would expand
+#     $M and $(cat) right here, at source time, when there is no alert text at
+#     all — and ship a blank alert every night.
+#   * THE PRIMARY TRANSPORT IS LAST. loyalty-backup-alert.sh decides whether the
+#     alert got out from the exit status of the whole string, and a list's (or a
+#     pipeline's) status is its LAST command. Put email last and a bounced mail
+#     reads as "alert failed" even though GitHub has the issue.
+#   * THE EMAIL LEG ENDS IN `|| true`. A dead mailbox must not be able to fail
+#     the dispatch that GitHub already handled.
 #
 # Any other command works too; the alert text arrives on stdin:
 #
 #   ALERT_COMMAND='curl -sS -X POST --data-binary @- https://hooks.example/backup'
 #
+# Which direction the alert is (failure vs recovery) is passed in the
+# ENVIRONMENT — LOYALTY_ALERT_KIND=failure|recovered, plus LOYALTY_ALERT_UNIT
+# and LOYALTY_ALERT_LAST_SUCCESS_AGE. It is NOT appended to this string, because
+# that would land on the string's last command (a second mail recipient, a
+# second curl URL). A transport that ignores those variables keeps working
+# exactly as before — loyalty-backup-notify-email.sh does, which is why its
+# subject line still says FAILED even for a recovery; its first body line is
+# the one that distinguishes them.
+#
 #ALERT_COMMAND=''
+
+# --- GitHub, used only by loyalty-backup-notify-github.sh ---
+#
+# GITHUB_REPO   owner/repo the issue is filed on.
+# GITHUB_TOKEN  a FINE-GRAINED personal access token, scoped to that ONE repo,
+#               with Repository permissions -> Issues: Read and write. Nothing
+#               else: no contents, no actions, no metadata beyond the mandatory
+#               read. It cannot deploy, cannot read code you have not already
+#               published, and cannot touch any other repository.
+#
+#               thehfhotel is an ORGANISATION, so a fine-grained token may land
+#               in "Pending requests" until an owner approves it — the transport
+#               will 403 until then. docs/restore-runbook.md has the mint,
+#               approve and rotate procedure.
+#
+#               KEEP THIS FILE MODE 600, ROOT-OWNED. It is the only place the
+#               token lives. install.sh sets `umask 077` so it is never created
+#               world-readable, but a conf edited by hand can still be widened:
+#                   chmod 600 /etc/loyalty-backup.conf
+#               The token is never passed on a command line (it goes into a
+#               mode-600 curl config in a private temp dir) and is never
+#               exported, so it does not appear in /proc/*/cmdline or environ.
+#
+#GITHUB_REPO="thehfhotel/loyalty-app"
+#GITHUB_TOKEN=""
+#
+# Title of the issue. NO COLON, EVER. The de-dupe fallback goes through GitHub's
+# search API, where `word:` is a qualifier — a colon makes the search silently
+# match nothing and files a fresh duplicate issue on every single run.
+#GITHUB_ISSUE_TITLE="Production backup failed on evergreen"
+#
+# Only for GitHub Enterprise or a test double. Default: https://api.github.com
+#GITHUB_API_BASE="https://api.github.com"
+#
+# NOTE: issue bodies and comments on a PUBLIC repository are world-readable.
+# The transport deliberately posts only facts this repo already publishes —
+# host, unit, timestamps, paths and its own alert text. Do not extend it with
+# journal excerpts, container environment or connection strings.
 
 # --- SMTP, used only by loyalty-backup-notify-email.sh ---
 #

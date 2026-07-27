@@ -12,6 +12,12 @@
 
 set -euo pipefail
 
+# /etc/loyalty-backup.conf now holds a GitHub PAT as well as SMTP credentials,
+# and fetch() below creates a file before it chmods it — with the default umask
+# that is a brief window in which the conf is world-readable. Setting the umask
+# here closes the window instead of relying on the chmod winning a race.
+umask 077
+
 REPO_RAW="https://raw.githubusercontent.com/thehfhotel/loyalty-app/main/scripts/evergreen"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF=/etc/loyalty-backup.conf
@@ -37,12 +43,28 @@ if ! command -v age >/dev/null; then
 else
   echo "  age present ($(age --version 2>/dev/null || echo unknown))"
 fi
+# jq is OPTIONAL: the GitHub alert transport prefers it for building request
+# JSON but ships a pure-bash escaper for hosts without it. Never fatal — an
+# alerting path that refuses to install because of an optional package is worse
+# than one that installs with a fallback.
+if ! command -v jq >/dev/null; then
+  echo "  installing jq (optional — used to build alert JSON)"
+  apt-get update -qq && apt-get install -y -qq jq \
+    || echo "  jq install failed — the GitHub transport will use its built-in escaper"
+else
+  echo "  jq present ($(jq --version 2>/dev/null || echo unknown))"
+fi
 command -v docker >/dev/null || { echo "docker is required but not installed" >&2; exit 1; }
+# Hard requirement, not best-effort: every alert transport shipped here is
+# curl-based (no MTA and no `gh` on evergreen), and this script itself falls
+# back to curl when run without a checkout.
+command -v curl >/dev/null || { echo "curl is required but not installed" >&2; exit 1; }
 
 echo "==> Scripts"
 fetch backup-loyalty-db.sh          /usr/local/bin/backup-loyalty-db.sh          755
 fetch loyalty-backup-alert.sh       /usr/local/bin/loyalty-backup-alert.sh       755
 fetch loyalty-backup-notify-email.sh /usr/local/bin/loyalty-backup-notify-email.sh 755
+fetch loyalty-backup-notify-github.sh /usr/local/bin/loyalty-backup-notify-github.sh 755
 
 echo "==> systemd units"
 fetch loyalty-backup.service          /etc/systemd/system/loyalty-backup.service          644
@@ -57,6 +79,27 @@ echo "  $BACKUP_DIR (mode 700)"
 echo "==> Config"
 if [ -f "$CONF" ]; then
   echo "  $CONF already exists — left untouched"
+  # …which means loyalty-backup.conf.example is NEVER re-applied, so every
+  # setting added after the host was provisioned is invisible unless someone
+  # says so here. Silent config drift is how you end up with an upgraded alert
+  # path that still has nowhere to send anything.
+  if ! grep -q '^[[:space:]]*GITHUB_REPO=' "$CONF"; then
+    cat <<EOF
+
+  !! DRIFT NOTICE — $CONF predates the GitHub alert transport.
+     It has no GITHUB_REPO, so loyalty-backup-notify-github.sh cannot run and
+     backup alerts are whatever ALERT_COMMAND was before (email only, or
+     nothing at all). This installer never rewrites an existing conf.
+
+     Add, from scripts/evergreen/loyalty-backup.conf.example:
+       GITHUB_REPO="thehfhotel/loyalty-app"
+       GITHUB_TOKEN="github_pat_…"    # fine-grained, Issues: read and write
+       ALERT_COMMAND=/usr/local/bin/loyalty-backup-notify-github.sh
+
+     Then: chmod 600 $CONF && systemctl start loyalty-backup.service
+
+EOF
+  fi
 else
   fetch loyalty-backup.conf.example "$CONF" 600
   echo "  wrote $CONF (mode 600) — review AGE_RECIPIENT and set ALERT_COMMAND"

@@ -6,3 +6,20 @@ Documentation=https://github.com/thehfhotel/loyalty-app/blob/main/docs/restore-r
 Type=oneshot
 # %i is the failed unit name, passed through by OnFailure=.
 ExecStart=/usr/local/bin/loyalty-backup-alert.sh %i
+
+# The default TimeoutStartSec (90s) is not enough now that the alert may go out
+# over the network: the GitHub transport retries transient errors with a 0/3/9s
+# backoff and allows --connect-timeout 10 --max-time 25 per call, and a
+# two-channel ALERT_COMMAND runs an SMTP send before it. Being SIGTERMed
+# mid-retry would kill the alert at exactly the moment it matters.
+TimeoutStartSec=300
+
+# The transport writes a mode-600 curl config holding the PAT into a mktemp
+# directory; a private /tmp keeps it out of every other process's view.
+#
+# NOTE: do NOT add ProtectSystem=strict here without a matching
+# ReadWritePaths=/srv/backups/loyalty. loyalty-backup.service can afford it
+# because it declares that path; this unit's whole job is to write
+# /srv/backups/loyalty/LAST-FAILURE, and under a read-only /srv it would fail
+# to record the failure it was started to record.
+PrivateTmp=true

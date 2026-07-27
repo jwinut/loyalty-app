@@ -188,8 +188,13 @@ evergreen (`scripts/evergreen/`) dumps, gzips and `age`-encrypts to
 `/srv/backups/loyalty`, so production data never transits a runner. The
 previous GitHub Actions + S3 workflow was removed: it needed cloud storage
 and, because its secrets were environment-scoped while the job declared no
-`environment:`, it reported success nightly while backing up nothing. Setup
-and restore drill: [`docs/restore-runbook.md`](docs/restore-runbook.md).
+`environment:`, it reported success nightly while backing up nothing. Backup
+alerts are **GitHub issues** (`scripts/evergreen/loyalty-backup-notify-github.sh`),
+not email: the only mailbox available is the one the alert would be reporting
+on, so it would suppress its own alarm — and the issue is commented on per
+failure and **closed automatically on recovery**, which is also what clears
+`LAST-FAILURE`. Setup, token rotation and the alert drill:
+[`docs/restore-runbook.md`](docs/restore-runbook.md).
 
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green

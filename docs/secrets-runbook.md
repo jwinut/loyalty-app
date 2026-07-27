@@ -28,12 +28,32 @@ The following GitHub Actions secrets are expected to be configured under
 
 > Translation services are currently disabled. Azure translator secrets are not required unless that feature is re-enabled.
 
-### Backup secrets — none required any more
+### Backup secrets — none in GitHub, but evergreen holds a live PAT
 
-Postgres backups **no longer run in GitHub Actions**, so there are no backup
-secrets to wire here. They run from a systemd timer on evergreen and are
-configured in `/etc/loyalty-backup.conf` on that host; the only value that
-matters is `AGE_RECIPIENT`, an age *public* key (safe in plaintext).
+Postgres backups **no longer run in GitHub Actions**, so there is still nothing
+to wire into `gh secret set`. They run from a systemd timer on evergreen and are
+configured in `/etc/loyalty-backup.conf` on that host.
+
+That file is no longer harmless, and the heading this section used to carry
+("none required any more") is now false. It holds **two real credentials**:
+
+| Value          | What it is                                                            |
+| -------------- | --------------------------------------------------------------------- |
+| `AGE_RECIPIENT`| age **public** key — safe in plaintext, it can only encrypt            |
+| `GITHUB_TOKEN` | **fine-grained PAT**, `Issues: read and write` on `thehfhotel/loyalty-app` only — the backup alert transport (#366) |
+| `SMTP_PASS`    | mailbox password, only if the optional email channel is enabled        |
+
+Rules for that file: root-owned, **mode 600**, never copied off the host, never
+committed. `scripts/evergreen/install.sh` sets `umask 077` so it is never even
+briefly world-readable, but a conf edited by hand can be widened again —
+`chmod 600 /etc/loyalty-backup.conf` after any edit.
+
+The PAT is scoped so a compromise of evergreen yields the ability to file issues
+on one public repository and nothing else: no contents, no actions, no other
+repo. `thehfhotel` is an organisation, so a fine-grained token may sit in the
+org's *Pending requests* until an owner approves it. Mint/approve/rotate
+procedure and what an expired token looks like in the journal:
+[`restore-runbook.md` → Alerting](./restore-runbook.md#alerting).
 
 The old design uploaded to S3-compatible storage and needed
 `BACKUP_S3_*` + `BACKUP_AGE_RECIPIENT` as repository secrets. It was removed

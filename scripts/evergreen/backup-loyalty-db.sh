@@ -104,3 +104,50 @@ printf '%s %s %s\n' "$TIMESTAMP" "$NAME" "$SIZE" > "${BACKUP_DIR}/last-success"
 
 REMAINING="$(find "$BACKUP_DIR" -maxdepth 1 -name 'loyalty_pg_*.sql.gz.age' | wc -l | tr -d ' ')"
 log "Backup complete — ${REMAINING} dump(s) retained in ${BACKUP_DIR}"
+
+# ---------------------------------------------------------------------------
+# Recovery signal.
+#
+# The presence of LAST-FAILURE is the whole "were we previously broken?" test —
+# no new state. Before #366 nothing ever removed it, so a marker from weeks ago
+# sat next to a fresh last-success and an operator mid-incident had to compare
+# timestamps to work out which was current. Worse, a failure alert with no
+# closing signal trains people to ignore the channel.
+#
+# The dispatch (and the marker policy: clear on success, KEEP on a failed
+# dispatch so tomorrow retries, clear when no ALERT_COMMAND is configured at
+# all) lives in loyalty-backup-alert.sh, so both directions go out through
+# exactly one code path.
+# ---------------------------------------------------------------------------
+if [ -f "${BACKUP_DIR}/LAST-FAILURE" ]; then
+  ALERT_SCRIPT="${LOYALTY_ALERT_SCRIPT:-}"
+  if [ -z "$ALERT_SCRIPT" ]; then
+    # install.sh puts both scripts in /usr/local/bin; prefer a sibling so a
+    # checkout runs against its own copy.
+    SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -x "${SELF_DIR}/loyalty-backup-alert.sh" ]; then
+      ALERT_SCRIPT="${SELF_DIR}/loyalty-backup-alert.sh"
+    else
+      ALERT_SCRIPT=/usr/local/bin/loyalty-backup-alert.sh
+    fi
+  fi
+
+  if [ -x "$ALERT_SCRIPT" ]; then
+    log "Previous run had failed — sending the recovery notification"
+    # #########################################################################
+    # ##  THE `|| log` GUARD IS LOAD-BEARING. DO NOT REMOVE IT.              ##
+    # ##                                                                     ##
+    # ##  This script runs under `set -euo pipefail`, and this line executes ##
+    # ##  AFTER a fully verified backup. An unguarded non-zero exit here     ##
+    # ##  would fail loyalty-backup.service, fire its OnFailure=, and file a ##
+    # ##  FAILURE alert for a run that SUCCEEDED — strictly worse than the   ##
+    # ##  silence this feature exists to fix. loyalty-backup-alert.sh also   ##
+    # ##  ends with an unconditional `exit 0` for the same reason; both      ##
+    # ##  belong, because either one can be lost in a refactor.              ##
+    # #########################################################################
+    LOYALTY_ALERT_KIND=recovered "$ALERT_SCRIPT" loyalty-backup.service \
+      || log "WARNING: recovery notification failed; ${BACKUP_DIR}/LAST-FAILURE kept for the next run to retry"
+  else
+    log "WARNING: ${ALERT_SCRIPT} is missing — cannot send the recovery notification; ${BACKUP_DIR}/LAST-FAILURE left in place"
+  fi
+fi
