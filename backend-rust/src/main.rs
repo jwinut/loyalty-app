@@ -40,6 +40,7 @@ use loyalty_backend::{
     middleware::cors::{cors_layer, cors_layer_multiple_origins},
     redis::RedisManager,
     routes,
+    services::email::is_valid_mailbox,
     state::AppState,
 };
 
@@ -381,9 +382,35 @@ fn log_startup_info(config: &Settings) {
         info!("  LINE OAuth: Not configured");
     }
 
-    // Log email configuration status
+    // Log email configuration status, including the effective From address.
+    //
+    // The From address ships in the header of every outgoing message, so it
+    // is not a secret — and printing it is the only way an operator can tell
+    // whether SMTP_FROM actually reached the container or whether the app
+    // silently fell back to SMTP_USER (issue #352). `{:?}` keeps a stray
+    // newline in the value from forging a log line.
+    //
+    // A malformed value is an ERROR, not a warning: it fails *every* send,
+    // and until now did so at request time with nothing at startup to point
+    // at the cause.
     if config.email.smtp.is_configured() {
-        info!("  SMTP Email: Enabled");
+        match config.email.smtp.from_address() {
+            Some(from) => {
+                info!("  SMTP Email: Enabled (From: {:?})", from);
+                if !is_valid_mailbox(from) {
+                    error!(
+                        "  SMTP From address {:?} is not a valid mailbox — every outgoing \
+                         email will fail. Expected `user@example.com` or \
+                         `Name <user@example.com>`. Check the SMTP_FROM secret \
+                         (it falls back to SMTP_USER when unset).",
+                        from
+                    );
+                }
+            },
+            // Unreachable while is_configured() requires a user, but reported
+            // rather than assumed away.
+            None => info!("  SMTP Email: Enabled (From: unset)"),
+        }
     } else {
         info!("  SMTP Email: Not configured");
     }

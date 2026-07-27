@@ -103,6 +103,9 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      # From address for outgoing mail. Falls back to SMTP_USER when unset,
+      # and must be an address the mailbox genuinely OWNS (issue #352).
+      SMTP_FROM: ${SMTP_FROM:-}
       IMAP_HOST: ${IMAP_HOST:-}
       IMAP_PORT: ${IMAP_PORT:-993}
       IMAP_USER: ${IMAP_USER:-}

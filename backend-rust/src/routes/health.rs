@@ -8,6 +8,7 @@ use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use chrono::Utc;
 use serde::Serialize;
 
+use crate::config::SmtpConfig;
 use crate::state::AppState;
 
 /// Value reported in `revision` when the image carries no build SHA.
@@ -44,6 +45,39 @@ fn resolve_revision(raw: Option<String>) -> String {
 fn revision() -> &'static str {
     static REVISION: OnceLock<String> = OnceLock::new();
     REVISION.get_or_init(|| resolve_revision(std::env::var("GIT_SHA").ok()))
+}
+
+/// `services.email` when SMTP credentials are present.
+const EMAIL_CONFIGURED: &str = "configured";
+
+/// `services.email` when SMTP is absent — the honest answer for a stack with
+/// no mail credentials.
+const EMAIL_NOT_CONFIGURED: &str = "not_configured";
+
+/// Report whether outgoing email is configured — nothing more.
+///
+/// This used to be the string literal `"configured"`, unconditionally, so
+/// every environment claimed working email including CI stacks and staging,
+/// which have no SMTP credentials at all (issue #352).
+///
+/// Two deliberate limits:
+///
+/// 1. **Configuration only, never deliverability.** A relay can accept AUTH
+///    and still reject the message (`553 ... Sender address rejected` on a
+///    lapsed subscription is what prompted this). Proving a message can be
+///    delivered needs a canary that actually sends; `/api/health` cannot.
+///    `GET /api/admin/email/status` probes the SMTP handshake for operators.
+/// 2. **Never folded into the overall `status`.** `deploy.yml` and
+///    `ci-build-e2e.yml`'s verify-staging poll this endpoint and treat a 503
+///    as a failed deploy, which also files a "Production deploy failed"
+///    issue. A lapsed mail subscription must not block shipping code, so the
+///    field stays informational — see `health_check_full`.
+fn email_status(smtp: &SmtpConfig) -> &'static str {
+    if smtp.is_configured() {
+        EMAIL_CONFIGURED
+    } else {
+        EMAIL_NOT_CONFIGURED
+    }
 }
 
 /// Health check response
@@ -191,6 +225,11 @@ async fn health_check_full(
 
     let db_healthy = db_status == "healthy";
     let redis_healthy = redis_status == "healthy";
+    // Email is deliberately NOT part of this conjunction: a 503 from this
+    // endpoint fails the deploy (deploy.yml / verify-staging) and files a
+    // "Production deploy failed" issue. Unconfigured or broken mail is an
+    // operational problem, not a reason to refuse to ship code. See
+    // `email_status`.
     let all_healthy = db_healthy && redis_healthy;
 
     // Get environment from config
@@ -206,7 +245,7 @@ async fn health_check_full(
         database: db_status,
         redis: redis_status,
         storage: "healthy".to_string(), // Storage is always available in Rust backend
-        email: "configured".to_string(), // Email service status
+        email: email_status(&state.config().email.smtp).to_string(),
     };
 
     // Memory info (simplified for Rust - we don't have direct access like Node.js)
@@ -300,6 +339,44 @@ mod tests {
             resolve_revision(Some("   \t\n".to_string())),
             UNKNOWN_REVISION
         );
+    }
+
+    // ------------------------------------------------------------------
+    // email status honesty (issue #352)
+    //
+    // The field was the literal "configured" on every stack, including ones
+    // with no SMTP credentials whatsoever. Pure function so these run without
+    // an AppState.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn email_status_reports_configured_when_credentials_are_present() {
+        let smtp = SmtpConfig {
+            host: Some("smtp.example.com".to_string()),
+            user: Some("mailbox@example.com".to_string()),
+            pass: Some("secret".to_string()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(email_status(&smtp), EMAIL_CONFIGURED);
+    }
+
+    #[test]
+    fn email_status_reports_not_configured_when_smtp_is_absent() {
+        assert_eq!(email_status(&SmtpConfig::default()), EMAIL_NOT_CONFIGURED);
+    }
+
+    /// The case that made the old report a lie: compose passes
+    /// `SMTP_HOST: ${SMTP_HOST:-}`, so a stack with no SMTP secrets hands the
+    /// backend empty strings rather than nothing.
+    #[test]
+    fn email_status_reports_not_configured_for_empty_env_vars() {
+        let smtp = SmtpConfig {
+            host: Some(String::new()),
+            user: Some(String::new()),
+            pass: Some(String::new()),
+            ..SmtpConfig::default()
+        };
+        assert_eq!(email_status(&smtp), EMAIL_NOT_CONFIGURED);
     }
 
     #[test]
