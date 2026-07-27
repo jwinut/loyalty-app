@@ -50,6 +50,10 @@ on:
         description: 'Force the send to fail (exercises the alert path end to end)'
         type: boolean
         default: false
+      simulate_crash:
+        description: 'Make the probe step die before it reports (exercises the catch-all alert path)'
+        type: boolean
+        default: false
       skip_alert:
         description: 'Probe only — never create, comment on, or close an issue'
         type: boolean
@@ -86,15 +90,21 @@ jobs:
       contents: read
       issues: write
     env:
-      # Two distinct alarms — "mail is refused" and "the canary never ran" call
-      # for different first moves — and the recovery step closes whichever is
-      # open. NOTE: no colons in these titles. `gh issue list --search` speaks
-      # GitHub search syntax, where `word:` reads as a qualifier; the searches
-      # below also wrap the title in quotes so it is matched as a phrase. Get
-      # this wrong and the search silently returns nothing, which files a fresh
-      # duplicate issue on every probe instead of commenting on the open one.
+      # THREE distinct alarms, because the first move differs for each: "mail is
+      # refused" (fix the mailbox), "the canary never ran" (fix the secrets), and
+      # "the canary itself broke" (read the run log — mail state is UNKNOWN). The
+      # recovery step below closes all three, so every alarm this workflow can
+      # raise has exactly one automatic closer.
+      #
+      # NOTE: no colons in these titles. The lookups below deliberately do NOT
+      # use `gh issue list --search` any more (see the dedupe comment on the
+      # first alert step), but the rule stands: `--search` speaks GitHub search
+      # syntax, where `word:` reads as a qualifier, so the day someone reaches
+      # for it again a colon would silently match nothing and file a fresh
+      # duplicate on every probe.
       ISSUE_TITLE_FAIL: 'Email canary - outbound mail is failing'
       ISSUE_TITLE_MISCONFIG: 'Email canary - probe could not run, SMTP secrets empty'
+      ISSUE_TITLE_BROKEN: 'Email canary - the canary itself is broken, mail state unknown'
     steps:
       # -----------------------------------------------------------------------
       # A canary that silently probes nothing is worse than no canary: it
@@ -129,8 +139,11 @@ jobs:
       #   2. the relay's own response text is captured, because "553 ... Sender
       #      address rejected" vs "535 auth failed" vs a timeout are three
       #      completely different incidents.
-      # This step NEVER fails the job — it reports through its `result` output
-      # so the alert steps below can run. The job is failed at the very end.
+      # This step never fails the job *on a refused send* — it reports through
+      # its `result` output so the alert steps below can run, and the job is
+      # failed at the very end. It can still die for reasons of its own (a
+      # missing tool, a nounset trip, the runner going away); that is exactly
+      # what the catch-all alert further down exists to catch.
       # -----------------------------------------------------------------------
       - name: Send the canary message
         id: probe
@@ -149,6 +162,7 @@ jobs:
           # or repo/environment variable) to route the copies elsewhere.
           CANARY_EMAIL_TO: ${{ secrets.CANARY_EMAIL_TO || vars.CANARY_EMAIL_TO }}
           SIMULATE_FAILURE: ${{ github.event.inputs.simulate_failure || 'false' }}
+          SIMULATE_CRASH: ${{ github.event.inputs.simulate_crash || 'false' }}
         run: |
           # errexit must be turned OFF explicitly: GitHub runs `run:` blocks as
           # `bash -e {0}`, so merely omitting `-e` from this `set` line leaves
@@ -161,6 +175,27 @@ jobs:
           set +e
           set -uo pipefail
           umask 077
+
+          # --- simulate_crash --------------------------------------------------
+          # A GENUINE abort, in the same spirit as simulate_failure (which
+          # provokes a real 553 with a real .invalid domain rather than faking an
+          # exit code). Dereferencing a variable that is never set trips `set -u`,
+          # and nounset kills a non-interactive shell outright — errexit being
+          # off does not save it. That is a real dead step, not a scripted one.
+          #
+          # It fires HERE, before a single line has been written to
+          # $GITHUB_OUTPUT, which reproduces the nastier of the two probe-death
+          # shapes: `result` is never recorded, so every `if:` keyed on it is
+          # false AND every `if:` without a status function is implicitly ANDed
+          # with success(). Nothing downstream fires; only the catch-all does.
+          #
+          # simulate_crash WINS over simulate_failure when both are set: the
+          # crash happens before the send is even assembled, so nothing is sent.
+          # shellcheck disable=SC2154  # deliberately unset — that is the point
+          if [ "${SIMULATE_CRASH}" = "true" ]; then
+            echo "::warning title=Simulated crash::simulate_crash=true — deliberately killing the probe step before it can report a result, to exercise the catch-all alert. No mail is sent. If simulate_failure was also set it is irrelevant, the crash comes first."
+            echo "${CANARY_THIS_VARIABLE_IS_NEVER_SET}"
+          fi
 
           WORKDIR="$(mktemp -d)"
           trap 'rm -rf "$WORKDIR"' EXIT
@@ -179,7 +214,20 @@ jobs:
           unset esc_pass
 
           # --- endpoint --------------------------------------------------------
-          PORT="${SMTP_PORT:-465}"
+          # SINGLE SOURCE OF TRUTH: `secrets.SMTP_PORT` on the production
+          # environment — the same secret deploy.yml ships to the box. The
+          # fallback is 587 because that is what every OTHER consumer falls back
+          # to: deploy.yml (`${SMTP_PORT:-587}`), all four docker-compose files,
+          # and the backend itself (`email.smtp.port` default in
+          # backend-rust/src/config/mod.rs). If that secret is ever deleted, the
+          # app lands on 587/STARTTLS while a canary defaulting to 465 would
+          # probe implicit TLS on an endpoint the app does not use — green
+          # against the wrong door. Diverging defaults are how a canary lies, so
+          # this one matches the app's and says so out loud when it has to guess.
+          if [ -z "${SMTP_PORT:-}" ]; then
+            echo "::warning title=SMTP_PORT is empty::The canary is falling back to 587/STARTTLS, the same fallback deploy.yml, docker-compose and the backend use. Set SMTP_PORT under Settings -> Environments -> production so the canary can never probe a different endpoint from the one the app uses."
+          fi
+          PORT="${SMTP_PORT:-587}"
           if [ "$PORT" = "465" ]; then
             URL="smtps://${SMTP_HOST}:${PORT}"   # implicit TLS
           else
@@ -336,10 +384,23 @@ jobs:
 
       # -----------------------------------------------------------------------
       # ALERT — GitHub issue, never email (see the header). Same create-or-comment
-      # idiom as deploy.yml's `notify-on-failure`: search for an OPEN issue with
+      # idiom as deploy.yml's `notify-on-failure`: look up an OPEN issue with
       # this exact title, comment if found, create if not.
+      #
+      # The lookup line is BYTE-IDENTICAL in all four places it appears (this
+      # step, the misconfig step, the catch-all step, and the recovery loop),
+      # and the create-or-comment block is byte-identical in the three steps
+      # that can file an issue — so a reviewer can diff them by eye and see at
+      # a glance that no alarm path drifted.
+      #
+      # NO `--label`. cargo-audit.yml and deploy.yml's notifier both say it:
+      # alerting must never depend on label configuration — an unlabelled issue
+      # beats an alert that failed because a label was renamed. Dropping it also
+      # removes a `set -u` hazard, since expanding an empty `LABEL_ARGS[@]` array
+      # aborts the script under nounset on bash < 4.4. Label after triage.
       # -----------------------------------------------------------------------
       - name: File or update the email-canary issue
+        id: alert_fail
         if: steps.probe.outputs.result == 'failed' && github.event.inputs.skip_alert != 'true'
         env:
           GH_TOKEN:  ${{ github.token }}
@@ -391,26 +452,34 @@ jobs:
           EOF
           )
 
-          # Quoted phrase: the title is matched literally instead of being
-          # tokenised (and a stray qualifier-looking word silently zeroing the
-          # result, which would file a duplicate on every probe).
-          EXISTING=$(gh issue list -R "$REPO" \
-            --search "\"$TITLE\" in:title is:open" \
-            --json number --jq '.[0].number // empty')
+          # DEDUPE — no `--search`. `gh issue list --search` queries GitHub's
+          # SEARCH INDEX, which lags writes by seconds to minutes, so two runs
+          # inside that window each see "no open issue" and each file one. Drop
+          # `--search` and gh reads the plain issues API instead, which is
+          # read-after-write consistent: an issue this workflow filed 10 seconds
+          # ago is already visible. The title match moves into `--jq` so it stays
+          # exact (`==`) rather than tokenised.
+          #
+          # Deliberately NOT paired with a post-create re-search: that re-reads
+          # the very index that was stale, so it detects nothing and only adds a
+          # second failure surface.
+          #
+          # Residual window: two creates landing within the same few
+          # milliseconds could still both pass the check. Unreachable in
+          # practice — `concurrency: email-canary` with `cancel-in-progress:
+          # false` queues runs of this workflow instead of overlapping them, so
+          # hitting it would take a second writer of the same title (another
+          # workflow, or a human) firing at the same instant. Accepted.
+          #
+          # (Titles still carry no colon — see the job `env:` block.)
+          EXISTING=$(TITLE="$TITLE" gh issue list -R "$REPO" --state open --limit 200 --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
 
           if [ -n "${EXISTING:-}" ]; then
             gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
             echo "Commented on existing issue #$EXISTING"
           else
-            # Label only if it already exists — the repo's convention (see
-            # cargo-audit.yml) is that alerting must never depend on label
-            # config, so an unlabelled issue beats a failed alert.
-            LABEL_ARGS=()
-            if gh label list -R "$REPO" --json name --jq '.[].name' | grep -qx 'bug'; then
-              LABEL_ARGS=(--label bug)
-            fi
-            gh issue create -R "$REPO" --title "$TITLE" --body "$BODY" "${LABEL_ARGS[@]}"
-            echo "Filed a new email-canary issue"
+            gh issue create -R "$REPO" --title "$TITLE" --body "$BODY"
+            echo "Filed a new issue titled '$TITLE'"
           fi
 
       # -----------------------------------------------------------------------
@@ -420,6 +489,7 @@ jobs:
       # Actions tab. Unverified is not the same as working.
       # -----------------------------------------------------------------------
       - name: File or update the email-canary issue (canary could not run)
+        id: alert_misconfig
         if: failure() && steps.guard.outcome == 'failure' && github.event.inputs.skip_alert != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -449,22 +519,33 @@ jobs:
           EOF
           )
 
-          EXISTING=$(gh issue list -R "$REPO" \
-            --search "\"$TITLE\" in:title is:open" \
-            --json number --jq '.[0].number // empty')
+          # Byte-identical to the lookup in the delivery-failure step above; see
+          # the DEDUPE comment there for why `--search` is not used.
+          EXISTING=$(TITLE="$TITLE" gh issue list -R "$REPO" --state open --limit 200 --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
 
           if [ -n "${EXISTING:-}" ]; then
             gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
           else
             gh issue create -R "$REPO" --title "$TITLE" --body "$BODY"
+            echo "Filed a new issue titled '$TITLE'"
           fi
 
       # -----------------------------------------------------------------------
       # RECOVERY — the repo's convention is that every failure alert is paired
       # with a recovery notification, so the signal stays trusted.
+      #
+      # `always() &&` is load-bearing. Without it this step carries no status
+      # function and is therefore implicitly ANDed with success(), so a probe
+      # that recorded `result=ok` and THEN died (or any later step failing)
+      # would leave a stale alarm open while mail was demonstrably fine — the
+      # relay accepted a real message, which is the whole proof. The `result ==
+      # 'ok'` test still does the gating; `always()` only stops GitHub from
+      # skipping the step on our behalf.
       # -----------------------------------------------------------------------
       - name: Comment and close the email-canary issue on recovery
-        if: steps.probe.outputs.result == 'ok' && github.event.inputs.skip_alert != 'true'
+        id: recovery
+        if: always() && steps.probe.outputs.result == 'ok' && github.event.inputs.skip_alert != 'true'
         env:
           GH_TOKEN:  ${{ github.token }}
           REPO:      ${{ github.repository }}
@@ -488,17 +569,19 @@ jobs:
           EOF
           )
 
-          # Both alarms clear on a good probe: a send that the relay accepted
-          # disproves "mail is failing" and "the canary cannot see its secrets"
-          # at the same time.
+          # ALL THREE alarms clear on a good probe: a send the relay accepted
+          # disproves "mail is failing", "the canary cannot see its secrets" and
+          # "the canary is broken so mail state is unknown" simultaneously — the
+          # canary evidently ran, saw its secrets, and got a 250. Every title
+          # this workflow can raise is listed here, so no alarm can be left
+          # without an automatic closer.
           #
-          # Note: `gh issue list --search` reads GitHub's search index, which
-          # lags writes by a few seconds. Worst case a recovery lands one run
-          # late — acceptable, and the same idiom deploy.yml already uses.
-          for TITLE in "$ISSUE_TITLE_FAIL" "$ISSUE_TITLE_MISCONFIG"; do
-            EXISTING=$(gh issue list -R "$REPO" \
-              --search "\"$TITLE\" in:title is:open" \
-              --json number --jq '.[0].number // empty')
+          # The lookup is byte-identical to the alert steps' (no `--search`; see
+          # the DEDUPE comment on the first one). That also fixes a real bug in
+          # the old version: an index that lagged left recovery closing nothing
+          # and the alarm open past the fix.
+          for TITLE in "$ISSUE_TITLE_FAIL" "$ISSUE_TITLE_MISCONFIG" "$ISSUE_TITLE_BROKEN"; do
+            EXISTING=$(TITLE="$TITLE" gh issue list -R "$REPO" --state open --limit 200 --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
 
             if [ -z "${EXISTING:-}" ]; then
               echo "No open issue titled '$TITLE' — nothing to close."
@@ -509,6 +592,123 @@ jobs:
             gh issue close "$EXISTING" -R "$REPO"
             echo "Closed recovered issue #$EXISTING"
           done
+
+      # -----------------------------------------------------------------------
+      # CATCH-ALL — the canary itself broke.
+      #
+      # Before this step, a probe that died for any reason OTHER than the
+      # secrets guard produced a red run and NOT ONE ALERT. Three holes:
+      #
+      #   1. the probe dies EARLY (missing tool, nounset trip, curl gone,
+      #      mktemp failing): `result` is never written, so the delivery-failure
+      #      step's `if:` is false, and the misconfig step's is false too
+      #      because the guard passed. Nothing fires.
+      #   2. the probe writes `result=failed` to $GITHUB_OUTPUT and THEN dies
+      #      (the trailing summary block, a trap, an OOM). The output is there
+      #      and correct, but the alert step's `if:` carries no status function
+      #      and is therefore implicitly ANDed with success() — so it is
+      #      SKIPPED, on the one run where it mattered most. This is why the
+      #      gate below must NOT key on `steps.probe.outputs.result`.
+      #   3. an alert step itself fails (gh/network), or the run is cancelled
+      #      mid-flight. Again: red run, silence.
+      #
+      # The gate keys on step OUTCOMES only, and stands down when either real
+      # alerting step already succeeded — that alarm is filed, this one would
+      # just be noise on top of it.
+      #
+      # PLACEMENT IS LOAD-BEARING: this must sit AFTER the recovery step and
+      # BEFORE the "Fail the run on a confirmed delivery failure" step below.
+      # That last step deliberately calls `exit 1` on every confirmed mail
+      # outage, which makes `failure()` true for the rest of the job — so a
+      # catch-all placed after it would fire on the ordinary outage path and
+      # file "the canary is broken" alongside every genuine "mail is failing".
+      # Sitting above it, `failure()` here can only mean something genuinely
+      # unmodelled died.
+      # -----------------------------------------------------------------------
+      - name: File or update the email-canary issue (canary itself broke)
+        if: >-
+          (failure() || cancelled())
+          && steps.alert_fail.outcome != 'success'
+          && steps.alert_misconfig.outcome != 'success'
+          && github.event.inputs.skip_alert != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO:     ${{ github.repository }}
+          RUN_URL:  ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Step outcomes, so the issue can show WHERE it broke without anyone
+          # opening the run first. `outcome` is the step's own result before
+          # continue-on-error; a step that never ran reads as `skipped`.
+          GUARD_OUTCOME:           ${{ steps.guard.outcome }}
+          PROBE_OUTCOME:           ${{ steps.probe.outcome }}
+          PROBE_RESULT:            ${{ steps.probe.outputs.result }}
+          ALERT_FAIL_OUTCOME:      ${{ steps.alert_fail.outcome }}
+          ALERT_MISCONFIG_OUTCOME: ${{ steps.alert_misconfig.outcome }}
+          RECOVERY_OUTCOME:        ${{ steps.recovery.outcome }}
+          # `job.status`, not `cancelled()`: status functions are only legal in
+          # an `if:`. This reads `cancelled` when a human (or GitHub) stopped
+          # the run, which is the case the last line of this issue tells the
+          # reader to close it for.
+          JOB_STATUS:              ${{ job.status }}
+        run: |
+          set -euo pipefail
+          TITLE="$ISSUE_TITLE_BROKEN"
+
+          # Deliberately NOT the misconfig title: that issue's body diagnoses
+          # "SMTP secrets are empty" and would send someone at 03:00 to inspect
+          # secrets that are fine. Different first move, different alarm.
+
+          PROBE_RESULT_SHOWN="${PROBE_RESULT:-}"
+          PROBE_NOTE=""
+          if [ "$PROBE_RESULT_SHOWN" = "failed" ]; then
+            PROBE_NOTE="**The probe did record \`result=failed\` before it died, so treat this as a probable mail outage too.** Both things are true at once: the send was refused *and* the canary broke afterwards. Read the run log for the relay's response code and work it like \`${ISSUE_TITLE_FAIL}\`, then fix whatever killed the step."
+          fi
+          [ -n "$PROBE_RESULT_SHOWN" ] || PROBE_RESULT_SHOWN='(never written — the probe died before reporting)'
+
+          BODY=$(cat <<EOF
+          **The email canary did not complete, so the state of outbound mail is
+          UNKNOWN.** Not known broken, not known working — unverified. Nothing
+          here says the relay is down; nothing here says it is up.
+
+          - Run: $RUN_URL
+
+          **Start with the run log, NOT the relay and NOT the secrets.** What
+          failed is the canary's own machinery: a step died in a way the
+          workflow does not model, or the run was cancelled. Chasing the mail
+          path first burns an on-call hour on a system that may be perfectly
+          healthy.
+
+          | Step | Outcome |
+          | --- | --- |
+          | Guard — SMTP secrets visible | \`${GUARD_OUTCOME}\` |
+          | Probe — real send | \`${PROBE_OUTCOME}\` |
+          | Probe recorded \`result\` | \`${PROBE_RESULT_SHOWN}\` |
+          | Alert — outbound mail is failing | \`${ALERT_FAIL_OUTCOME}\` |
+          | Alert — SMTP secrets empty | \`${ALERT_MISCONFIG_OUTCOME}\` |
+          | Recovery — close stale alarms | \`${RECOVERY_OUTCOME}\` |
+          | Job status | \`${JOB_STATUS}\` |
+
+          ${PROBE_NOTE}
+
+          **If you cancelled this run by hand, close this issue.** A cancelled
+          canary is an expected outcome, not an incident.
+
+          This issue is filed by \`.github/workflows/email-canary.yml\`. The
+          canary does NOT gate deploys — shipping is unaffected. Runbook:
+          \`docs/email-canary-runbook.md\`.
+          EOF
+          )
+
+          # Byte-identical to the lookup in the delivery-failure step above; see
+          # the DEDUPE comment there for why `--search` is not used.
+          EXISTING=$(TITLE="$TITLE" gh issue list -R "$REPO" --state open --limit 200 --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            gh issue create -R "$REPO" --title "$TITLE" --body "$BODY"
+            echo "Filed a new issue titled '$TITLE'"
+          fi
 
       # -----------------------------------------------------------------------
       # Fail LAST, so the alert steps above always got their chance to run. A

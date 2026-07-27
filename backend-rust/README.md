@@ -405,7 +405,7 @@ backend-rust/
 | Variable | Description |
 |----------|-------------|
 | `SMTP_HOST` | SMTP server hostname |
-| `SMTP_PORT` | SMTP server port (default: 465) |
+| `SMTP_PORT` | SMTP server port (default: 587 — STARTTLS; matches `config/mod.rs`, `docker-compose.*.yml`, `deploy.yml` and the email canary) |
 | `SMTP_USER` | SMTP username |
 | `SMTP_PASS` | SMTP password |
 | `SMTP_FROM` | From address on outgoing mail. Falls back to `SMTP_USER` when unset or blank. Bare (`x@y.com`) or display-name (`Name <x@y.com>`) form; a malformed value is logged as an ERROR at startup. Must be an address the mailbox genuinely **owns** — an alias is refused with `553 5.7.1 …: Sender address rejected` *after* a successful AUTH (issue #352) |
