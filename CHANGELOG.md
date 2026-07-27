@@ -11,6 +11,15 @@ merging that PR is what tags `vX.Y.Z` and publishes the GitHub release.
 Entries below the generated sections are the earlier hand-written, dated
 format, kept verbatim for history.
 
+## [4.5.1](https://github.com/thehfhotel/loyalty-app/compare/v4.5.0...v4.5.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ci:** close the email canary's silent-alarm holes and the SMTP_PORT split ([#370](https://github.com/thehfhotel/loyalty-app/issues/370)) ([e5309af](https://github.com/thehfhotel/loyalty-app/commit/e5309af0fc698a59a1ff75afc91cf61efd9914d5))
+* **ops:** alert backup failures through GitHub issues, and signal recovery ([#371](https://github.com/thehfhotel/loyalty-app/issues/371)) ([fc54b2e](https://github.com/thehfhotel/loyalty-app/commit/fc54b2e9bc838b495c919105c0fd438dd0b76011)), closes [#366](https://github.com/thehfhotel/loyalty-app/issues/366)
+* **ops:** repair the four defects the live backup/restore drill exposed ([#376](https://github.com/thehfhotel/loyalty-app/issues/376)) ([6103f3d](https://github.com/thehfhotel/loyalty-app/commit/6103f3d7325a9954b3012bad7f95f3c26de1c77b))
+
 ## [4.5.0](https://github.com/thehfhotel/loyalty-app/compare/v4.4.2...v4.5.0) (2026-07-27)
 
 
