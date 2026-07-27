@@ -19,6 +19,8 @@ Nightly at 01:00 ICT (18:00 UTC) the `loyalty-backup.timer` systemd unit
    `KEEP_MIN` (7) most recent, so a wrong clock cannot empty the directory.
 6. Updates `/srv/backups/loyalty/last-success` — written last, so it only
    advances after a fully verified dump.
+7. If the previous run had failed, sends a **recovery** notification and clears
+   `/srv/backups/loyalty/LAST-FAILURE`. See [Alerting](#alerting).
 
 The dump uses `--no-owner --no-acl` so it can be restored into a DB owned by
 any role.
@@ -49,17 +51,26 @@ It installs `age`, the backup + alert scripts, the systemd units, creates
 the scripts and never overwrites `/etc/loyalty-backup.conf`.
 
 Then set `ALERT_COMMAND` in `/etc/loyalty-backup.conf` so a failure reaches a
-human. Without it, failures land only in the journal and in
-`/srv/backups/loyalty/LAST-FAILURE`.
+human — see [Alerting](#alerting) below. Without it, failures land only in the
+journal and in `/srv/backups/loyalty/LAST-FAILURE`.
 
-| Setting          | What it is                                                 |
-| ---------------- | ---------------------------------------------------------- |
-| `AGE_RECIPIENT`  | Single-line `age1...` **public** key (safe to store here)  |
-| `BACKUP_DIR`     | Where dumps are written (default `/srv/backups/loyalty`)   |
-| `PG_CONTAINER`   | Production Postgres container name                          |
-| `KEEP_DAYS`      | Age-based retention (default 30)                            |
-| `KEEP_MIN`       | Floor on retained dumps regardless of age (default 7)       |
-| `ALERT_COMMAND`  | Command receiving the failure text on stdin                 |
+| Setting              | What it is                                                    |
+| -------------------- | ------------------------------------------------------------- |
+| `AGE_RECIPIENT`      | Single-line `age1...` **public** key (safe to store here)     |
+| `BACKUP_DIR`         | Where dumps are written (default `/srv/backups/loyalty`)      |
+| `PG_CONTAINER`       | Production Postgres container name                             |
+| `KEEP_DAYS`          | Age-based retention (default 30)                               |
+| `KEEP_MIN`           | Floor on retained dumps regardless of age (default 7)          |
+| `ALERT_COMMAND`      | Command receiving the alert text on stdin                      |
+| `GITHUB_REPO`        | `owner/repo` the alert issue is filed on                       |
+| `GITHUB_TOKEN`       | Fine-grained PAT, **Issues: read and write** on that repo only |
+| `GITHUB_ISSUE_TITLE` | Issue title, **no colon** (default is fine)                    |
+| `SMTP_*`             | Only for the optional second (email) channel                   |
+
+> `install.sh` **never re-applies** `loyalty-backup.conf.example` to an existing
+> `/etc/loyalty-backup.conf`. Anything added to the example after the host was
+> provisioned has to be merged in by hand; re-running the installer prints a
+> DRIFT NOTICE when the live conf has no `GITHUB_REPO`.
 
 The age **private** key stays on the operator's machine at
 `~/.age/loyalty-backup.key` and is the only thing that can decrypt a dump.
@@ -99,6 +110,153 @@ ls -lh /srv/backups/loyalty
 
 An untested backup is not a backup — confirm one actually restores using the
 procedure below.
+
+## Alerting
+
+A backup you do not hear about is not monitored. Two things reach a human, and
+one of them must not share fate with the thing being watched.
+
+### Channels
+
+| Channel                                       | Role            | Survives a mail outage |
+| --------------------------------------------- | --------------- | ---------------------- |
+| `loyalty-backup-notify-github.sh` (GitHub issue) | **primary**     | yes                    |
+| `loyalty-backup-notify-email.sh` (SMTP)        | optional second | no                     |
+
+Email is deliberately *not* the primary. The only mailbox available is
+`info@saichon.com` — the same one that carries this app's password resets, and
+the same one whose lapsed subscription caused #352 and made PR #351's first live
+alert test fail with `553 5.7.1 ... Sender address rejected`. An email-only
+alert routed through that mailbox suppresses its own alarm: the backup fails,
+the alert cannot leave the host, and nobody finds out. GitHub does not share
+fate with it, is already where `Production deploy failed` and
+`Email canary - outbound mail is failing` land, and de-duplicates — one issue
+that gains a comment per night rather than one message per night.
+
+Set it up (on evergreen, in `/etc/loyalty-backup.conf`, mode 600):
+
+```sh
+GITHUB_REPO="thehfhotel/loyalty-app"
+GITHUB_TOKEN="github_pat_…"
+ALERT_COMMAND=/usr/local/bin/loyalty-backup-notify-github.sh
+```
+
+To run **both** channels, use the single-quoted two-transport form shown in
+`scripts/evergreen/loyalty-backup.conf.example`. Three details there are load
+bearing: single quotes (the conf is *sourced*, so double quotes expand at source
+time and ship a blank alert), the GitHub transport **last** (a list's exit
+status is its last command, and that status is how the alert script decides
+whether the alert got out), and `|| true` on the email leg so a dead mailbox
+cannot fail a dispatch GitHub already handled.
+
+### What arrives
+
+* **Failure** — an issue titled `Production backup failed on evergreen`, or a
+  comment on the one already open. Body: host, unit, failure time, how old the
+  last good dump is, the marker path, a copy-pasteable triage block, and the raw
+  alert text.
+* **Recovery** — a comment saying backups are working again, and the issue is
+  **closed** (`state_reason: completed`).
+
+`ALERT_COMMAND` learns which is which from the **environment**, never from
+argv — `LOYALTY_ALERT_KIND=failure|recovered`, plus `LOYALTY_ALERT_UNIT` and
+`LOYALTY_ALERT_LAST_SUCCESS_AGE`. A transport that ignores those variables keeps
+working exactly as before, which is why `loyalty-backup-notify-email.sh` needed
+no change: its subject line still says `PRODUCTION BACKUP FAILED` even for a
+recovery, and the first line of the body is what distinguishes the two.
+
+> **The issue body is world-readable.** `thehfhotel/loyalty-app` is a public
+> repository. The transport only ever posts facts this repo already publishes.
+> When you reply in the thread, keep journal excerpts, container environment,
+> connection strings and dump contents on the host.
+
+### `LAST-FAILURE` is now self-clearing
+
+`/srv/backups/loyalty/LAST-FAILURE` used to be written on every failure and
+removed by nothing, so a marker from weeks ago sat next to a fresh
+`last-success` and an operator mid-incident had to compare timestamps to work
+out which was current (#366). It is now the recovery latch:
+
+| Event                                              | Marker      |
+| -------------------------------------------------- | ----------- |
+| Backup fails                                       | written     |
+| Backup succeeds, recovery alert dispatched OK      | **removed** |
+| Backup succeeds, recovery dispatch **failed**      | kept, so the next successful run retries |
+| Backup succeeds, no `ALERT_COMMAND` configured     | removed     |
+
+So: **if `LAST-FAILURE` exists, backups are failing right now** (or the recovery
+notice has not got out yet — the journal says which). It is no longer a
+historical artefact.
+
+Two guards keep this from making things worse than the silence it replaces.
+`backup-loyalty-db.sh` runs under `set -euo pipefail` and calls the alert script
+*after* a verified backup, so the call is wrapped in `|| log "WARNING: …"` and
+`loyalty-backup-alert.sh` ends with an unconditional `exit 0`. Without either,
+a broken alert transport would fail `loyalty-backup.service`, fire its
+`OnFailure=`, and file a FAILURE issue for a run that succeeded. Both comments
+say so in the source; do not tidy them away.
+
+### The token: mint, approve, rotate
+
+The PAT is the one live secret on evergreen and it lives only in
+`/etc/loyalty-backup.conf`.
+
+1. GitHub → Settings → Developer settings → **Personal access tokens → Fine-grained tokens** → *Generate new token*.
+2. **Resource owner: `thehfhotel`** (the organisation, not your personal account) — the issue has to be filed on the org's repo.
+3. Repository access: **Only select repositories → `thehfhotel/loyalty-app`**.
+4. Repository permissions: **Issues → Read and write**. Nothing else. (`Metadata → Read` is added automatically and is mandatory.) It cannot deploy, cannot push, and cannot touch any other repo.
+5. Expiration: 90 days or less. Put the rotation date in the calendar — see the drill below for what an expired token looks like.
+6. **Because `thehfhotel` is an organisation, the token may land in the org's *Pending requests*** (Settings → Third-party Access → Personal access tokens). Until an owner approves it, every call 403s and the transport logs `BACKUP ALERTS ARE NOT REACHING GITHUB`. Approve it before assuming the script is broken.
+7. Install it:
+
+   ```sh
+   sudo sed -i 's|^GITHUB_TOKEN=.*|GITHUB_TOKEN="github_pat_…"|' /etc/loyalty-backup.conf
+   sudo chmod 600 /etc/loyalty-backup.conf
+   sudo systemctl start loyalty-backup.service    # proves the whole path
+   ```
+
+Rotation is the same steps with a new token; there is no other copy to update.
+The token is never passed on a command line (it goes into a mode-600 curl config
+inside a private temp dir) and is never exported, so it appears in neither
+`/proc/*/cmdline` nor `/proc/*/environ`. If it ever leaks, revoke it in GitHub
+first — that is instant — and only then mint a replacement.
+
+### Alert-path drill
+
+An alert channel nobody has ever seen fire is a hypothesis. Exercise the whole
+loop end to end; it takes about two minutes and touches no production data.
+
+```sh
+# On evergreen, as root.
+
+# 1. FAILURE. Fire the alert unit by hand — same path OnFailure= uses.
+sudo systemctl start loyalty-backup-failure@loyalty-backup.service
+journalctl -u 'loyalty-backup-failure@*' -n 40 --no-pager
+ls -l /srv/backups/loyalty/LAST-FAILURE          # marker written
+cat /srv/backups/loyalty/.github-alert-issue     # issue number remembered (mode 600)
+#    -> expect a new "Production backup failed on evergreen" issue on GitHub
+
+# 2. DE-DUPE. Do it again; it must COMMENT, not open a second issue.
+sudo systemctl start loyalty-backup-failure@loyalty-backup.service
+
+# 3. RECOVERY. A real backup run clears it and closes the issue.
+sudo systemctl start loyalty-backup.service
+journalctl -u loyalty-backup.service -n 40 --no-pager
+ls -l /srv/backups/loyalty/LAST-FAILURE          # expect: No such file or directory
+#    -> expect a "Backups are working again" comment and the issue CLOSED
+```
+
+Close the loop by hand afterwards only if something went wrong. What to look for
+when it does:
+
+| Symptom in the journal                             | Cause                                                                   |
+| --------------------------------------------------- | ----------------------------------------------------------------------- |
+| `BACKUP ALERTS ARE NOT REACHING GITHUB` + `401`     | Token wrong, revoked or expired. Mint a new one.                        |
+| Same banner + `403`                                 | Org approval still pending, wrong permission, or a secondary rate limit. |
+| `GITHUB_REPO is not set`                            | Config drift — the conf predates this transport. Re-run `install.sh` for the DRIFT NOTICE. |
+| `gave up after 3 attempts (last HTTP 000)`          | No egress / DNS. Same fix as any other outbound problem on that host.   |
+| A duplicate issue every night                       | The title acquired a colon. GitHub search reads `word:` as a qualifier, so the de-dupe search silently matches nothing. |
+| Marker still present after a successful run         | The recovery dispatch failed. Deliberate — the next successful run retries. |
 
 ## Restoring from backup
 
