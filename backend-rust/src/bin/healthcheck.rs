@@ -43,18 +43,31 @@ fn main() -> ExitCode {
     let port = std::env::var("PORT").unwrap_or_else(|_| DEFAULT_PORT.to_string());
     let url = format!("http://127.0.0.1:{port}{HEALTHCHECK_PATH}");
 
-    let agent = ureq::AgentBuilder::new().timeout(REQUEST_TIMEOUT).build();
+    // ureq 3 is a Sans-IO rewrite: the agent is built from a `Config` instead of
+    // `AgentBuilder`. `timeout_global` is the direct successor of ureq 2's
+    // `AgentBuilder::timeout` — end-to-end (DNS → connect → send → read body) —
+    // so the probe still gives up after `REQUEST_TIMEOUT`.
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(REQUEST_TIMEOUT))
+        .build()
+        .into();
 
     match agent.get(&url).call() {
-        Ok(response) if (200..300).contains(&response.status()) => ExitCode::SUCCESS,
+        // `status()` is an `http::StatusCode` in ureq 3; compare (and print) the
+        // raw u16 so the 2xx success criterion and the stderr text below stay
+        // byte-for-byte what the ureq 2 version produced.
+        Ok(response) if (200..300).contains(&response.status().as_u16()) => ExitCode::SUCCESS,
         Ok(response) => {
             eprintln!(
                 "healthcheck: unexpected status {} from {url}",
-                response.status()
+                response.status().as_u16()
             );
             ExitCode::FAILURE
         },
-        Err(ureq::Error::Status(code, _)) => {
+        // ureq 3 renamed `Error::Status(code, response)` to `Error::StatusCode(code)`.
+        // 4xx/5xx responses are still surfaced as errors by default
+        // (`http_status_as_error`), so this arm keeps catching them.
+        Err(ureq::Error::StatusCode(code)) => {
             eprintln!("healthcheck: HTTP {code} from {url}");
             ExitCode::FAILURE
         },

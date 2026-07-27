@@ -57,7 +57,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ureq = { version = "2", default-features = false }
+ureq = { version = "3", default-features = false }
 
 [profile.release]
 opt-level = "z"
@@ -82,15 +82,23 @@ fn main() -> ExitCode {
     let port = std::env::var("PORT").unwrap_or_else(|_| DEFAULT_PORT.to_string());
     let url = format!("http://127.0.0.1:{port}/api/health");
 
-    let agent = ureq::AgentBuilder::new().timeout(REQUEST_TIMEOUT).build();
+    // ureq 3 builds the agent from a `Config`; `timeout_global` is the direct
+    // successor of ureq 2's `AgentBuilder::timeout` (whole-call, end to end).
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(REQUEST_TIMEOUT))
+        .build()
+        .into();
 
     match agent.get(&url).call() {
-        Ok(response) if (200..300).contains(&response.status()) => ExitCode::SUCCESS,
+        // `status()` is an `http::StatusCode` in ureq 3 — compare the raw u16 so
+        // the 2xx criterion and the stderr text stay what ureq 2 produced.
+        Ok(response) if (200..300).contains(&response.status().as_u16()) => ExitCode::SUCCESS,
         Ok(response) => {
-            eprintln!("healthcheck: unexpected status {} from {url}", response.status());
+            eprintln!("healthcheck: unexpected status {} from {url}", response.status().as_u16());
             ExitCode::FAILURE
         },
-        Err(ureq::Error::Status(code, _)) => {
+        // ureq 3 renamed `Error::Status(code, response)` to `Error::StatusCode(code)`.
+        Err(ureq::Error::StatusCode(code)) => {
             eprintln!("healthcheck: HTTP {code} from {url}");
             ExitCode::FAILURE
         },
