@@ -17,7 +17,8 @@ What to verify **after** a production deploy lands.
 ## TL;DR — five checks, ~2 minutes
 
 1. Staging `/api/health` returns **200**.
-2. The deploy's commit SHA **matches the latest green** staging deploy.
+2. Production and staging **report the deployed SHA** as their
+   `revision`, and it matches the latest green staging deploy.
 3. E2E for that SHA on `main` is **green**.
 4. Skim `CHANGELOG.md` and the squash-merge PRs for **surprises**
    (migrations, infra changes, secret-touch).
@@ -31,7 +32,9 @@ If all five pass: the deploy is good. If any fail: roll back
 ## 1. Staging is healthy *right now*
 
 ```bash
-curl -fsS https://loyalty-dev.saichon.com/api/health | jq .
+# No -f: a degraded backend answers 503 and -f discards the body, which
+# is the part that tells you what is wrong and which build is wrong.
+curl -sS https://loyalty-dev.saichon.com/api/health | jq .
 ```
 
 - **Required**: HTTP `200` and `status: "healthy"`.
@@ -46,7 +49,35 @@ human is approving production, that poll may be hours old. A staging
 container that died after the poll passed won't show up unless someone
 asks now.
 
-## 2. Commit SHA matches the latest green staging deploy
+## 2. The running app reports the SHA you think it is running
+
+**Ask the app, not the pipeline.** `/api/health` exposes a `revision`
+field: the commit SHA baked into the image at build time (`ARG GIT_SHA`
+in `backend-rust/Dockerfile.ci`). Unlike `version` — which is
+`CARGO_PKG_VERSION` and identical across commits — it can distinguish a
+real deploy from one that silently no-op'd, partially applied, or was
+overtaken by a newer run.
+
+```bash
+# Again no -f: 503 still carries the body, and a degraded prod still
+# tells you WHICH build is degraded.
+curl -sS https://loyalty.saichon.com/api/health     | jq -r .revision
+curl -sS https://loyalty-dev.saichon.com/api/health | jq -r .revision
+```
+
+- **Expected**: the SHA of the commit that was deployed.
+- `unknown` (or the field missing) means the running image was built
+  before this bake existed, or is a rollback to such an image. It is
+  not a failure — it just means this check can't answer, so fall back
+  to the SHA comparison below.
+- A **different, real SHA** is the bad case: the deploy did not land.
+  Go to the rollback section.
+
+`ci-build-e2e.yml`'s `Verify Staging` job and `deploy.yml`'s
+`Verify production is running this commit` step run exactly this
+assertion automatically, with the same three outcomes.
+
+## 2b. Commit SHA matches the latest green staging deploy
 
 The production deploy ships **the same SHA** that ran on staging — verify
 nothing accidentally points at a stale or unrelated build.

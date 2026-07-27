@@ -110,9 +110,22 @@ environment, which requires a human approver. The approver should:
 ### 5. Verify
 
 ```bash
-curl -fsS https://loyalty.saichon.com/api/health
-# Expect HTTP 200 with a JSON body that mentions postgres + redis healthy.
+# No -f: a degraded backend answers 503 and -f throws the body away —
+# and the body is what tells you which build is serving.
+curl -sS https://loyalty.saichon.com/api/health | jq '{status, revision, services}'
 ```
+
+Expect HTTP 200, `status: "healthy"`, and postgres + redis healthy.
+
+**Also check `revision`** — the commit SHA baked into the image at build
+time. After a rollback it must be the **good** SHA you rolled back *to*,
+not the bad one you rolled back *from*. If it still shows the bad SHA,
+the rollback did not actually take effect (the container was not
+recreated, or `IMAGE_TAG` was not picked up) — do not walk away.
+
+`revision: "unknown"` means you rolled back to an image built before this
+field existed. That is expected for older SHAs and is not a failure; fall
+back to comparing the image digest the host pulled.
 
 Spot-check the obvious user paths: `/`, login, recent booking page,
 admin dashboard. The post-deploy `Verify Staging` workflow does **not**

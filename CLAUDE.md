@@ -155,7 +155,10 @@ Workflows fire on push to `main`:
   (`regression-api`, the Playwright `api` project — `*.api.spec.ts`),
   which uses Playwright's request context with **no browser**, so it has
   no `cdn.playwright.dev` dependency and is reliable enough to block
-  deploys.
+  deploys. Build & Push also runs `/app/healthcheck` inside the image it
+  just pushed and requires the binary's own connection-refused message
+  and exit 1 — the compose `HEALTHCHECK` had no gate before, so a
+  binary that could not even load was invisible.
 - `e2e.yml` (**Browser E2E**) — the full browser suite (Playwright
   `browser` project — `*.browser.spec.ts`), run inside the
   `mcr.microsoft.com/playwright` container so browsers are pre-baked (no
@@ -198,6 +201,15 @@ that reviewer:
   reach production, because it skips the staging deploy.
 - **Post-deploy health check.** Polls production `/api/health` for 90s;
   a crash-looping release fails the job instead of reporting green.
+- **Revision assertion.** Images bake their commit SHA in at build time
+  (`ARG GIT_SHA`) and `/api/health` reports it as `revision`, so both
+  `Verify Staging` and the production verify step prove the deploy
+  actually shipped *this* commit rather than merely that something
+  answers 200. Phased: a matching SHA passes, an absent/`unknown` one
+  warns (pre-bake images and rollbacks), a *different* SHA fails.
+  Check it by hand with
+  `curl -sS <url>/api/health | jq -r .revision` (no `-f` — a 503 still
+  carries the body you need).
 - Failure *or cancellation* files a `Production deploy failed` issue.
 
 Verify a deploy with

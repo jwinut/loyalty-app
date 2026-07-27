@@ -2,11 +2,49 @@
 //!
 //! Provides endpoints for health monitoring and readiness checks.
 
+use std::sync::OnceLock;
+
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use chrono::Utc;
 use serde::Serialize;
 
 use crate::state::AppState;
+
+/// Value reported in `revision` when the image carries no build SHA.
+///
+/// Images built before the `GIT_SHA` build-arg existed (and any local
+/// `cargo run`) report this. The deploy verifiers treat it as "cannot
+/// tell" and warn rather than fail — see the phased rollout note on
+/// [`resolve_revision`].
+const UNKNOWN_REVISION: &str = "unknown";
+
+/// Normalise a raw `GIT_SHA` value into the `revision` field.
+///
+/// Baked into the image at build time (`ARG GIT_SHA` / `ENV GIT_SHA` in
+/// both Dockerfiles) so a running container can prove which commit it was
+/// built from — `version` is `CARGO_PKG_VERSION`, which is identical across
+/// commits and therefore cannot distinguish a real deploy from a no-op
+/// (issue #345).
+///
+/// An UNSET var and an EMPTY one must behave identically: compose
+/// interpolates a missing `${GIT_SHA}` to the empty string, so
+/// `Some("")` reaching the payload as a real revision would clobber the
+/// image's own value with something the verifier reads as a mismatch.
+///
+/// Kept pure (env read by the caller) so unit tests exercise every branch
+/// without mutating process env, which races across parallel tests.
+fn resolve_revision(raw: Option<String>) -> String {
+    match raw {
+        Some(value) if !value.trim().is_empty() => value.trim().to_string(),
+        _ => UNKNOWN_REVISION.to_string(),
+    }
+}
+
+/// Process-wide revision, resolved from `GIT_SHA` exactly once.
+fn revision() -> &'static str {
+    static REVISION: OnceLock<String> = OnceLock::new();
+    REVISION.get_or_init(|| resolve_revision(std::env::var("GIT_SHA").ok()))
+}
 
 /// Health check response
 #[derive(Serialize)]
@@ -14,6 +52,8 @@ pub struct HealthResponse {
     pub status: String,
     pub timestamp: String,
     pub version: String,
+    /// Commit SHA this image was built from, or `"unknown"`.
+    pub revision: String,
 }
 
 /// Database health check response
@@ -54,6 +94,8 @@ pub struct SystemHealthResponse {
     pub status: String,
     pub timestamp: String,
     pub version: String,
+    /// Commit SHA this image was built from, or `"unknown"`.
+    pub revision: String,
     pub environment: String,
     pub services: ServicesHealth,
     pub uptime: u64,
@@ -67,6 +109,7 @@ async fn health_check() -> Json<HealthResponse> {
         status: "ok".to_string(),
         timestamp: Utc::now().to_rfc3339(),
         version: env!("CARGO_PKG_VERSION").to_string(),
+        revision: revision().to_string(),
     })
 }
 
@@ -180,6 +223,7 @@ async fn health_check_full(
         },
         timestamp,
         version: env!("CARGO_PKG_VERSION").to_string(),
+        revision: revision().to_string(),
         environment,
         services,
         uptime: 0, // Would need to track start time for actual uptime
@@ -214,5 +258,53 @@ mod tests {
         assert_eq!(response.status, "ok");
         assert!(!response.timestamp.is_empty());
         assert!(!response.version.is_empty());
+        // Never empty: the deploy verifiers distinguish "unknown" (warn) from
+        // a mismatching SHA (fail), and an empty string is neither.
+        assert!(!response.revision.is_empty());
+    }
+
+    // ------------------------------------------------------------------
+    // revision resolution (issue #345)
+    //
+    // These call the pure function directly rather than setting GIT_SHA:
+    // process env is global, so mutating it races every other test in the
+    // binary.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn resolve_revision_uses_the_value_when_set() {
+        assert_eq!(
+            resolve_revision(Some("2658193601995b203dd856ac28c69d6cb1c49c2a".to_string())),
+            "2658193601995b203dd856ac28c69d6cb1c49c2a"
+        );
+    }
+
+    #[test]
+    fn resolve_revision_trims_surrounding_whitespace() {
+        assert_eq!(resolve_revision(Some("  abc123\n".to_string())), "abc123");
+    }
+
+    #[test]
+    fn resolve_revision_falls_back_when_unset() {
+        assert_eq!(resolve_revision(None), UNKNOWN_REVISION);
+    }
+
+    /// An unset `${GIT_SHA}` in a compose file interpolates to the EMPTY
+    /// string, not to nothing — so the empty case must land on the same
+    /// fallback as the unset case, or a stale container would advertise a
+    /// blank revision that reads as "present but wrong".
+    #[test]
+    fn resolve_revision_falls_back_on_empty_or_blank() {
+        assert_eq!(resolve_revision(Some(String::new())), UNKNOWN_REVISION);
+        assert_eq!(
+            resolve_revision(Some("   \t\n".to_string())),
+            UNKNOWN_REVISION
+        );
+    }
+
+    #[test]
+    fn revision_is_stable_across_calls() {
+        assert_eq!(revision(), revision());
+        assert!(!revision().is_empty());
     }
 }
