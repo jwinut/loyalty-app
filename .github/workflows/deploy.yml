@@ -338,6 +338,62 @@ jobs:
           echo "::error::Production /api/health not responding 90s after deploy"
           exit 1
 
+      # A 200 proves only that *something* answers — `version` is
+      # CARGO_PKG_VERSION, identical on every commit. `revision` is the commit
+      # SHA baked into the image at build time (ARG/ENV GIT_SHA), so it proves
+      # WHICH BUILD is serving. That matters most here: production deploys are
+      # unattended, and the deploy host's shim cannot be reached for a
+      # `docker inspect` (the deploy key carries a forced command). Issue #345.
+      #
+      # PHASED ROLLOUT — three outcomes, same contract as verify-staging:
+      #   revision == deploying SHA   -> pass
+      #   revision absent / "unknown" -> WARN but pass (image predates the
+      #                                  bake, or this is a rollback to one;
+      #                                  a rollback must not go red for it)
+      #   revision == a DIFFERENT SHA -> FAIL (no-op / partial / overtaken)
+      - name: Verify production is running this commit
+        env:
+          PROD_HEALTH_URL: https://loyalty.saichon.com/api/health
+          EXPECTED_SHA: ${{ needs.check-prerequisites.outputs.commit-sha }}
+        run: |
+          set -uo pipefail
+
+          # Poll until it MATCHES rather than classifying the first sample:
+          # for a few seconds after a deploy the outgoing container can still
+          # answer through nginx while the new one starts, and reading that as
+          # "serving a different commit" would fail a perfectly good deploy.
+          #
+          # Deliberately NOT `curl -f`: /api/health answers 503 when a
+          # dependency is degraded and -f throws away the body, which is the
+          # only place `revision` lives.
+          REVISION=""
+          for attempt in $(seq 1 20); do
+            BODY=$(curl -sS --max-time 5 "$PROD_HEALTH_URL" 2>/dev/null || true)
+            REVISION=$(printf '%s' "$BODY" | jq -r '.revision // empty' 2>/dev/null || true)
+            if [ "$REVISION" = "$EXPECTED_SHA" ]; then
+              echo "Production is running $EXPECTED_SHA (after ${attempt} attempt(s))."
+              exit 0
+            fi
+            sleep 3
+          done
+
+          echo "expected revision:  $EXPECTED_SHA"
+          echo "last seen revision: ${REVISION:-<absent>}"
+
+          if [ -z "$REVISION" ] || [ "$REVISION" = "unknown" ]; then
+            echo "::warning::Production /api/health reports no revision (${REVISION:-absent}). The running image predates the GIT_SHA bake, or this is a rollback to such an image. Cannot prove the deploy landed — NOT failing for it."
+            {
+              echo "## Production revision unavailable"
+              echo ""
+              echo "- Expected: \`$EXPECTED_SHA\`"
+              echo "- Reported: \`${REVISION:-absent}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error::Production is serving a DIFFERENT commit. Expected $EXPECTED_SHA, got $REVISION. The deploy was a no-op, partial, or has been overtaken."
+          exit 1
+
       - name: Deployment Summary
         run: |
           echo "## Production Deployment Complete" >> $GITHUB_STEP_SUMMARY

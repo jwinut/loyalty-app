@@ -121,6 +121,13 @@ USER nonroot:nonroot
 ENV RUST_LOG=info
 ENV RUST_BACKTRACE=0
 
+# Commit SHA baked in at build time and surfaced by /api/health as `revision`
+# (issue #345). Mirrors Dockerfile.ci so a locally built image reports the same
+# shape as a CI-built one; defaults to `unknown`, which the deploy verifiers
+# treat as "cannot tell" rather than a mismatch.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
 EXPOSE 4001
 
 # No HEALTHCHECK directive: the docker-compose.prod.yml `healthcheck:` block

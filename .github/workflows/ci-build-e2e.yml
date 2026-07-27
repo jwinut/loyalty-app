@@ -377,15 +377,31 @@ jobs:
           cache-on-failure: true
           prefix-key: "v0-rust-container"
 
-      - name: Build release binary
+      # `healthcheck` is built HERE, alongside the backend, so the binary that
+      # ships is the one compiled from src/bin/healthcheck.rs — the source CI
+      # lints and unit-tests. Dockerfile.ci used to vendor a second copy inline
+      # and compile it in rust:1.97-slim (trixie, glibc 2.41) for a bookworm
+      # (glibc 2.36) runtime; this container is bookworm, so the shipped binary
+      # is now built against exactly the libc it runs on. See issue #360.
+      # It is ~1MB with one transitive dep (ureq, no TLS) and shares this job's
+      # dependency graph, so it adds no measurable build time.
+      - name: Build release binaries
         working-directory: ./backend-rust
-        run: cargo build --release --bin loyalty-backend
+        run: cargo build --release --bin loyalty-backend --bin healthcheck
 
+      # upload-artifact roots the archive at the LEAST COMMON ANCESTOR of the
+      # given paths — `backend-rust/target/release/` — so both binaries land
+      # FLAT in the artifact and therefore flat in ./backend-binary, which is
+      # the Dockerfile.ci build context. Do not add a path outside
+      # target/release/ here without re-checking the COPY lines in
+      # Dockerfile.ci: a higher ancestor would nest them under directories.
       - name: Upload binary artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: loyalty-backend-binary
-          path: backend-rust/target/release/loyalty-backend
+          path: |
+            backend-rust/target/release/loyalty-backend
+            backend-rust/target/release/healthcheck
           retention-days: 1
 
       - name: Show sccache stats
@@ -432,11 +448,26 @@ jobs:
       # -------------------------------------------------------------------------
       # Backend Image (Rust) - uses pre-built binary from build-backend-release
       # -------------------------------------------------------------------------
-      - name: Download backend binary
+      # Unpacks BOTH release binaries (loyalty-backend + healthcheck) flat into
+      # ./backend-binary, which is the Dockerfile.ci build context below.
+      - name: Download backend binaries
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: loyalty-backend-binary
           path: ./backend-binary
+
+      # Fail here, with a readable message, rather than 40 lines later inside
+      # a BuildKit "COPY failed" trace.
+      - name: Assert both binaries are in the build context
+        run: |
+          set -euo pipefail
+          ls -l ./backend-binary
+          for bin in loyalty-backend healthcheck; do
+            if [ ! -f "./backend-binary/$bin" ]; then
+              echo "::error::./backend-binary/$bin is missing — the upload/download artifact layout changed."
+              exit 1
+            fi
+          done
 
       - name: Extract backend metadata
         id: meta-backend
@@ -448,6 +479,7 @@ jobs:
             type=ref,event=branch
 
       - name: Build and push backend
+        id: build-backend
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: ./backend-binary
@@ -455,9 +487,94 @@ jobs:
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
+          # Baked into the image as ENV GIT_SHA and surfaced by /api/health as
+          # `revision` (issue #345). The image carrying its own SHA is what lets
+          # the staging/production verifiers prove a deploy was not a no-op
+          # without any SSH access to the host.
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=backend-ci
           cache-to: type=gha,mode=max,scope=backend-ci
           platforms: linux/amd64
+
+      # -------------------------------------------------------------------------
+      # ASSERT THE SHIPPED healthcheck BINARY ACTUALLY EXECUTES (issue #360)
+      #
+      # docker-compose.prod.yml runs /app/healthcheck as the container's Docker
+      # HEALTHCHECK, but nothing gated on it — so a binary that could not even
+      # be loaded (glibc skew, lost exec bit, wrong architecture) would leave
+      # the container sitting `unhealthy` forever while serving traffic
+      # normally, with no CI, deploy step or alert saying so.
+      #
+      # Run it in the JUST-PUSHED image, which is the artifact that ships.
+      # Nothing listens on port 4001 in a bare container, so the CORRECT
+      # outcome is the binary's own connection-refused message on stderr and
+      # exit 1. The check is written so a loader failure can never be mistaken
+      # for that refusal: it requires the binary's own output text, which only
+      # executing code can produce, in addition to rejecting loader signatures.
+      #
+      # Addressed by DIGEST, not by tag. The digest is what this step just
+      # pushed, on every event type — whereas the SHA tag is computed by
+      # docker/metadata-action, which does not necessarily use `github.sha`
+      # on `pull_request` events. Pulling the digest can never test a
+      # different image than the one built here.
+      # -------------------------------------------------------------------------
+      - name: Assert shipped healthcheck binary executes
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPO }}/backend@${{ steps.build-backend.outputs.digest }}
+        run: |
+          # Deliberately no `-e` anywhere in this step: the EXPECTED outcome is
+          # a non-zero exit from `docker run`, and errexit would abort before
+          # the exit code could be inspected. Every failure path below exits
+          # explicitly instead.
+          set -uo pipefail
+
+          if ! docker pull "$IMAGE"; then
+            echo "::error::Could not pull the image just pushed ($IMAGE)."
+            exit 1
+          fi
+
+          OUTPUT=$(docker run --rm "$IMAGE" /app/healthcheck 2>&1)
+          CODE=$?
+
+          echo "exit code: ${CODE}"
+          echo "--- output ---"
+          printf '%s\n' "$OUTPUT"
+          echo "--------------"
+
+          # 1. Loader / exec signatures, checked FIRST and unconditionally.
+          #    These are what a build/runtime glibc mismatch, a dropped
+          #    executable bit, or a wrong-arch binary actually look like.
+          if printf '%s' "$OUTPUT" | grep -Eqi 'exec format error|error while loading shared libraries|cannot open shared object|GLIBC_|no such file or directory|permission denied|exec: .*not found'; then
+            echo "::error::/app/healthcheck could not be LOADED in the shipped image ($IMAGE). This is a loader failure (glibc skew / exec bit / architecture), not a health result. Output above."
+            exit 1
+          fi
+
+          # 2. Docker's own "could not start the process" exit codes. 125 =
+          #    daemon error, 126 = not executable, 127 = command not found.
+          case "$CODE" in
+            125|126|127)
+              echo "::error::docker run exited $CODE — the container could not execute /app/healthcheck at all (126 = not executable, 127 = not found, 125 = daemon error)."
+              exit 1
+              ;;
+          esac
+
+          # 3. Positive proof the compiled code RAN. Only the binary itself can
+          #    emit this line, so no loader/exec failure can satisfy it. Keep in
+          #    sync with the eprintln! in backend-rust/src/bin/healthcheck.rs.
+          if ! printf '%s' "$OUTPUT" | grep -Eq '^healthcheck: request to http://127\.0\.0\.1:4001/api/health failed:'; then
+            echo "::error::/app/healthcheck did not produce its own connection-refused message. Expected 'healthcheck: request to http://127.0.0.1:4001/api/health failed: ...' on stderr from a bare container where nothing listens on 4001."
+            exit 1
+          fi
+
+          # 4. And it must report failure the way the compose HEALTHCHECK
+          #    contract requires: exit 1, not 0 and not something else.
+          if [ "$CODE" -ne 1 ]; then
+            echo "::error::/app/healthcheck ran but exited $CODE; the contract is exit 1 on an unreachable backend."
+            exit 1
+          fi
+
+          echo "OK: shipped /app/healthcheck loaded, ran, and refused cleanly (exit 1)."
 
       # -------------------------------------------------------------------------
       # Frontend Image
@@ -681,6 +798,14 @@ jobs:
         env:
           BACKEND_URL: http://localhost:4202
           FRONTEND_URL: http://localhost:3201
+          # Proves the SHA bake works BEFORE anything is deployed (issue #345).
+          # This job runs the image that was just built and pushed for THIS
+          # commit, so health.api.spec.ts asserting revision == this SHA is a
+          # direct test that the image carries its own identity. The SHA is
+          # NOT injected into the container by start-app-stack — doing that
+          # would make the test assert its own input instead of the image's
+          # baked-in value.
+          EXPECTED_REVISION: ${{ github.sha }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -891,14 +1016,21 @@ jobs:
   #
   #   1. staging /api/health answers 200 — twice in a row, because a container
   #      that binds the port and then crashes satisfies a single-shot check;
-  #   2. `loyalty_backend_dev` is actually running THIS commit's image.
+  #   2. the app reports THIS commit as its `revision`.
   #
   # (2) matters because /api/health's `version` field is CARGO_PKG_VERSION — a
-  # hard-coded 0.1.0 identical on every commit — so a 200 proves only that
+  # hard-coded value identical on every commit — so a 200 proves only that
   # *something* answers. This job's green is what deploy.yml's
   # check-prerequisites reads to authorise the now-UNATTENDED production
   # deploy, so "staging silently stayed on the old build" must not read as
   # verified.
+  #
+  # `revision` is baked into the image at build time (ARG/ENV GIT_SHA in
+  # Dockerfile.ci, build-arg set in build-and-push) — NOT injected by the
+  # deploy host. That is deliberate: the remote shim on evergreen cannot be
+  # edited from this repo, and the deploy key carries a forced command, so
+  # neither `ssh ... docker inspect` nor a shim change was available. An image
+  # that carries its own SHA needs neither.
   #
   # The matching environment URL is set on `deploy-staging` above.
   # =============================================================================
@@ -909,35 +1041,14 @@ jobs:
     needs: [deploy-staging]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 10
-    # REQUIRED for the SSH steps below: EVERGREEN_DEPLOY_SSH_KEY and
-    # EVERGREEN_HOST_KEY exist ONLY as environment-scoped secrets (development
-    # and production), never at repository scope. A job without `environment:`
-    # reads them as empty strings — GitHub does not error, so the composite
-    # writes an EMPTY known_hosts and ssh fails with the misleading
-    # "No ED25519 host key is known for evergreen.thehfhotel.org".
-    # deploy-staging worked only because it declares this environment.
+    # This job now needs NO secrets: both checks are plain HTTPS against the
+    # staging URL. `environment:` is kept only so the deployment shows up
+    # against the development environment in the GitHub UI.
     environment:
       name: development
       url: http://loyalty-dev.saichon.com
 
     steps:
-      # SSH is needed on BOTH paths now — the revision assertion below on the
-      # happy path, log capture on the failure path — so set it up up-front
-      # rather than under an `if: failure()` guard. This job has no checkout
-      # otherwise (it only curls a URL), so fetch just the composite action.
-      - name: Checkout SSH action
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
-        with:
-          persist-credentials: false
-          sparse-checkout: .github/actions/evergreen-ssh
-          sparse-checkout-cone-mode: false
-
-      - name: Set up SSH access to evergreen
-        uses: ./.github/actions/evergreen-ssh
-        with:
-          ssh-key: ${{ secrets.EVERGREEN_DEPLOY_SSH_KEY }}
-          host-key: ${{ secrets.EVERGREEN_HOST_KEY }}
-
       - name: Poll staging /api/health
         id: poll
         env:
@@ -963,71 +1074,72 @@ jobs:
           echo "::error::Staging /api/health not responding after 90s"
           exit 1
 
-      # NOTE: a revision assertion used to live here (audit finding #16 — prove
-      # the deploy was not a no-op, not merely that *something* answers 200).
-      # It CANNOT be done over this SSH key: the deploy key carries a FORCED
-      # COMMAND server-side, which is why the deploy job pipes its payload to
-      # stdin and passes no remote command at all. Any client-supplied command
-      # (docker inspect / docker ps) is ignored by the forced command, so the
-      # assertion could only ever report "<could not determine>" and fail every
-      # deploy — it blocked two production releases before this was understood.
+      # ---------------------------------------------------------------------
+      # ASSERT STAGING IS RUNNING THIS COMMIT (issue #345)
       #
-      # The right fix is to make the running app report its own commit: inject
-      # the deploy's COMMIT_SHA into the container and surface it from
-      # /api/health, then assert on that over plain HTTP with no SSH at all.
-      # Tracked as a follow-up issue.
-
-      # The rest of this job runs only when the health poll above fails, to
-      # grab backend logs + container state from the staging host before the
-      # next push overwrites them.
+      # PHASED ROLLOUT — three outcomes, on purpose:
+      #   revision == this SHA        -> pass (the deploy really landed)
+      #   revision absent / "unknown" -> WARN but pass. Images built before
+      #                                  the GIT_SHA bake existed, and any
+      #                                  rollback to one, legitimately cannot
+      #                                  answer. Failing on those would turn
+      #                                  a rollback into a red deploy at the
+      #                                  worst possible moment.
+      #   revision == a DIFFERENT SHA -> FAIL. This is the genuine signal the
+      #                                  audit asked for: staging answered,
+      #                                  but from another build — a no-op,
+      #                                  partial, or overtaken deploy.
       #
-      # CAVEAT: these steps pass explicit remote commands, which the deploy
-      # key's forced command may ignore (see the note above) — in which case
-      # they capture nothing. They are tolerant of failure and only run on the
-      # failure path, so they cannot make a run red, but do NOT treat an empty
-      # artifact as "staging looked fine". Confirming/fixingthis is part of
-      # the same follow-up as the revision assertion.
-
-      - name: Capture staging logs + container state (on failure)
-        if: failure()
+      # Once no pre-bake image can be rolled back to, the warn branch should
+      # become a failure.
+      # ---------------------------------------------------------------------
+      - name: Assert staging is running this commit
+        env:
+          STAGING_HEALTH_URL: http://loyalty-dev.saichon.com/api/health
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -uo pipefail
-          mkdir -p staging-failure-logs
 
-          # Tolerate per-command failure: even partial output is useful when
-          # the box is sick. We `|| true` each remote invocation so a missing
-          # service or auth error doesn't truncate the rest.
-          SSH_CMD=(ssh -i ~/.ssh/deploy_key
-            -o StrictHostKeyChecking=yes
-            -o UserKnownHostsFile=~/.ssh/known_hosts
-            -o ProxyCommand="cloudflared --edge-ip-version 4 access ssh --hostname %h"
-            -o ConnectTimeout=15
-            deploy@evergreen.thehfhotel.org)
+          # Poll until it MATCHES rather than classifying the first sample:
+          # for a few seconds after a deploy the outgoing container can still
+          # be answering through nginx while the new one starts, and reading
+          # that as "serving a different commit" would fail a perfectly good
+          # deploy. Only a revision that never becomes this SHA is a finding.
+          #
+          # Deliberately NOT `curl -f`: /api/health answers 503 when a
+          # dependency is degraded, and -f discards the body on a 4xx/5xx —
+          # which is exactly the body carrying `revision`. A degraded staging
+          # still tells us WHICH BUILD is degraded, and that is the question
+          # this step exists to answer.
+          REVISION=""
+          for attempt in $(seq 1 20); do
+            BODY=$(curl -sS --max-time 5 "$STAGING_HEALTH_URL" 2>/dev/null || true)
+            REVISION=$(printf '%s' "$BODY" | jq -r '.revision // empty' 2>/dev/null || true)
+            if [ "$REVISION" = "$EXPECTED_SHA" ]; then
+              echo "Staging is running $EXPECTED_SHA (after ${attempt} attempt(s))."
+              exit 0
+            fi
+            sleep 3
+          done
 
-          "${SSH_CMD[@]}" 'docker ps --filter "name=loyalty_" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"' \
-            > staging-failure-logs/containers.txt 2>&1 || true
+          echo "expected revision:  $EXPECTED_SHA"
+          echo "last seen revision: ${REVISION:-<absent>}"
 
-          "${SSH_CMD[@]}" 'docker logs --tail 200 loyalty_backend_dev 2>&1' \
-            > staging-failure-logs/backend.log 2>&1 || true
+          if [ -z "$REVISION" ] || [ "$REVISION" = "unknown" ]; then
+            echo "::warning::Staging /api/health reports no revision (${REVISION:-absent}). The running image predates the GIT_SHA bake, or this is a rollback to such an image. Cannot prove the deploy landed — NOT failing the deploy for it."
+            {
+              echo "## Verify Staging: revision unavailable"
+              echo ""
+              echo "- Expected: \`$EXPECTED_SHA\`"
+              echo "- Reported: \`${REVISION:-absent}\`"
+              echo ""
+              echo "The running image was built before \`GIT_SHA\` was baked in."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
-          "${SSH_CMD[@]}" 'docker logs --tail 100 loyalty_postgres_dev 2>&1' \
-            > staging-failure-logs/postgres.log 2>&1 || true
-
-          "${SSH_CMD[@]}" 'docker logs --tail 100 loyalty_nginx_dev 2>&1' \
-            > staging-failure-logs/nginx.log 2>&1 || true
-
-          echo "--- containers.txt ---"
-          cat staging-failure-logs/containers.txt || true
-          echo "--- backend.log (tail) ---"
-          tail -40 staging-failure-logs/backend.log || true
-
-      - name: Upload failure logs as artifact (on failure)
-        if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: staging-failure-logs-${{ github.sha }}
-          path: staging-failure-logs/
-          retention-days: 14
+          echo "::error::Staging is serving a DIFFERENT commit. Expected $EXPECTED_SHA, got $REVISION. The deploy was a no-op, partial, or has been overtaken — staging must NOT be treated as verified for this commit."
+          exit 1
 
   # =============================================================================
   # NOTIFY ON STAGING HEALTHCHECK FAILURE
@@ -1081,16 +1193,26 @@ jobs:
           checks and the run log says which one failed:
           - \`/api/health\` never answered 200 twice in a row → the new image is
             up but not serving (crash loop, bad migration, missing env var).
-          - \`loyalty_backend_dev\` is not running this commit's image → the
-            deploy was a no-op, partial, or overtaken; staging is still on an
-            older build and must NOT be treated as verified.
+          - \`/api/health\` reported a \`revision\` that is a DIFFERENT commit →
+            the deploy was a no-op, partial, or overtaken; staging is still on
+            an older build and must NOT be treated as verified. (An absent or
+            \`unknown\` revision only warns — it means the running image
+            predates the SHA bake.)
 
           Investigate:
           1. Open the run log linked above to see which check failed.
-          2. Download the \`staging-failure-logs-*\` artifact (container state +
-             backend/postgres/nginx logs captured from evergreen).
+          2. Ask staging what it thinks it is running:
+             \`curl -sS http://loyalty-dev.saichon.com/api/health | jq '{status, revision, services}'\`
+             (no \`-f\` — a degraded backend answers 503 and the body is the
+             part you need).
           3. Roll back via \`docs/rollback-runbook.md\` if root cause is not
              a quick fix.
+
+          There is deliberately NO log artifact attached. The steps that used to
+          SSH to evergreen for \`docker logs\` could never work — the deploy key
+          carries a forced command, so client-supplied commands are ignored —
+          and a silently empty artifact is worse than none. Host logs need a
+          human session on evergreen.
           EOF
           )
 

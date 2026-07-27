@@ -251,6 +251,10 @@ pub mod schemas {
         /// Application version
         #[schema(example = "0.1.0")]
         pub version: String,
+        /// Commit SHA the running image was built from, or `"unknown"` when
+        /// the image was built without the `GIT_SHA` build-arg.
+        #[schema(example = "2658193601995b203dd856ac28c69d6cb1c49c2a")]
+        pub revision: String,
     }
 
     /// Database health check response
@@ -290,6 +294,10 @@ pub mod schemas {
         /// Application version
         #[schema(example = "0.1.0")]
         pub version: String,
+        /// Commit SHA the running image was built from, or `"unknown"` when
+        /// the image was built without the `GIT_SHA` build-arg.
+        #[schema(example = "2658193601995b203dd856ac28c69d6cb1c49c2a")]
+        pub revision: String,
         /// Database connection status
         #[schema(example = "connected")]
         pub database: String,

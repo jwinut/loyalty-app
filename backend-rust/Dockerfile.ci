@@ -1,23 +1,39 @@
 # syntax=docker/dockerfile:1.7
 # ==============================================================================
-# CI Dockerfile - Pairs a pre-built loyalty-backend binary with a tiny
-#                 in-Dockerfile-compiled healthcheck binary on Distroless.
+# CI Dockerfile - Packages the two pre-built binaries from the GitHub Actions
+#                 runner (`loyalty-backend` + `healthcheck`) onto Distroless.
 #
-# Why two binaries:
-#   - `loyalty-backend` is built on the GitHub runner (saves ~15 min vs
-#     compiling inside Docker) and copied in as a build-context artifact.
-#   - `healthcheck` is a small pure-Rust binary (~1MB) compiled HERE in
-#     stage 1 because the CI workflow only uploads one artifact path
-#     (`backend-rust/target/release/loyalty-backend`). A focused build of
-#     one tiny bin with one transitive dep (ureq, no TLS) finishes in
-#     well under a minute, so this doesn't reintroduce the ~15-minute
-#     full-backend penalty.
+# Why the binaries come from the build context:
+#   Both are produced by ci-build-e2e.yml's `build-backend-release` job with
+#   `cargo build --release --bin loyalty-backend --bin healthcheck`, uploaded
+#   as one artifact and downloaded into `./backend-binary`, which is this
+#   build's context. actions/upload-artifact roots the archive at the LEAST
+#   COMMON ANCESTOR of its paths — here `backend-rust/target/release/` — so
+#   both binaries land FLAT next to each other in the context.
 #
-#   Why not change the workflow to upload both?
-#     This Dockerfile lives in the same PR as the Distroless flip and the
-#     compose healthcheck change. Touching the workflow expands the blast
-#     radius. A follow-up PR can move the healthcheck build back to the
-#     runner once this lands cleanly.
+#   Building on the runner (instead of inside Docker) saves ~15 minutes on the
+#   deploy critical path, which is why loyalty-backend has always worked this
+#   way.
+#
+# Why there is no longer an `hc-builder` stage (issue #360):
+#   This file used to vendor a COPY of src/bin/healthcheck.rs inline as a
+#   heredoc and compile it here, because the workflow uploaded only one
+#   artifact path. That was wrong twice over:
+#
+#     1. Two sources for one binary. The vendored copy was the one that
+#        SHIPPED, and it was the one CI never compiled, linted, or tested —
+#        drift could only be discovered in production.
+#     2. Build/runtime libc skew. The vendored copy was compiled in
+#        `rust:1.97-slim`, which is `debian:trixie-slim` (glibc 2.41), then
+#        shipped into `gcr.io/distroless/cc-debian12` (bookworm, glibc 2.36).
+#        Nothing asserted the result could even be loaded.
+#
+#   Both are gone: the healthcheck is now built by the same job, in the same
+#   `rust:1.93-bookworm` container, as loyalty-backend — so it is compiled
+#   against the SAME glibc 2.36 the runtime ships — and ci-build-e2e.yml runs
+#   `/app/healthcheck` inside the pushed image and requires it to exit 1 with
+#   its own connection-refused message. A loader failure now turns CI red
+#   instead of sitting invisible in an `unhealthy` container.
 #
 # Why Distroless:
 #   - gcr.io/distroless/cc-debian12 has no shell, no apt, no curl — just
@@ -26,11 +42,7 @@
 #     reports against debian:bookworm-slim.
 #   - The standard `curl`-based HEALTHCHECK is replaced by /app/healthcheck.
 #
-# IMPORTANT - Two-stage build:
-#   - Stage 1 ("hc-builder") compiles src/bin/healthcheck.rs, vendored
-#     inline below to keep the build context unchanged (./backend-binary).
-#   - Stage 2 ("runner") is the Distroless runtime that ships only the
-#     two binaries.
+# IMPORTANT - single stage:
 #   - INCOMPATIBLE with `target:` selection in compose files. Running e.g.
 #     `docker compose -f docker-compose.yml -f docker-compose.dev.yml up`
 #     against a server that points at this Dockerfile WILL FAIL because the
@@ -41,93 +53,23 @@
 # ==============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: hc-builder — compile the Distroless-friendly healthcheck binary.
-# -----------------------------------------------------------------------------
-# Source is vendored inline (not COPY'd from context) because the workflow
-# build context is `./backend-binary`, which contains only the pre-built
-# loyalty-backend binary. Keep this in sync with src/bin/healthcheck.rs.
-FROM rust:1.97-slim@sha256:5c6f46a6e4472ab1ca7ba7d494e6677f2f219ebc02f32025d3986f057635ec9c AS hc-builder
-
-WORKDIR /hc
-
-RUN cat <<'EOF' > Cargo.toml
-[package]
-name = "healthcheck"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-ureq = { version = "3", default-features = false }
-
-[profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
-EOF
-
-RUN mkdir -p src && cat <<'EOF' > src/main.rs
-//! KEEP IN SYNC with backend-rust/src/bin/healthcheck.rs.
-//! Vendored inline because the CI build context (./backend-binary) does
-//! not include workspace sources. The canonical copy lives in the Rust
-//! workspace and is what local builds (Dockerfile, target=runner) ship.
-use std::process::ExitCode;
-use std::time::Duration;
-
-const DEFAULT_PORT: &str = "4001";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
-
-fn main() -> ExitCode {
-    let port = std::env::var("PORT").unwrap_or_else(|_| DEFAULT_PORT.to_string());
-    let url = format!("http://127.0.0.1:{port}/api/health");
-
-    // ureq 3 builds the agent from a `Config`; `timeout_global` is the direct
-    // successor of ureq 2's `AgentBuilder::timeout` (whole-call, end to end).
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(REQUEST_TIMEOUT))
-        .build()
-        .into();
-
-    match agent.get(&url).call() {
-        // `status()` is an `http::StatusCode` in ureq 3 — compare the raw u16 so
-        // the 2xx criterion and the stderr text stay what ureq 2 produced.
-        Ok(response) if (200..300).contains(&response.status().as_u16()) => ExitCode::SUCCESS,
-        Ok(response) => {
-            eprintln!("healthcheck: unexpected status {} from {url}", response.status().as_u16());
-            ExitCode::FAILURE
-        },
-        // ureq 3 renamed `Error::Status(code, response)` to `Error::StatusCode(code)`.
-        Err(ureq::Error::StatusCode(code)) => {
-            eprintln!("healthcheck: HTTP {code} from {url}");
-            ExitCode::FAILURE
-        },
-        Err(err) => {
-            eprintln!("healthcheck: request to {url} failed: {err}");
-            ExitCode::FAILURE
-        },
-    }
-}
-EOF
-
-RUN cargo build --release --target-dir /hc/target
-
-# -----------------------------------------------------------------------------
-# Stage 2: runner — Distroless runtime.
+# runner — Distroless runtime.
 # -----------------------------------------------------------------------------
 # See the long comment in backend-rust/Dockerfile (Stage 5) for the full
-# rationale on what cc-debian12 ships and why it's safe for this binary.
+# rationale on what cc-debian12 ships and why it's safe for these binaries.
 FROM gcr.io/distroless/cc-debian12@sha256:e8e7ee4b8b106d4c5fde9e422a321b2b8a2d5cca546c97adcce927f3e1d36e36 AS runner
 
 WORKDIR /app
 
-# Pre-built loyalty-backend binary from the GitHub Actions runner artifact
-# (placed in the build context at ./loyalty-backend by docker/build-push-action).
+# Pre-built binaries from the GitHub Actions runner artifact (placed in the
+# build context at ./loyalty-backend and ./healthcheck by
+# docker/build-push-action).
 # --chmod=755 because actions/upload-artifact roundtrips lose the executable
-# bit, and Distroless has no shell to chmod after the fact.
-COPY --chown=nonroot:nonroot --chmod=755 loyalty-backend      /app/loyalty-backend
-# Tiny healthcheck binary compiled in stage 1.
-COPY --from=hc-builder --chown=nonroot:nonroot --chmod=755 /hc/target/release/healthcheck /app/healthcheck
+# bit, and Distroless has no shell to chmod after the fact. Both binaries need
+# it for the same reason — the healthcheck is invoked directly by the
+# docker-compose.prod.yml `healthcheck:` block.
+COPY --chown=nonroot:nonroot --chmod=755 loyalty-backend /app/loyalty-backend
+COPY --chown=nonroot:nonroot --chmod=755 healthcheck     /app/healthcheck
 
 # Drop privileges. cc-debian12 ships the `nonroot` user as uid/gid 65532.
 # (Previous image used a manually-created `appuser` at uid/gid 1000.
@@ -137,6 +79,14 @@ USER nonroot:nonroot
 
 ENV RUST_LOG=info
 ENV RUST_BACKTRACE=0
+
+# Commit SHA baked in at build time and surfaced by /api/health as `revision`
+# (issue #345). Baked rather than injected at run time on purpose: the deploy
+# host's shim cannot be edited from CI, and an image that carries its own SHA
+# proves WHICH BUILD is serving even when the runtime env says nothing. The
+# `unknown` default keeps local `docker build` honest instead of blank.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
 
 EXPOSE 4001
 

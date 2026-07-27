@@ -15,6 +15,41 @@ test.describe('Application Health Checks', () => {
     expect(health.timestamp).toBeTruthy();
   });
 
+  /**
+   * Issue #345 — prove a deploy shipped the intended commit.
+   *
+   * `revision` is the commit SHA baked into the image at build time
+   * (`ARG GIT_SHA` / `ENV GIT_SHA` in both Dockerfiles). `version` cannot do
+   * this job: it is CARGO_PKG_VERSION, identical across commits.
+   *
+   * In CI this spec runs against the image that was just built and pushed for
+   * the current commit, with EXPECTED_REVISION set to that SHA — so a green
+   * run here means the image really carries its own identity, proven BEFORE
+   * anything is deployed. The SHA is deliberately NOT injected into the
+   * container by start-app-stack; if it were, this would assert its own input.
+   *
+   * Locally (or against a stack built without the build-arg) the value is
+   * "unknown", which is still non-empty — the deploy verifiers treat that as
+   * "cannot tell" and warn rather than fail.
+   */
+  test('Backend health endpoint should expose the image revision', async ({ request }) => {
+    const response = await retryRequest(request, `${backendUrl}/api/health`, 5);
+
+    const health = await response.json();
+    expect(typeof health.revision).toBe('string');
+    expect(health.revision.length).toBeGreaterThan(0);
+
+    const expectedRevision = process.env.EXPECTED_REVISION;
+    if (expectedRevision) {
+      expect(
+        health.revision,
+        `The running image reports revision "${health.revision}" but this run built ` +
+          `"${expectedRevision}". Either GIT_SHA was not baked into the image, or the ` +
+          `stack is running a different build than the one under test.`
+      ).toBe(expectedRevision);
+    }
+  });
+
   test('API endpoints should be accessible', async ({ request }) => {
     // Test that API endpoints are reachable (but may require auth)
     const endpoints = [

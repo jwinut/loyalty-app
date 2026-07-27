@@ -55,6 +55,35 @@ async fn test_health_basic_json_structure() {
         json.get("version").is_some(),
         "Response should have 'version' field"
     );
+    assert!(
+        json.get("revision").is_some(),
+        "Response should have 'revision' field"
+    );
+}
+
+/// Test that the basic health endpoint exposes a non-empty `revision`.
+///
+/// Issue #345: the deploy verifiers read `.revision` from `/api/health` to
+/// prove a deploy was not a no-op. It is the commit SHA baked into the image
+/// (`ARG GIT_SHA`), falling back to `"unknown"` — so it must never be empty
+/// or absent, in any build, or the verifier cannot tell "no SHA baked in"
+/// (warn) from "serving a different commit" (fail).
+#[tokio::test]
+async fn test_health_basic_revision_present_and_non_empty() {
+    let app = TestApp::new().await.expect("Failed to create test app");
+    let client = app.client();
+
+    let response = client.get("/api/health/basic").await;
+    response.assert_status(200);
+
+    let json: Value = response.json().expect("Response should be valid JSON");
+    let revision = json.get("revision").and_then(|v| v.as_str());
+
+    assert!(revision.is_some(), "Revision should be present");
+    assert!(
+        !revision.unwrap().is_empty(),
+        "Revision should never be empty — it falls back to \"unknown\""
+    );
 }
 
 /// Test that the basic health endpoint returns status "ok".
@@ -159,6 +188,18 @@ async fn test_health_endpoint_json_structure() {
         "Should have 'timestamp' field"
     );
     assert!(json.get("version").is_some(), "Should have 'version' field");
+    // Issue #345: the staging/production verify steps read `.revision` from
+    // THIS payload (`/api/health` is the full check), so its absence here is
+    // what would silently turn the deploy assertion into a no-op.
+    let revision = json.get("revision").and_then(|v| v.as_str());
+    assert!(
+        revision.is_some(),
+        "Should have 'revision' field — the deploy verifiers read it"
+    );
+    assert!(
+        !revision.unwrap().is_empty(),
+        "Revision should never be empty — it falls back to \"unknown\""
+    );
     assert!(
         json.get("environment").is_some(),
         "Should have 'environment' field"
