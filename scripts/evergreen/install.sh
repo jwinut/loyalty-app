@@ -40,8 +40,9 @@ fi
 command -v docker >/dev/null || { echo "docker is required but not installed" >&2; exit 1; }
 
 echo "==> Scripts"
-fetch backup-loyalty-db.sh    /usr/local/bin/backup-loyalty-db.sh    755
-fetch loyalty-backup-alert.sh /usr/local/bin/loyalty-backup-alert.sh 755
+fetch backup-loyalty-db.sh          /usr/local/bin/backup-loyalty-db.sh          755
+fetch loyalty-backup-alert.sh       /usr/local/bin/loyalty-backup-alert.sh       755
+fetch loyalty-backup-notify-email.sh /usr/local/bin/loyalty-backup-notify-email.sh 755
 
 echo "==> systemd units"
 fetch loyalty-backup.service          /etc/systemd/system/loyalty-backup.service          644

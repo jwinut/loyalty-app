@@ -1,14 +1,21 @@
 [Unit]
 Description=Encrypted nightly backup of the loyalty production database
 Documentation=https://github.com/thehfhotel/loyalty-app/blob/main/docs/restore-runbook.md
-# Do not start if docker is not up — a failure here should mean "the backup
-# broke", not "the host was still booting".
-After=docker.service
-Requires=docker.service
+# Soft ordering only — NO Requires=. Docker may be packaged as docker.service
+# (apt) or snap.docker.dockerd.service (snap); a Requires= naming a unit that
+# does not exist on the host makes systemd refuse to start this one at all
+# ("Unit docker.service not found"), which is exactly what happened on
+# evergreen. The script itself hard-fails if docker is unreachable, and that is
+# the check that actually matters.
+After=network-online.target docker.service snap.docker.dockerd.service
+Wants=network-online.target
 OnFailure=loyalty-backup-failure@%n.service
 
 [Service]
 Type=oneshot
+# /snap/bin is NOT in systemd's default PATH, so a snap-packaged docker is
+# invisible to this unit without it.
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 ExecStart=/usr/local/bin/backup-loyalty-db.sh
 # The dump is IO-heavy; keep it from starving the app it is backing up.
 Nice=10
@@ -18,7 +25,12 @@ TimeoutStartSec=3600
 
 # Hardening: this unit needs docker's socket and its own backup directory,
 # nothing else.
-NoNewPrivileges=true
+#
+# NoNewPrivileges is deliberately absent. Snap-packaged docker needs privilege
+# transitions for its confinement, and with NoNewPrivileges=true the wrapper
+# cannot reach the daemon — every backup fails with "container not found".
+# Verified per-option on evergreen: PrivateTmp / ProtectSystem=strict /
+# ProtectHome are all fine with snap docker; only NoNewPrivileges breaks it.
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
