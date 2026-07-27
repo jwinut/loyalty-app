@@ -11,6 +11,14 @@ merging that PR is what tags `vX.Y.Z` and publishes the GitHub release.
 Entries below the generated sections are the earlier hand-written, dated
 format, kept verbatim for history.
 
+## [4.5.3](https://github.com/thehfhotel/loyalty-app/compare/v4.5.2...v4.5.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ci:** author release PRs with the hf-release-bot App so CI runs on them ([#381](https://github.com/thehfhotel/loyalty-app/issues/381)) ([46acd3c](https://github.com/thehfhotel/loyalty-app/commit/46acd3c7e6091b860def70e958d2f9d070ebdf78))
+* **ci:** revert the inert release-please push trigger, correct the docs ([#379](https://github.com/thehfhotel/loyalty-app/issues/379)) ([30fcb51](https://github.com/thehfhotel/loyalty-app/commit/30fcb51c4f600ad63aae9bd76f6601807dde1688))
+
 ## [4.5.2](https://github.com/thehfhotel/loyalty-app/compare/v4.5.1...v4.5.2) (2026-07-27)
 
 
