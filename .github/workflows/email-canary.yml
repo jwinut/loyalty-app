@@ -86,9 +86,15 @@ jobs:
       contents: read
       issues: write
     env:
-      # One alarm for this canary: delivery failures AND "the canary could not
-      # run at all" both land on this issue, so the recovery path closes it.
-      ISSUE_TITLE: 'Email canary: outbound mail is failing'
+      # Two distinct alarms — "mail is refused" and "the canary never ran" call
+      # for different first moves — and the recovery step closes whichever is
+      # open. NOTE: no colons in these titles. `gh issue list --search` speaks
+      # GitHub search syntax, where `word:` reads as a qualifier; the searches
+      # below also wrap the title in quotes so it is matched as a phrase. Get
+      # this wrong and the search silently returns nothing, which files a fresh
+      # duplicate issue on every probe instead of commenting on the open one.
+      ISSUE_TITLE_FAIL: 'Email canary - outbound mail is failing'
+      ISSUE_TITLE_MISCONFIG: 'Email canary - probe could not run, SMTP secrets empty'
     steps:
       # -----------------------------------------------------------------------
       # A canary that silently probes nothing is worse than no canary: it
@@ -341,7 +347,7 @@ jobs:
           SIMULATED: ${{ github.event.inputs.simulate_failure || 'false' }}
         run: |
           set -euo pipefail
-          TITLE="$ISSUE_TITLE"
+          TITLE="$ISSUE_TITLE_FAIL"
 
           BODY=$(cat <<EOF
           **Outbound mail is not being accepted by the relay.** All ${ATTEMPTS}
@@ -377,8 +383,11 @@ jobs:
           EOF
           )
 
+          # Quoted phrase: the title is matched literally instead of being
+          # tokenised (and a stray qualifier-looking word silently zeroing the
+          # result, which would file a duplicate on every probe).
           EXISTING=$(gh issue list -R "$REPO" \
-            --search "$TITLE in:title is:open" \
+            --search "\"$TITLE\" in:title is:open" \
             --json number --jq '.[0].number // empty')
 
           if [ -n "${EXISTING:-}" ]; then
@@ -397,10 +406,10 @@ jobs:
           fi
 
       # -----------------------------------------------------------------------
-      # The canary could not even try. Same issue, because from an operator's
-      # seat "mail is broken" and "the thing that watches mail is broken" demand
-      # the same response: look now. Routed here so a misconfiguration cannot
-      # sit unnoticed as a red run in the Actions tab that nobody opens.
+      # The canary could not even try. Its own issue, because the first move
+      # differs from a delivery failure (fix the workflow/secrets, not the
+      # mailbox) — but it is still an alert, not a red run sitting unread in the
+      # Actions tab. Unverified is not the same as working.
       # -----------------------------------------------------------------------
       - name: File or update the email-canary issue (canary could not run)
         if: failure() && steps.guard.outcome == 'failure' && github.event.inputs.skip_alert != 'true'
@@ -410,7 +419,7 @@ jobs:
           RUN_URL:  ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          TITLE="$ISSUE_TITLE"
+          TITLE="$ISSUE_TITLE_MISCONFIG"
 
           BODY=$(cat <<EOF
           **The email canary could not run: one or more SMTP secrets were empty.**
@@ -433,7 +442,7 @@ jobs:
           )
 
           EXISTING=$(gh issue list -R "$REPO" \
-            --search "$TITLE in:title is:open" \
+            --search "\"$TITLE\" in:title is:open" \
             --json number --jq '.[0].number // empty')
 
           if [ -n "${EXISTING:-}" ]; then
@@ -456,19 +465,6 @@ jobs:
           SENDER:    ${{ steps.probe.outputs.sender }}
         run: |
           set -euo pipefail
-          TITLE="$ISSUE_TITLE"
-
-          # Note: `gh issue list --search` reads GitHub's search index, which
-          # lags writes by a few seconds. Worst case a recovery lands one run
-          # late — acceptable, and the same idiom deploy.yml already uses.
-          EXISTING=$(gh issue list -R "$REPO" \
-            --search "$TITLE in:title is:open" \
-            --json number --jq '.[0].number // empty')
-
-          if [ -z "${EXISTING:-}" ]; then
-            echo "Mail is delivering and no canary issue is open — nothing to do."
-            exit 0
-          fi
 
           BODY=$(cat <<EOF
           **Recovered: outbound mail is delivering again.**
@@ -478,14 +474,33 @@ jobs:
 
           The relay accepted a real MAIL FROM / RCPT TO / DATA send, so password
           resets, email verification and booking mail should be flowing again.
-          Closing automatically; the canary will reopen a fresh issue if it
-          fails again.
+          A successful probe also proves the canary's own secrets are visible.
+          Closing automatically; the canary files a fresh issue if it fails
+          again.
           EOF
           )
 
-          gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
-          gh issue close "$EXISTING" -R "$REPO"
-          echo "Closed recovered issue #$EXISTING"
+          # Both alarms clear on a good probe: a send that the relay accepted
+          # disproves "mail is failing" and "the canary cannot see its secrets"
+          # at the same time.
+          #
+          # Note: `gh issue list --search` reads GitHub's search index, which
+          # lags writes by a few seconds. Worst case a recovery lands one run
+          # late — acceptable, and the same idiom deploy.yml already uses.
+          for TITLE in "$ISSUE_TITLE_FAIL" "$ISSUE_TITLE_MISCONFIG"; do
+            EXISTING=$(gh issue list -R "$REPO" \
+              --search "\"$TITLE\" in:title is:open" \
+              --json number --jq '.[0].number // empty')
+
+            if [ -z "${EXISTING:-}" ]; then
+              echo "No open issue titled '$TITLE' — nothing to close."
+              continue
+            fi
+
+            gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+            gh issue close "$EXISTING" -R "$REPO"
+            echo "Closed recovered issue #$EXISTING"
+          done
 
       # -----------------------------------------------------------------------
       # Fail LAST, so the alert steps above always got their chance to run. A

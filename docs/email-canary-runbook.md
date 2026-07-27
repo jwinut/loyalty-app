@@ -68,12 +68,19 @@ outage.
 - Each run retries the send **3 times** (0s / 20s / 60s backoff). Only a run
   where *every* attempt fails counts as a confirmed failure — one refused
   connection at 03:23 is a blip, not an incident.
-- Failure → create the issue `Email canary: outbound mail is failing`, or
+- Failure → create the issue `Email canary - outbound mail is failing`, or
   comment on it if it is already open.
-- Success while that issue is open → comment "delivering again" and **close
-  it**. Failure alerts are always paired with a recovery notification.
-- "The canary could not run at all" (empty SMTP secrets) files the *same*
-  issue: unverified is not the same as working.
+- "The canary could not run at all" (empty SMTP secrets) files a second issue,
+  `Email canary - probe could not run, SMTP secrets empty`, because the first
+  move differs: fix the workflow or the secrets, not the mailbox. Unverified is
+  still an alert — it is not the same as working.
+- Success → comment "delivering again" on **either** issue if open and **close
+  it**. A probe the relay accepted disproves both alarms at once. Failure
+  alerts are always paired with a recovery notification.
+- Neither title contains a colon, and both are searched as quoted phrases:
+  `gh issue list --search` speaks GitHub search syntax, where `word:` reads as
+  a qualifier. Get that wrong and the lookup silently returns nothing, filing a
+  duplicate issue on every probe instead of commenting on the open one.
 
 ---
 
