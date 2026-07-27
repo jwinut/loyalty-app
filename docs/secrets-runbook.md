@@ -45,6 +45,23 @@ up **nothing** while reporting success.
 See [`restore-runbook.md`](./restore-runbook.md) for setup, retention and the
 restore drill.
 
+### Email canary secrets — environment-scoped, nothing new to add
+
+`.github/workflows/email-canary.yml` reads `SMTP_HOST` / `SMTP_PORT` /
+`SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` from the **`production` environment**
+(Settings → Environments → production), the same values `deploy.yml` already
+pipes through a runner on every production deploy. No repository-level secret
+is required.
+
+`CANARY_EMAIL_TO` is an *optional* secret or variable that redirects the canary
+mail; unset, the canary sends the mailbox a message to itself.
+
+Because those secrets are environment-scoped, a job that omits
+`environment: production` reads them as **empty strings with no error** — the
+same trap that made the old backup workflow report green while backing up
+nothing. The canary's first step fails loudly on empty values for exactly this
+reason. See [`email-canary-runbook.md`](./email-canary-runbook.md).
+
 ### Inspecting and updating secrets
 
 ```bash

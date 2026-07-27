@@ -1,0 +1,498 @@
+name: Email Canary
+
+# =============================================================================
+# PROVES OUTBOUND MAIL IS DELIVERABLE — issue #364, follow-up to #352/#363.
+#
+# `/api/health` can only ever prove email is *configured*: it reads whether
+# SMTP_HOST/USER/PASS are present. In the #352 incident the PrivateEmail
+# subscription lapsed, SMTP AUTH still succeeded, and every message was then
+# refused at MAIL FROM with
+#
+#   553 5.7.1 <info@saichon.com>: Sender address rejected: not owned by user
+#
+# Health stayed green for days. This workflow closes that gap by doing the one
+# thing health cannot: a real MAIL FROM / RCPT TO / DATA send ("tier 2" in
+# #364), which is exactly the stage where a 553 appears.
+#
+# THIS WORKFLOW IS NON-GATING AND MUST STAY THAT WAY.
+#   * It never touches /api/health, so it can never fail a deploy's health
+#     poll (deploy.yml and verify-staging both gate on that endpoint).
+#   * No workflow lists it in `workflow_run`, and it lists none itself.
+#   * It runs in its own concurrency group, so it can never evict or be
+#     evicted by a deploy.
+# A mail problem is an ops alert, never a shipping blocker.
+#
+# ALERTS DO NOT GO OUT BY EMAIL. #364's design question 1 suggested reusing
+# scripts/evergreen/loyalty-backup-notify-email.sh as the transport, but that
+# script rides the *same* info@saichon.com mailbox this canary is watching —
+# the outage would suppress its own alarm. Alerts are GitHub issues instead,
+# using the create-or-comment idiom from deploy.yml's `notify-on-failure`.
+# =============================================================================
+
+on:
+  schedule:
+    # Every 6 hours, at :23 past.
+    #
+    # WHY 6h: the failure mode this catches is a *persistent* relay/billing/DNS
+    # class problem (a lapsed subscription, a revoked sender, an expired card),
+    # not a flicker — once it starts, it stays broken until a human acts. So the
+    # question is only "how long may we stay blind", and a quarter-day ceiling
+    # is proportionate for a hotel loyalty app whose email carries password
+    # resets and address verification. Going faster buys little and costs more:
+    # each run puts a real message in a real mailbox, and 4/day stays far below
+    # any relay rate limit and well under the volume that trains a spam filter.
+    # WHY :23: jobs scheduled on the hour sit in the longest GitHub cron queue;
+    # an off-the-hour minute gets picked up sooner and more predictably.
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: 'Force the send to fail (exercises the alert path end to end)'
+        type: boolean
+        default: false
+      skip_alert:
+        description: 'Probe only — never create, comment on, or close an issue'
+        type: boolean
+        default: false
+
+# Own group, never shared with `deploy` or any build group: a canary must not be
+# able to evict a deploy, and a deploy must not be able to cancel the canary into
+# a fake green. `cancel-in-progress: false` so overlapping runs queue instead.
+concurrency:
+  group: email-canary
+  cancel-in-progress: false
+
+# Least privilege at workflow scope. `issues: write` is granted on the single
+# job below because that is where the alert is filed; nothing here needs more.
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: "Probe outbound mail"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # REQUIRED. SMTP_* are ENVIRONMENT-scoped secrets on `production`. A job
+    # without this line reads every one of them as an EMPTY STRING with no
+    # error at all — which is precisely how the old nightly backup workflow
+    # reported green while backing nothing up. The guard step below turns that
+    # silent misconfiguration into a loud failure, but this line is what stops
+    # it happening in the first place. The `production` environment has no
+    # required reviewers and no branch policy, so this neither blocks nor
+    # queues for approval.
+    environment:
+      name: production
+    permissions:
+      contents: read
+      issues: write
+    env:
+      # One alarm for this canary: delivery failures AND "the canary could not
+      # run at all" both land on this issue, so the recovery path closes it.
+      ISSUE_TITLE: 'Email canary: outbound mail is failing'
+    steps:
+      # -----------------------------------------------------------------------
+      # A canary that silently probes nothing is worse than no canary: it
+      # manufactures the exact false confidence it exists to remove.
+      # -----------------------------------------------------------------------
+      - name: Guard — SMTP secrets must actually be visible to this job
+        id: guard
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${SMTP_HOST:-}" ] || missing="${missing} SMTP_HOST"
+          [ -n "${SMTP_USER:-}" ] || missing="${missing} SMTP_USER"
+          [ -n "${SMTP_PASS:-}" ] || missing="${missing} SMTP_PASS"
+
+          if [ -n "$missing" ]; then
+            echo "::error title=Email canary cannot run::Empty SMTP secret(s):${missing}. These are ENVIRONMENT-scoped secrets on the 'production' environment. A job that omits 'environment: production' (or that runs before the environment is resolved) reads them as EMPTY STRINGS with NO error — the same trap that made the old nightly backup report green while backing nothing up. Check (a) this job still declares 'environment: production', and (b) the secrets still exist under Settings -> Environments -> production."
+            exit 1
+          fi
+          echo "SMTP_HOST / SMTP_USER / SMTP_PASS are all non-empty."
+
+      # -----------------------------------------------------------------------
+      # THE PROBE — a real send, modelled on
+      # scripts/evergreen/loyalty-backup-notify-email.sh (curl SMTPS, no MTA).
+      # Two deliberate improvements over that script:
+      #   1. the password is NEVER on the process argv (that script passes it
+      #      via --user, visible in /proc to any local user); here curl reads it
+      #      from a mode-0600 --config file in a private temp dir.
+      #   2. the relay's own response text is captured, because "553 ... Sender
+      #      address rejected" vs "535 auth failed" vs a timeout are three
+      #      completely different incidents.
+      # This step NEVER fails the job — it reports through its `result` output
+      # so the alert steps below can run. The job is failed at the very end.
+      # -----------------------------------------------------------------------
+      - name: Send the canary message
+        id: probe
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          # Optional override. Neither a CANARY_EMAIL_TO secret nor variable
+          # exists today (checked with `gh secret list` / `gh variable list`),
+          # so the canary sends the mailbox a message to ITSELF. That is the
+          # right default: it needs no second mailbox to exist, it exercises the
+          # same sender the app uses, and a self-addressed message still has to
+          # pass MAIL FROM — the stage where #352 failed. Set either one (secret
+          # or repo/environment variable) to route the copies elsewhere.
+          CANARY_EMAIL_TO: ${{ secrets.CANARY_EMAIL_TO || vars.CANARY_EMAIL_TO }}
+          SIMULATE_FAILURE: ${{ github.event.inputs.simulate_failure || 'false' }}
+        run: |
+          # NOT `set -e`: curl failing is an expected outcome we handle.
+          set -uo pipefail
+          umask 077
+
+          WORKDIR="$(mktemp -d)"
+          trap 'rm -rf "$WORKDIR"' EXIT
+          CURL_CFG="$WORKDIR/curlrc"
+          MAIL_FILE="$WORKDIR/message.eml"
+          TRACE="$WORKDIR/trace.log"
+
+          # --- credentials off argv -------------------------------------------
+          # curl's config-file syntax takes a double-quoted parameter, so a
+          # password containing spaces survives; backslash and quote need
+          # escaping. Done with parameter expansion so the secret is never an
+          # argument to any external process.
+          esc_user="${SMTP_USER//\\/\\\\}"; esc_user="${esc_user//\"/\\\"}"
+          esc_pass="${SMTP_PASS//\\/\\\\}"; esc_pass="${esc_pass//\"/\\\"}"
+          printf 'user = "%s:%s"\n' "$esc_user" "$esc_pass" > "$CURL_CFG"
+          unset esc_pass
+
+          # --- endpoint --------------------------------------------------------
+          PORT="${SMTP_PORT:-465}"
+          if [ "$PORT" = "465" ]; then
+            URL="smtps://${SMTP_HOST}:${PORT}"   # implicit TLS
+          else
+            URL="smtp://${SMTP_HOST}:${PORT}"    # STARTTLS (--ssl-reqd below)
+          fi
+
+          # --- addresses -------------------------------------------------------
+          # Mirrors the backend's SmtpConfig::from_address(): SMTP_FROM when set,
+          # else SMTP_USER. The header may carry the display-name form
+          # ("Loyalty App <x@y>"); the SMTP envelope may not, so strip it.
+          HEADER_FROM="${SMTP_FROM:-}"
+          [ -n "$HEADER_FROM" ] || HEADER_FROM="$SMTP_USER"
+          ENVELOPE_FROM="$HEADER_FROM"
+          case "$ENVELOPE_FROM" in
+            *"<"*">"*)
+              ENVELOPE_FROM="${ENVELOPE_FROM#*<}"
+              ENVELOPE_FROM="${ENVELOPE_FROM%%>*}"
+              ;;
+          esac
+
+          RCPT="${CANARY_EMAIL_TO:-}"
+          [ -n "$RCPT" ] || RCPT="$SMTP_USER"
+
+          if [ "${SIMULATE_FAILURE}" = "true" ]; then
+            # Reproduce the #352 failure for real rather than faking an exit
+            # code: .invalid is a reserved TLD (RFC 2606), so the relay must
+            # refuse this sender — typically with the same 553 "not owned by
+            # user" wording — and no message can escape to a real mailbox.
+            echo "::warning title=Simulated failure::simulate_failure=true — sending with a deliberately unowned envelope sender."
+            ENVELOPE_FROM="simulated-failure@canary.invalid"
+            HEADER_FROM="$ENVELOPE_FROM"
+          fi
+
+          # Masked forms are the only ones that may reach a log or a PUBLIC
+          # issue body. The domain is kept because it says which relay/tenant
+          # refused; the local part is not a diagnostic.
+          MASKED_RCPT="***@${RCPT#*@}"
+          MASKED_FROM="***@${ENVELOPE_FROM#*@}"
+          echo "Probing ${URL} — envelope from ${MASKED_FROM} to ${MASKED_RCPT}"
+
+          # --- message ---------------------------------------------------------
+          STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          {
+            printf 'From: %s\r\n' "$HEADER_FROM"
+            printf 'To: %s\r\n' "$RCPT"
+            printf 'Subject: [loyalty] email canary %s (automated - safe to delete)\r\n' "$STAMP"
+            printf 'Date: %s\r\n' "$(date -R)"
+            printf 'Message-ID: <canary-%s-%s@loyalty.saichon.com>\r\n' \
+              "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}"
+            # RFC 3834: tells well-behaved mailboxes not to auto-reply, and
+            # keeps the canary out of vacation/autoresponder loops.
+            printf 'Auto-Submitted: auto-generated\r\n'
+            printf 'X-Loyalty-Canary: 1\r\n'
+            printf 'Content-Type: text/plain; charset=UTF-8\r\n'
+            printf '\r\n'
+            printf 'This is an AUTOMATED DELIVERABILITY CANARY for the loyalty app.\r\n'
+            printf '\r\n'
+            printf 'Nothing is wrong. It is sent every few hours purely to prove that\r\n'
+            printf 'outbound mail still leaves the relay, because /api/health can only\r\n'
+            printf 'prove that SMTP is CONFIGURED, never that a message ARRIVES.\r\n'
+            printf '\r\n'
+            printf 'No action is required. It is safe to ignore or delete, and safe to\r\n'
+            printf 'filter into a folder. It is NOT safe to make the relay reject it.\r\n'
+            printf '\r\n'
+            printf 'Sent at:  %s\r\n' "$STAMP"
+            printf 'Workflow: %s\r\n' "$RUN_URL"
+            printf 'Context:  github.com/%s issue #364\r\n' "${GITHUB_REPOSITORY}"
+          } > "$MAIL_FILE"
+
+          # --- sanitiser -------------------------------------------------------
+          # ONLY server-side response lines ever leave this step. The client side
+          # of a verbose SMTP trace contains the AUTH line, whose base64 payload
+          # IS the password (GitHub's secret masking does not cover base64), so
+          # '> ' lines and the 334 challenge are dropped outright rather than
+          # filtered. Local parts are masked because this text is quoted into an
+          # issue on a PUBLIC repository.
+          sanitize() {
+            grep -aE '^(< [0-9]{3}|curl: )' "$1" 2>/dev/null \
+              | grep -avE '^< 334' \
+              | sed -E 's/[A-Za-z0-9._%+-]+@/***@/g' \
+              | tail -n 25
+          }
+
+          # --- send, with retries ----------------------------------------------
+          # Only a run where EVERY attempt fails counts as a confirmed failure.
+          # One refused connection at 03:23 is a blip, not an incident; the
+          # repo's alerting convention is to page on confirmed failures only.
+          BACKOFF="0 20 60"
+          ATTEMPT=0
+          RESULT="failed"
+          DETAIL=""
+          for delay in $BACKOFF; do
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ "$delay" -gt 0 ]; then
+              echo "Attempt $ATTEMPT: waiting ${delay}s before retrying..."
+              sleep "$delay"
+            fi
+
+            : > "$TRACE"
+            # --silent kills the progress meter, --verbose keeps the SMTP dialog
+            # (on stderr), --ssl-reqd refuses to fall back to plaintext.
+            # NOTE: the status is captured into RC on the next line rather than
+            # tested with `if curl ...`, because after a false `if` with no
+            # `else` branch `$?` is 0, not the command's status.
+            curl --silent --show-error --verbose --ssl-reqd \
+                 --config "$CURL_CFG" \
+                 --url "$URL" \
+                 --mail-from "$ENVELOPE_FROM" \
+                 --mail-rcpt "$RCPT" \
+                 --upload-file "$MAIL_FILE" \
+                 --max-time 60 \
+                 > "$TRACE" 2>&1
+            RC=$?
+
+            if [ "$RC" -eq 0 ]; then
+              RESULT="ok"
+              DETAIL="$(sanitize "$TRACE")"
+              echo "Attempt ${ATTEMPT}: ACCEPTED by the relay."
+              printf '%s\n' "$DETAIL"
+              break
+            fi
+
+            ATTEMPT_DETAIL="$(sanitize "$TRACE")"
+            echo "Attempt ${ATTEMPT}: FAILED (curl exit ${RC})."
+            printf '%s\n' "$ATTEMPT_DETAIL"
+            DETAIL="$(printf 'attempt %s — curl exit %s\n%s\n' \
+              "$ATTEMPT" "$RC" "$ATTEMPT_DETAIL")"
+          done
+
+          [ -n "$DETAIL" ] || DETAIL="(no SMTP response captured — the relay was not reached at all)"
+
+          {
+            echo "result=${RESULT}"
+            echo "attempts=${ATTEMPT}"
+            echo "recipient=${MASKED_RCPT}"
+            echo "sender=${MASKED_FROM}"
+            echo "detail<<CANARY_DETAIL_EOF"
+            printf '%s\n' "$DETAIL"
+            echo "CANARY_DETAIL_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Email canary: ${RESULT}"
+            echo ""
+            echo "- Relay: \`${SMTP_HOST}:${PORT}\`"
+            echo "- Envelope: \`${MASKED_FROM}\` -> \`${MASKED_RCPT}\`"
+            echo "- Attempts: ${ATTEMPT}"
+            echo ""
+            echo '```'
+            printf '%s\n' "$DETAIL"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # -----------------------------------------------------------------------
+      # ALERT — GitHub issue, never email (see the header). Same create-or-comment
+      # idiom as deploy.yml's `notify-on-failure`: search for an OPEN issue with
+      # this exact title, comment if found, create if not.
+      # -----------------------------------------------------------------------
+      - name: File or update the email-canary issue
+        if: steps.probe.outputs.result == 'failed' && github.event.inputs.skip_alert != 'true'
+        env:
+          GH_TOKEN:  ${{ github.token }}
+          REPO:      ${{ github.repository }}
+          RUN_URL:   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ATTEMPTS:  ${{ steps.probe.outputs.attempts }}
+          RECIPIENT: ${{ steps.probe.outputs.recipient }}
+          SENDER:    ${{ steps.probe.outputs.sender }}
+          # Read through env, never interpolated into the script body: the relay
+          # controls this text, and `${{ }}` inside `run:` would splice it into
+          # the shell source.
+          DETAIL:    ${{ steps.probe.outputs.detail }}
+          SIMULATED: ${{ github.event.inputs.simulate_failure || 'false' }}
+        run: |
+          set -euo pipefail
+          TITLE="$ISSUE_TITLE"
+
+          BODY=$(cat <<EOF
+          **Outbound mail is not being accepted by the relay.** All ${ATTEMPTS}
+          attempts in this run failed, so this is a confirmed failure, not a blip.
+
+          - Run: $RUN_URL
+          - Envelope: \`${SENDER}\` -> \`${RECIPIENT}\` (local parts masked)
+          - Simulated (\`simulate_failure=true\`): \`${SIMULATED}\`
+
+          Relay response (server side only; local parts masked):
+
+          \`\`\`
+          ${DETAIL}
+          \`\`\`
+
+          **What this means.** The canary performs a real MAIL FROM / RCPT TO /
+          DATA send. Reaching this issue means the relay refused the message —
+          which is what happened in #352, when the mailbox subscription lapsed,
+          AUTH kept succeeding and every send was refused with
+          \`553 5.7.1 ... Sender address rejected: not owned by user\`.
+          Password resets, email verification and booking mail are failing
+          silently RIGHT NOW; \`/api/health\` will still say email is
+          \`configured\`, because configuration is all it can see.
+
+          **Response.** See \`docs/email-canary-runbook.md\`. In short: read the
+          response code above (553 = sender/billing/ownership, 535 = credentials,
+          timeout = network/relay down), fix the mailbox, then re-run this
+          workflow. On the next green run the canary comments here and closes
+          this issue automatically.
+
+          This issue is filed by \`.github/workflows/email-canary.yml\`. The
+          canary does NOT gate deploys — shipping is unaffected.
+          EOF
+          )
+
+          EXISTING=$(gh issue list -R "$REPO" \
+            --search "$TITLE in:title is:open" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            # Label only if it already exists — the repo's convention (see
+            # cargo-audit.yml) is that alerting must never depend on label
+            # config, so an unlabelled issue beats a failed alert.
+            LABEL_ARGS=()
+            if gh label list -R "$REPO" --json name --jq '.[].name' | grep -qx 'bug'; then
+              LABEL_ARGS=(--label bug)
+            fi
+            gh issue create -R "$REPO" --title "$TITLE" --body "$BODY" "${LABEL_ARGS[@]}"
+            echo "Filed a new email-canary issue"
+          fi
+
+      # -----------------------------------------------------------------------
+      # The canary could not even try. Same issue, because from an operator's
+      # seat "mail is broken" and "the thing that watches mail is broken" demand
+      # the same response: look now. Routed here so a misconfiguration cannot
+      # sit unnoticed as a red run in the Actions tab that nobody opens.
+      # -----------------------------------------------------------------------
+      - name: File or update the email-canary issue (canary could not run)
+        if: failure() && steps.guard.outcome == 'failure' && github.event.inputs.skip_alert != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO:     ${{ github.repository }}
+          RUN_URL:  ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TITLE="$ISSUE_TITLE"
+
+          BODY=$(cat <<EOF
+          **The email canary could not run: one or more SMTP secrets were empty.**
+
+          - Run: $RUN_URL
+
+          Nothing was probed, so the state of outbound mail is currently UNKNOWN
+          — treat it as unverified, not as working.
+
+          The usual cause is the environment-scope trap: \`SMTP_HOST\`,
+          \`SMTP_USER\` and \`SMTP_PASS\` are secrets on the \`production\`
+          *environment*, and a job that does not declare
+          \`environment: production\` reads them as empty strings with no error.
+          Check that the \`probe\` job in
+          \`.github/workflows/email-canary.yml\` still declares it, and that the
+          secrets still exist under Settings -> Environments -> production.
+
+          See \`docs/email-canary-runbook.md\`.
+          EOF
+          )
+
+          EXISTING=$(gh issue list -R "$REPO" \
+            --search "$TITLE in:title is:open" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+          else
+            gh issue create -R "$REPO" --title "$TITLE" --body "$BODY"
+          fi
+
+      # -----------------------------------------------------------------------
+      # RECOVERY — the repo's convention is that every failure alert is paired
+      # with a recovery notification, so the signal stays trusted.
+      # -----------------------------------------------------------------------
+      - name: Comment and close the email-canary issue on recovery
+        if: steps.probe.outputs.result == 'ok' && github.event.inputs.skip_alert != 'true'
+        env:
+          GH_TOKEN:  ${{ github.token }}
+          REPO:      ${{ github.repository }}
+          RUN_URL:   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RECIPIENT: ${{ steps.probe.outputs.recipient }}
+          SENDER:    ${{ steps.probe.outputs.sender }}
+        run: |
+          set -euo pipefail
+          TITLE="$ISSUE_TITLE"
+
+          # Note: `gh issue list --search` reads GitHub's search index, which
+          # lags writes by a few seconds. Worst case a recovery lands one run
+          # late — acceptable, and the same idiom deploy.yml already uses.
+          EXISTING=$(gh issue list -R "$REPO" \
+            --search "$TITLE in:title is:open" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -z "${EXISTING:-}" ]; then
+            echo "Mail is delivering and no canary issue is open — nothing to do."
+            exit 0
+          fi
+
+          BODY=$(cat <<EOF
+          **Recovered: outbound mail is delivering again.**
+
+          - Run: $RUN_URL
+          - Envelope: \`${SENDER}\` -> \`${RECIPIENT}\` (local parts masked)
+
+          The relay accepted a real MAIL FROM / RCPT TO / DATA send, so password
+          resets, email verification and booking mail should be flowing again.
+          Closing automatically; the canary will reopen a fresh issue if it
+          fails again.
+          EOF
+          )
+
+          gh issue comment "$EXISTING" -R "$REPO" --body "$BODY"
+          gh issue close "$EXISTING" -R "$REPO"
+          echo "Closed recovered issue #$EXISTING"
+
+      # -----------------------------------------------------------------------
+      # Fail LAST, so the alert steps above always got their chance to run. A
+      # red run here blocks nothing: no workflow consumes this one.
+      # -----------------------------------------------------------------------
+      - name: Fail the run on a confirmed delivery failure
+        if: steps.probe.outputs.result == 'failed'
+        run: |
+          echo "::error title=Outbound mail is failing::Every send attempt was refused. See the issue filed above and docs/email-canary-runbook.md."
+          exit 1

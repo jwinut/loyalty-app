@@ -9,6 +9,7 @@
 //! - Email templates
 
 use async_trait::async_trait;
+use axum_prometheus::metrics::counter;
 use lettre::{
     message::{header::ContentType, Mailbox, MultiPart, SinglePart},
     transport::smtp::authentication::Credentials,
@@ -16,10 +17,11 @@ use lettre::{
 };
 use rand::Rng;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::config::SmtpConfig;
 use crate::error::AppError;
+use crate::utils::{hash_email, sanitize_log_value};
 
 /// Email templates module
 pub mod templates {
@@ -252,6 +254,104 @@ pub fn is_valid_mailbox(address: &str) -> bool {
     address.parse::<Mailbox>().is_ok()
 }
 
+// ---------------------------------------------------------------------------
+// Observability (issue #352 part 3, carried into #364)
+//
+// Before this, a hard send failure produced one `tracing::error!` inside the
+// caller (`routes/auth.rs`) and nothing else: no metric, no alert, and the
+// caller still returned success to the user (deliberately — email
+// enumeration). The #352 outage was therefore invisible for days.
+//
+// These counters render on `/metrics` with no new dependency: `axum_prometheus`
+// re-exports the `metrics` crate, and `routes::create_router` already installs
+// the global Prometheus recorder. When no recorder is installed (unit tests,
+// binaries that never build the router) the macros are no-ops, so this is safe
+// to call from anywhere.
+// ---------------------------------------------------------------------------
+
+/// Messages the relay accepted (a real `MAIL FROM`/`RCPT TO`/`DATA` returning
+/// 250). Deliberately NOT incremented when SMTP is unconfigured — see
+/// [`EMAIL_SENDS_SKIPPED`].
+const EMAIL_SENDS_TOTAL: &str = "loyalty_email_sends_total";
+
+/// Sends that failed, labelled with a bounded `kind` from
+/// [`classify_send_failure`]. Alert on `increase(...[1h]) > 0`.
+const EMAIL_SEND_FAILURES_TOTAL: &str = "loyalty_email_send_failures_total";
+
+/// Sends that never happened because SMTP is not configured. This is the
+/// silent-success hazard made visible: `send_email` returns `Ok(())` on that
+/// path, so counting it as a success would claim mail is flowing on a stack
+/// that cannot send at all. A stack with a non-zero rate here and a zero rate
+/// on [`EMAIL_SENDS_TOTAL`] is *not* healthy — it is mute.
+const EMAIL_SENDS_SKIPPED_TOTAL: &str = "loyalty_email_sends_skipped_total";
+
+/// Map a send error to a small, bounded metric label.
+///
+/// Cardinality matters: the raw error text embeds server-specific detail and
+/// would blow up the time series, so the label is always one of a fixed set of
+/// `&'static str`. The *first* arm is the #352 signature —
+/// `553 5.7.1 <info@saichon.com>: Sender address rejected: not owned by user` —
+/// because "the relay no longer lets us send as ourselves" (lapsed
+/// subscription, revoked alias, expired card) demands a different response
+/// from "the password is wrong" or "the network blipped".
+pub fn classify_send_failure(error: &str) -> &'static str {
+    let e = error.to_ascii_lowercase();
+
+    if e.contains("sender address rejected") || e.contains("not owned by user") {
+        "sender_rejected"
+    } else if e.contains("authentication") || e.contains("535") || e.contains("auth failed") {
+        "auth"
+    } else if e.contains("recipient address rejected")
+        || e.contains("user unknown")
+        || e.contains("mailbox unavailable")
+        || e.contains("relay access denied")
+        || e.contains("relaying denied")
+    {
+        "recipient_rejected"
+    } else if e.contains("quota")
+        || e.contains("rate limit")
+        || e.contains("too many")
+        || e.contains("try again later")
+    {
+        "throttled"
+    } else if e.contains("timed out")
+        || e.contains("timeout")
+        || e.contains("connection")
+        || e.contains("dns")
+        || e.contains("certificate")
+        || e.contains("tls")
+    {
+        "transport"
+    } else if e.contains("invalid email address") {
+        "invalid_address"
+    } else {
+        "other"
+    }
+}
+
+/// Replace anything that looks like an email address with its stable
+/// [`hash_email`] token.
+///
+/// Relay errors quote the addresses they refused (`550 <someone@example.com>:
+/// User unknown`), so logging the error verbatim would put a *user's* address
+/// in the logs — exactly what LOW-4 removed. Hashing keeps the line
+/// correlatable with the rest of the request's logs while dropping the PII,
+/// and leaves the diagnostic wording (`553 5.7.1 ... Sender address rejected`)
+/// intact, which is the part an operator actually reads.
+///
+/// Fails closed: if the pattern cannot be compiled, nothing of the original
+/// text is returned.
+pub fn redact_email_addresses(text: &str) -> String {
+    match regex_lite::Regex::new(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}") {
+        Ok(re) => re
+            .replace_all(text, |caps: &regex_lite::Captures<'_>| {
+                format!("<email:{}>", hash_email(&caps[0]))
+            })
+            .into_owned(),
+        Err(_) => "<email address redaction unavailable>".to_string(),
+    }
+}
+
 /// Email service trait defining email operations
 #[async_trait]
 pub trait EmailService: Send + Sync {
@@ -379,9 +479,14 @@ impl EmailService for EmailServiceImpl {
         let config = match &self.config {
             Some(c) => c,
             None => {
+                // Returns Ok(()) so an unconfigured dev stack still works, but
+                // it must never look like a delivered message — hence the
+                // *skipped* counter rather than the success one.
+                counter!(EMAIL_SENDS_SKIPPED_TOTAL, "reason" => "unconfigured").increment(1);
                 warn!(
-                    "SMTP not configured, skipping email to {} with subject: {}",
-                    to, subject
+                    email_hash = %hash_email(to),
+                    subject = %subject,
+                    "SMTP not configured, skipping email"
                 );
                 return Ok(());
             },
@@ -390,7 +495,12 @@ impl EmailService for EmailServiceImpl {
         let mailer = match &self.mailer {
             Some(m) => m,
             None => {
-                warn!("SMTP mailer not initialized, skipping email to {}", to);
+                counter!(EMAIL_SENDS_SKIPPED_TOTAL, "reason" => "no_mailer").increment(1);
+                warn!(
+                    email_hash = %hash_email(to),
+                    subject = %subject,
+                    "SMTP mailer not initialized, skipping email"
+                );
                 return Ok(());
             },
         };
@@ -399,8 +509,12 @@ impl EmailService for EmailServiceImpl {
         // once in `SmtpConfig::from_address`. A malformed value is also
         // reported at startup (see `log_startup_info`) so it doesn't surface
         // for the first time here, mid-request.
-        let from_mailbox = Self::parse_mailbox(&config.from)?;
-        let to_mailbox = Self::parse_mailbox(to)?;
+        let from_mailbox = Self::parse_mailbox(&config.from).inspect_err(|_| {
+            counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => "invalid_address").increment(1);
+        })?;
+        let to_mailbox = Self::parse_mailbox(to).inspect_err(|_| {
+            counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => "invalid_address").increment(1);
+        })?;
 
         // Create plain text version by stripping HTML tags (simple approach)
         let plain_text = html_body
@@ -434,14 +548,44 @@ impl EmailService for EmailServiceImpl {
                             .body(html_body.to_string()),
                     ),
             )
-            .map_err(|e| AppError::Internal(format!("Failed to build email: {}", e)))?;
+            .map_err(|e| {
+                counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => "message_build").increment(1);
+                AppError::Internal(format!("Failed to build email: {}", e))
+            })?;
 
-        mailer
-            .send(email)
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to send email: {}", e)))?;
+        if let Err(e) = mailer.send(email).await {
+            // The hard failure path. #352 lived here for days as a single
+            // `tracing::error!` in the *caller*, with the caller still
+            // returning success to the user (email enumeration). Three things
+            // change that:
+            //   * a counter, so `/metrics` shows it and an alert can fire;
+            //   * a fixed, greppable marker (`EMAIL_SEND_FAILED`) — the string
+            //     to search for in the journal during an incident;
+            //   * a bounded `kind`, so "the relay rejects our sender" is
+            //     distinguishable from "the password is wrong" at a glance.
+            // No address and no credential is logged: the recipient is hashed,
+            // and the relay's text is scrubbed of addresses and then passed
+            // through `sanitize_log_value` because it is remote-controlled
+            // input going into a log line (log injection).
+            let detail = e.to_string();
+            let kind = classify_send_failure(&detail);
+            counter!(EMAIL_SEND_FAILURES_TOTAL, "kind" => kind).increment(1);
+            error!(
+                email_hash = %hash_email(to),
+                subject = %subject,
+                kind = %kind,
+                error = %sanitize_log_value(&redact_email_addresses(&detail), None),
+                "EMAIL_SEND_FAILED: the SMTP relay refused the message"
+            );
+            return Err(AppError::Internal(format!("Failed to send email: {}", e)));
+        }
 
-        info!("Email sent to {} with subject: {}", to, subject);
+        counter!(EMAIL_SENDS_TOTAL).increment(1);
+        info!(
+            email_hash = %hash_email(to),
+            subject = %subject,
+            "Email sent"
+        );
         Ok(())
     }
 
@@ -749,5 +893,124 @@ mod tests {
             .send_email("test@example.com", "Test", "<p>Test</p>")
             .await;
         assert!(result.is_ok());
+    }
+
+    // ------------------------------------------------------------------
+    // Send-failure observability (issue #352 part 3 / #364)
+    // ------------------------------------------------------------------
+
+    /// The exact wording from the #352 incident must classify as
+    /// `sender_rejected` — the label that means "the relay will not let us
+    /// send as ourselves", i.e. check the mailbox subscription, not the code.
+    #[test]
+    fn the_352_incident_wording_classifies_as_sender_rejected() {
+        let e = "Failed to send email: permanent error (553): 553 5.7.1 \
+                 <info@saichon.com>: Sender address rejected: not owned by user \
+                 info@saichon.com";
+        assert_eq!(classify_send_failure(e), "sender_rejected");
+    }
+
+    #[test]
+    fn send_failures_classify_into_bounded_kinds() {
+        let cases = [
+            (
+                "permanent error (535): 5.7.8 Error: authentication failed",
+                "auth",
+            ),
+            (
+                "permanent error (550): 5.1.1 <nobody@example.com>: Recipient address rejected: User unknown",
+                "recipient_rejected",
+            ),
+            (
+                "transient error (452): 4.2.2 Mailbox quota exceeded, try again later",
+                "throttled",
+            ),
+            ("Connection error: connection timed out", "transport"),
+            ("Invalid email address: not-an-address", "invalid_address"),
+            ("something nobody has seen before", "other"),
+        ];
+
+        for (error, expected) in cases {
+            assert_eq!(
+                classify_send_failure(error),
+                expected,
+                "classifying {:?}",
+                error
+            );
+        }
+    }
+
+    /// Sender rejection wins over the other arms even when the message also
+    /// mentions a connection or a code that another arm looks for — the
+    /// ordering in `classify_send_failure` is load-bearing.
+    #[test]
+    fn sender_rejection_takes_priority_over_generic_matches() {
+        let e = "connection to relay: 553 Sender address rejected: not owned by user";
+        assert_eq!(classify_send_failure(e), "sender_rejected");
+    }
+
+    #[test]
+    fn classification_is_case_insensitive() {
+        assert_eq!(
+            classify_send_failure("SENDER ADDRESS REJECTED"),
+            "sender_rejected"
+        );
+    }
+
+    #[test]
+    fn redaction_replaces_addresses_with_their_hash() {
+        let redacted = redact_email_addresses(
+            "553 5.7.1 <info@saichon.com>: Sender address rejected: not owned by user",
+        );
+
+        assert!(
+            !redacted.contains("info@saichon.com"),
+            "raw address survived redaction: {}",
+            redacted
+        );
+        assert!(
+            redacted.contains(&format!("<email:{}>", hash_email("info@saichon.com"))),
+            "expected the stable hash token in: {}",
+            redacted
+        );
+        // The diagnostic wording — the part an operator actually reads — must
+        // survive intact.
+        assert!(redacted.contains("553 5.7.1"));
+        assert!(redacted.contains("Sender address rejected"));
+    }
+
+    #[test]
+    fn redaction_handles_multiple_addresses_and_leaves_other_text_alone() {
+        let redacted = redact_email_addresses("from alice@example.com to bob@example.org: 250 ok");
+
+        assert!(!redacted.contains("alice@example.com"));
+        assert!(!redacted.contains("bob@example.org"));
+        assert_ne!(
+            hash_email("alice@example.com"),
+            hash_email("bob@example.org"),
+            "distinct addresses must stay distinguishable in logs"
+        );
+        assert!(redacted.contains("250 ok"));
+        assert!(redacted.starts_with("from "));
+    }
+
+    #[test]
+    fn redaction_is_a_no_op_for_text_without_addresses() {
+        let text = "connection timed out after 30s";
+        assert_eq!(redact_email_addresses(text), text);
+    }
+
+    /// The relay controls this text, so the failure log runs it through
+    /// `sanitize_log_value` after redaction — a hostile relay must not be able
+    /// to forge log lines. This pins the exact composition used in
+    /// `send_email`.
+    #[test]
+    fn the_failure_log_pipeline_defeats_log_injection() {
+        let hostile = "550 rejected\nERROR forged line from mailbox@evil.example";
+        let logged = sanitize_log_value(&redact_email_addresses(hostile), None);
+
+        assert!(!logged.contains('\n'), "newline survived: {:?}", logged);
+        assert!(!logged.contains("mailbox@evil.example"));
+        assert!(logged.contains("550 rejected"));
     }
 }
