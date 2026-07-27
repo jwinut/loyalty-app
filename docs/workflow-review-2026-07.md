@@ -56,6 +56,7 @@
 | 49 | low | correctness | `codeql.yml:28` | `cancel-in-progress: true` on a shared main/schedule concurrency group evicts main-branch and weekly analyses |
 | 50 | low | maintainability | `backup-production.yml:187` | Run summary prints a literal `${BACKUP_S3_BUCKET}` and silently reports empty fields on failure |
 | 51 | low | redundancy | `ci-test.yml:112` | Four overlapping dependency-CVE mechanisms with three different cadences and only one that pages anyone |
+| 52 | high | correctness | `ci-test.yml:4`, `ci-build-e2e.yml:4` | Release-please PRs carry zero check runs, so the only PR class that triggers a production deploy is the one class nothing verifies |
 
 ## HIGH severity
 
@@ -514,3 +515,58 @@ Line 187 writes `- Destination: \`s3://\${BACKUP_S3_BUCKET}/daily/\``, but the `
 The same class of finding is produced by: `npm audit --audit-level=moderate` with `continue-on-error: true` on the deploy-gating lint job (ci-test.yml:112-115); Trivy's filesystem scan over Cargo.lock/package-lock.json (trivy.yml:127, workflow_run + weekly Saturday only); Trivy's two image scans (per-merge); and `cargo audit` daily (cargo-audit.yml:19). Of the four, only cargo-audit files an issue on failure (cargo-audit.yml:53); the Trivy results land silently in SARIF and the npm audit is `continue-on-error`, meaning it costs runner time on the critical deploy path and can never change an outcome. Dependabot (weekly Monday, `open-pull-requests-limit: 1` per ecosystem) is a fifth path with its own cadence. The result is high scan cost and low signal: a moderate frontend CVE produces a green check, a silent SARIF entry, and possibly a queued Dependabot PR behind the limit-1 cap.
 
 **Fix:** Delete the `npm audit` step from ci-test.yml:112-115 (it duplicates Trivy's filesystem scan and the pre-push hook's `npm run security:audit`), and give trivy.yml's scan-filesystem the same notify-on-failure issue-filing job cargo-audit.yml:53 already implements so source-dependency CVEs have one owner and one alert channel.
+
+## Addendum — found after the original review
+
+### 52. Release-please PRs carry zero check runs, so the only PR class that triggers a production deploy is the one class nothing verifies
+
+**`ci-test.yml:4`, `ci-build-e2e.yml:4`** · correctness · high
+
+Both gating workflows triggered on `push: branches: [main]` and
+`pull_request: branches: [main]`. The release PR targets `main`, so on paper
+the `pull_request` trigger covers it. It does not: release-please opens and
+force-updates the PR using `GITHUB_TOKEN`, and GitHub deliberately raises no
+workflow run for events created by that token (anti-recursion). The head
+commit of every release PR therefore has **no check runs at all** — confirmed
+for #350, #358, #362, #367 and #372, all authored by `app/github-actions` on
+branch `release-please--branches--main--components--loyalty-app`, with runs
+observed sitting in `action_required` and never starting.
+
+Consequence: merging a release PR is precisely what puts a new version on
+`main`, which fires CI Build & Deploy → staging → the now-**unattended**
+production deploy (see finding 12 and the `deploy.yml` rewrite). The single PR
+class that ships to production is the single PR class that arrives unverified.
+It is also the entire shortfall behind OpenSSF Scorecard alerts #92 (SAST,
+medium) and #925 (CI-Tests, low), both stuck at "26 of 30".
+
+**Fix (applied):** add `release-please--**` to the `push: branches:` list of
+`ci-test.yml` and `ci-build-e2e.yml`, so the *genuine* suite runs on the
+release branch and real checks attach to the head commit before merge.
+Explicitly **not** a PAT or GitHub App token, and explicitly not a workflow
+whose only product is a green check — that inflates the Scorecard number
+without verifying anything.
+
+Deploy safety, the whole risk of the change: every mutating job in
+`ci-build-e2e.yml` was already gated on
+`github.ref == 'refs/heads/main' && github.event_name == 'push'` —
+`promote-latest`, `wait-for-frontend-checks`, `deploy-staging`,
+`verify-staging`, `notify-verify-staging-failure` — so no new guard was
+needed for any of them. The one unguarded writer is `build-and-push`, which
+already pushes a commit-SHA image on every `pull_request`; its mutable
+`type=ref,event=branch` tag was scoped to `enable={{is_default_branch}}` so a
+release branch cannot mint a permanent junk tag in GHCR. `deploy.yml` cannot
+cascade: its `workflow_run` trigger is filtered `branches: [main]` (matched
+against `workflow_run.head_branch`), and `check-prerequisites` independently
+requires the triggering run's `Verify Staging` job to have concluded
+`success` — it is skipped off `main` — plus the SHA to still be the tip of
+`main`. `trivy.yml`'s image scans and `e2e.yml` are likewise
+`workflow_run … branches: [main]`, so neither fires on a release branch.
+
+Residual risk, stated honestly: GitHub's anti-recursion rule suppresses
+workflow runs for *all* `GITHUB_TOKEN`-triggered events, and release-please
+pushes the release branch with that same token. If `push` is suppressed the
+same way `pull_request` is, checks still will not attach and this fix is
+inert (harmless, but inert). It can only be settled empirically at the next
+release. What to look for: check runs present on the release PR's head
+commit, and **no** `Deploy to Staging` / `Verify Staging` / `Promote latest
+tag` / notifier job having run.

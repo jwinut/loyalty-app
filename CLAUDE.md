@@ -196,6 +196,19 @@ failure and **closed automatically on recovery**, which is also what clears
 `LAST-FAILURE`. Setup, token rotation and the alert drill:
 [`docs/restore-runbook.md`](docs/restore-runbook.md).
 
+**Release-please branches run the full suite before merge.** `ci-test.yml`
+and `ci-build-e2e.yml` also trigger on `push` to `release-please--**`.
+release-please opens its PR with `GITHUB_TOKEN`, and GitHub raises no
+`pull_request` workflow run for bot-token events — so release PRs used to
+merge with *zero* checks on their head commit, and merging one is exactly
+what fires the unattended production deploy. The deploy-triggering PR class
+must not be the unverified one. Only the build/test half runs there: every
+mutating job (`promote-latest`, `deploy-staging`, `verify-staging`, the
+notifiers) is gated on `github.ref == 'refs/heads/main'`, and `deploy.yml`'s
+`workflow_run` trigger is filtered to `branches: [main]`, so a release-branch
+run cannot reach staging or production. Cost: one extra full pipeline each
+time release-please updates the release branch.
+
 Production deploys live in `deploy.yml` and are **unattended** — the
 `production` environment no longer has a required reviewer, so a green
 build ships to production with no human in the loop. What stands in for
