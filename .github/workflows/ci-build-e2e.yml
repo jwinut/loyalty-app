@@ -433,7 +433,7 @@ jobs:
       # Backend Image (Rust) - uses pre-built binary from build-backend-release
       # -------------------------------------------------------------------------
       - name: Download backend binary
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: loyalty-backend-binary
           path: ./backend-binary
