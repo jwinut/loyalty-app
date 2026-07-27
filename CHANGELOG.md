@@ -11,6 +11,14 @@ merging that PR is what tags `vX.Y.Z` and publishes the GitHub release.
 Entries below the generated sections are the earlier hand-written, dated
 format, kept verbatim for history.
 
+## [4.4.2](https://github.com/thehfhotel/loyalty-app/compare/v4.4.1...v4.4.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ci:** ship one verified healthcheck binary and prove deploys land ([#360](https://github.com/thehfhotel/loyalty-app/issues/360), [#345](https://github.com/thehfhotel/loyalty-app/issues/345)) ([#361](https://github.com/thehfhotel/loyalty-app/issues/361)) ([d2dc94c](https://github.com/thehfhotel/loyalty-app/commit/d2dc94ce464d1963a3ca34558f4819b4427654ad))
+* wire SMTP_FROM end-to-end and stop /api/health faking email ([#363](https://github.com/thehfhotel/loyalty-app/issues/363)) ([709c446](https://github.com/thehfhotel/loyalty-app/commit/709c446e63a5e45159bc97a8f26e62e488918e2e)), closes [#352](https://github.com/thehfhotel/loyalty-app/issues/352)
+
 ## [4.4.1](https://github.com/thehfhotel/loyalty-app/compare/v4.4.0...v4.4.1) (2026-07-27)
 
 
