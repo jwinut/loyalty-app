@@ -2,45 +2,11 @@ name: CI Build & Deploy
 
 on:
   push:
-    branches:
-      - main
-      # RELEASE-PLEASE BRANCHES GET THE REAL SUITE, PRE-MERGE.
-      #
-      # release-please opens its release PR with GITHUB_TOKEN, and GitHub does
-      # not raise `pull_request` workflow runs for bot-token events. Every
-      # release PR (#350, #358, #362, #367, #372) therefore merged with ZERO
-      # check runs on its head commit — and merging a release PR is exactly
-      # what triggers the UNATTENDED production deploy. Running the genuine
-      # pipeline on the branch attaches real checks to the head commit before
-      # anyone merges it.
-      #
-      # Glob rationale: see the matching comment in ci-test.yml.
-      #
-      # DEPLOY SAFETY — a run on this branch must build and test, and mutate
-      # NOTHING. Every mutating job below is gated on
-      # `github.ref == 'refs/heads/main' && github.event_name == 'push'`:
-      # promote-latest, wait-for-frontend-checks, deploy-staging,
-      # verify-staging, notify-verify-staging-failure. The one unguarded job
-      # that writes anywhere is build-and-push (GHCR); it already pushes a
-      # commit-SHA image on every pull_request, and its mutable `:<branch>`
-      # tag is now scoped to the default branch so a release branch cannot
-      # leave a junk tag behind. deploy.yml cannot cascade from here: its
-      # `workflow_run` trigger is filtered to `branches: [main]`, which matches
-      # workflow_run.head_branch, and its check-prerequisites additionally
-      # requires this run's `Verify Staging` job to have concluded `success`
-      # (it is skipped off main) and the SHA to still be the tip of main.
-      - 'release-please--**'
+    branches: [main]
     # Workflow- or docs-only changes don't alter the built backend/frontend
     # images, so skip the build -> staging -> production pipeline for them and
     # avoid a needless prod redeploy + approval. paths-ignore only skips a push
     # when EVERY changed file matches, so any code change still deploys.
-    #
-    # Confirmed against release commit 3bffb1d7 ("chore(main): release 4.5.1"),
-    # which touches .release-please-manifest.json, CHANGELOG.md,
-    # backend-rust/Cargo.toml, frontend/package.json, package.json and
-    # package-lock.json. Only CHANGELOG.md matches `**.md`; the five others
-    # match nothing here, so a release push is never skipped and the checks
-    # always attach.
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -512,14 +478,12 @@ jobs:
           # (deploy-staging, deploy.yml, regression-api, start-app-stack), and
           # it is produced on every event.
           #
-          # The mutable branch tag is scoped to the DEFAULT branch. `push` now
-          # also fires on `release-please--**`, and without this guard each
-          # release PR would mint a permanent
-          # `backend:release-please--branches--main--components--loyalty-app`
-          # tag in GHCR — a mutable tag nothing consumes, silently re-pointed
-          # at a different commit on every release. `main` is unaffected:
-          # is_default_branch is true there, so the `:main` tag is still
-          # published exactly as before.
+          # The mutable branch tag is scoped to the DEFAULT branch. Nothing
+          # consumes a `:<branch>` tag off main, so any other branch that ever
+          # reaches this job would only leave a permanent GHCR tag behind,
+          # silently re-pointed at a different commit each time it built. `main`
+          # is unaffected: is_default_branch is true there, so the `:main` tag
+          # is still published exactly as before.
           tags: |
             type=sha,format=long,prefix=
             type=ref,event=branch,enable={{is_default_branch}}
