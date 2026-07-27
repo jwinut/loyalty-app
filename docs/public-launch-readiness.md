@@ -23,9 +23,8 @@ Legend:
   which required cloud storage and had never actually produced a backup
   (its environment-scoped secrets read empty, so it skipped nightly while
   reporting success). Restore drill in
-  [`docs/restore-runbook.md`](restore-runbook.md). **TODO before public
-  launch**: run `scripts/evergreen/install.sh` on evergreen and *actually
-  run the restore drill once.*
+  [`docs/restore-runbook.md`](restore-runbook.md). Installed and drilled on
+  evergreen 2026-07-28 — see the row below.
 - [x] **Failure-alert path** (CRIT-2) — `cargo-audit`, `Verify Staging`,
   and `deploy.yml` now file GitHub issues on red instead of relying on
   someone refreshing the Actions tab.
@@ -82,13 +81,39 @@ Legend:
 
 ## Still open before public launch
 
-- [ ] **Backup installed on evergreen** — run
-  `sudo ./scripts/evergreen/install.sh`, set `ALERT_COMMAND` in
-  `/etc/loyalty-backup.conf`, then verify with
-  `systemctl start loyalty-backup.service` and confirm a dump decrypts with
-  the private key. Until this runs, **there is no production backup at all**.
-  Note the backups sit on the same host as the database, so this does not yet
-  protect against loss of evergreen itself.
+- [x] **Backup installed on evergreen** — **done 2026-07-28.** `install.sh` has
+  been run on evergreen: the timer is active (next run 01:00 ICT), 5 encrypted
+  dumps are present and `last-success` is fresh;
+  `loyalty-backup-notify-github.sh` is installed and set as `ALERT_COMMAND`; a
+  full alert drill filed issue #375 on a genuine failure, de-duplicated a repeat
+  run to a comment, proved a broken notifier cannot fail an otherwise-good
+  backup (`Result=success`, marker retained), then commented, **closed #375**
+  and cleared the markers on a clean run; and a restore drill decrypted
+  `loyalty_pg_20260727T204006Z.sql.gz.age` with the age key, loaded it into a
+  throwaway `loyalty_db_restore` under `ON_ERROR_STOP=1`, verified 44 tables /
+  10 users / 4 tiers, and dropped the scratch DB. Log:
+  [`docs/restore-runbook.md` § Restore drill log](restore-runbook.md#restore-drill-log).
+
+Nothing else is outstanding in this section. See **Accepted risks** below for
+the one thing deliberately *not* being fixed before launch.
+
+## Accepted risks
+
+Decisions taken with eyes open, not oversights. Each is a conscious trade-off
+the owner has signed off on; revisit them at the ~90-day re-audit.
+
+- **Backups are single-site (accepted 2026-07-28).** The encrypted dumps in
+  `/srv/backups/loyalty` live on evergreen, the same host that runs the
+  production database. There are no offsite or second-machine copies. This
+  covers the failure modes that actually happen — a bad migration, an
+  accidental `DELETE`, a corrupted table, a restore drill — but **losing
+  evergreen loses the database and every backup of it together**. The owner has
+  weighed that against the cost and key-management surface of offsite storage
+  and chosen to launch this way. Watch criteria for revisiting: the host moving
+  off its current hardware, the first real data-loss incident, or any regulatory
+  or customer commitment on recovery. The mitigation, if and when it is taken,
+  is a pull-based copy of `/srv/backups/loyalty` to a second machine — the dumps
+  are already `age`-encrypted at rest, so the second site never needs the key.
 
 ## After the first 30 days
 

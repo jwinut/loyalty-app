@@ -105,7 +105,7 @@ A harmless warning appears in the journal on every run:
 # On evergreen — run now rather than waiting for 18:00 UTC
 sudo systemctl start loyalty-backup.service
 journalctl -u loyalty-backup.service -n 40 --no-pager
-ls -lh /srv/backups/loyalty
+sudo ls -lh /srv/backups/loyalty    # 700, root-owned — without sudo this "does not exist"
 ```
 
 An untested backup is not a backup — confirm one actually restores using the
@@ -232,8 +232,8 @@ loop end to end; it takes about two minutes and touches no production data.
 # 1. FAILURE. Fire the alert unit by hand — same path OnFailure= uses.
 sudo systemctl start loyalty-backup-failure@loyalty-backup.service
 journalctl -u 'loyalty-backup-failure@*' -n 40 --no-pager
-ls -l /srv/backups/loyalty/LAST-FAILURE          # marker written
-cat /srv/backups/loyalty/.github-alert-issue     # issue number remembered (mode 600)
+sudo ls -l /srv/backups/loyalty/LAST-FAILURE     # marker written (mode 600)
+sudo cat /srv/backups/loyalty/.github-alert-issue # issue number remembered (mode 600)
 #    -> expect a new "Production backup failed on evergreen" issue on GitHub
 
 # 2. DE-DUPE. Do it again; it must COMMENT, not open a second issue.
@@ -242,7 +242,7 @@ sudo systemctl start loyalty-backup-failure@loyalty-backup.service
 # 3. RECOVERY. A real backup run clears it and closes the issue.
 sudo systemctl start loyalty-backup.service
 journalctl -u loyalty-backup.service -n 40 --no-pager
-ls -l /srv/backups/loyalty/LAST-FAILURE          # expect: No such file or directory
+sudo ls -l /srv/backups/loyalty/LAST-FAILURE     # expect: No such file or directory
 #    -> expect a "Backups are working again" comment and the issue CLOSED
 ```
 
@@ -263,18 +263,28 @@ when it does:
 ### 1. Pick the dump
 
 ```bash
-# On evergreen — newest last
-ls -lh /srv/backups/loyalty/
-cat /srv/backups/loyalty/last-success   # timestamp, filename, size of the last good run
+# On evergreen — newest last. sudo is required for both: see the note below.
+sudo ls -lh /srv/backups/loyalty/
+sudo cat /srv/backups/loyalty/last-success   # timestamp, filename, size of the last good run
 ```
 
 Copy it to the machine holding the private key (dumps cannot be decrypted on
-evergreen — it only has the public key):
+evergreen — it only has the public key). Stream it through `sudo cat`; this is
+the form verified in the 2026-07-28 drill:
 
 ```bash
-scp evergreen:/srv/backups/loyalty/loyalty_pg_20260513T180001Z.sql.gz.age \
-  /tmp/restore.sql.gz.age
+ssh evergreen 'sudo cat /srv/backups/loyalty/loyalty_pg_20260727T204006Z.sql.gz.age' \
+  > /tmp/restore.sql.gz.age
 ```
+
+> **Do not use `scp` here.** `/srv/backups/loyalty` is mode 700 and root-owned
+> (`install.sh` creates it that way), and `scp` runs as your unprivileged login,
+> not as root — so it cannot even `stat` inside the directory and fails with
+> **`No such file or directory`**, not "Permission denied". The dump is right
+> there; the error is misleading. Hitting this cost real time on 2026-07-28.
+
+(`evergreen` above is your `~/.ssh/config` alias for the cloudflared host — the
+same target as the longer `ssh -o ProxyCommand=…` invocations further down.)
 
 ### 2. Decrypt and decompress locally
 
@@ -369,11 +379,11 @@ was last exercised.
 
 | Date       | Operator | Backup restored                          | Notes                |
 | ---------- | -------- | ---------------------------------------- | -------------------- |
-| _pending_  | _name_   | _e.g. loyalty_pg_20260513T180001Z._      | First drill required |
+| 2026-07-28 | Winut    | `loyalty_pg_20260727T204006Z.sql.gz.age` | Decrypted with the age key on the operator's machine; loaded into a throwaway `loyalty_db_restore` with `ON_ERROR_STOP=1`; verified 44 tables / 10 users / 4 tiers; scratch DB dropped. Also exposed the `scp` trap fixed in step 1 above. |
 
-> **Pre-launch action**: perform one full end-to-end restore drill into
-> a throwaway database before flipping the public switch. Record the
-> result in this table.
+> The pre-launch drill requirement is **satisfied** by the row above. Re-run the
+> drill after any change to the dump, encryption or restore path, and at least
+> once per token-rotation cycle, so the procedure never goes stale.
 
 ## Troubleshooting
 
