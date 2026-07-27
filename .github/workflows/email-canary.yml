@@ -150,7 +150,15 @@ jobs:
           CANARY_EMAIL_TO: ${{ secrets.CANARY_EMAIL_TO || vars.CANARY_EMAIL_TO }}
           SIMULATE_FAILURE: ${{ github.event.inputs.simulate_failure || 'false' }}
         run: |
-          # NOT `set -e`: curl failing is an expected outcome we handle.
+          # errexit must be turned OFF explicitly: GitHub runs `run:` blocks as
+          # `bash -e {0}`, so merely omitting `-e` from this `set` line leaves
+          # errexit ON. A failing curl is the EXPECTED outcome here, and under
+          # errexit the step dies before it can write `result=failed` to
+          # $GITHUB_OUTPUT — which skips every alerting step below (their `if:`
+          # carries no status function, so it is implicitly ANDed with
+          # success()). That is an alarm that silently never fires; it was
+          # caught by dispatching this workflow with simulate_failure=true.
+          set +e
           set -uo pipefail
           umask 077
 
